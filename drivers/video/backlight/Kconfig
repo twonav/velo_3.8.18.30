@@ -407,6 +407,13 @@ config BACKLIGHT_TPS65217
 	help
 	  If you have a Texas Instruments TPS65217 say Y to enable the
 	  backlight driver.
+	  
+config BACKLIGHT_TPS611xx
+	tristate "TPS611xx Backlight"
+	depends on BACKLIGHT_CLASS_DEVICE && GPIOLIB
+	help
+	  This supports TI TPS61158, TPS61161, TPS61163 and TPS61165
+	  backlight driver based on EasyScale Protocol.
 
 endif # BACKLIGHT_CLASS_DEVICE
 
