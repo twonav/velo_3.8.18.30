@@ -157,12 +157,13 @@ static struct regulator_init_data max77686_buck7_data = {
 };
 
 //-----------------------------------------------------------------------------------
-// BUCK8 : IO(2.8V)
+// BUCK8 : BUCK8 POWER (3V3)
 //-----------------------------------------------------------------------------------
-#if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
+static struct regulator_consumer_supply buck8_consumer =
+	REGULATOR_SUPPLY("vmmc", "dw_mmc");
 static struct regulator_init_data max77686_buck8_data = {
 	.constraints	= {
-		.name		= "BUCK8 3V0",
+		.name		= "BUCK8 3V3",
 		.min_uV		= 3300000,
 		.max_uV		= 3300000,
 		.always_on	= 1,
@@ -176,51 +177,26 @@ static struct regulator_init_data max77686_buck8_data = {
 		},
 	},
 };
-#else
-static struct regulator_consumer_supply buck8_consumer =
-	REGULATOR_SUPPLY("vmmc", "dw_mmc");
-static struct regulator_init_data max77686_buck8_data = {
+
+//-----------------------------------------------------------------------------------
+// BUCK9 : BUCK 9 POWER (3V3)
+//-----------------------------------------------------------------------------------
+static struct regulator_init_data max77686_buck9_data = {
 	.constraints	= {
-		.name		= "vddf_emmc_2V85",
-		.min_uV		= 2850000,
-		.max_uV		= 2850000,
+		.name		= "BUCK9 3V3",
+		.min_uV		= 3300000,
+		.max_uV		= 3300000,
 		.always_on	= 1,
 		.boot_on	= 1,
 		.apply_uV	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.enabled = 1,
-			.disabled = 0,
-		},
-	},
-	.num_consumer_supplies  = 1,
-	.consumer_supplies  = &buck8_consumer,
-};
-#endif
-
-//-----------------------------------------------------------------------------------
-// BUCK9 : IO(1.2V)
-//-----------------------------------------------------------------------------------
-static struct regulator_init_data max77686_buck9_data = {
-	.constraints	= {
-		.name		= "BUCK9 1V2",
-		.min_uV		= 1200000,
-		.max_uV		= 1200000,
-#if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
-		.always_on	= 0,
-#else
-		.always_on	= 1,
-#endif
-		.apply_uV	= 1,
-		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
-		.state_mem	= {
-			.uV	= 1200000,
+			.uV	= 3300000,
 			.mode	= REGULATOR_MODE_NORMAL,
 			.enabled = 1,
 		},
 	},
 };
-
 //-----------------------------------------------------------------------------------
 // LDO1 : VDD_ALIVE(1.0V)
 //-----------------------------------------------------------------------------------
@@ -394,19 +370,15 @@ static struct regulator_init_data max77686_ldo8_data = {
 };
 
 //-----------------------------------------------------------------------------------
-// LDO9 : VT_CORE (1.0V)
+// LDO9 : I2C SENSORS POWER ON VELO (1.8V)
 //-----------------------------------------------------------------------------------
 static struct regulator_init_data max77686_ldo9_data = {
 	.constraints	= {
 		.name		= "LDO9 VT_CORE_1V0",
-		.min_uV		= 1000000,
-		.max_uV		= 1000000,
+		.min_uV		= 1800000,
+		.max_uV		= 1800000,
 		.apply_uV	= 1,
-#if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
-        .always_on  = 0,
-#else
 		.always_on	= 1,
-#endif		
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
 			.uV		= 1000000,
@@ -633,13 +605,13 @@ static struct regulator_init_data max77686_ldo19_data = {
 		.name		= "LDO19 VT_CAM_1V8",
 		.min_uV		= 1800000,
 		.max_uV		= 1800000,
-		.apply_uV	= 0,
-		.always_on	= 0,
-		.boot_on	= 0,
+		.apply_uV	= 1,
+		.always_on	= 1,
+		.boot_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
 			.uV		= 1800000,
-			.enabled = 0,
+			.enabled = 1,
 		},
 	},
 	.num_consumer_supplies  = 1,
@@ -741,8 +713,8 @@ static struct regulator_init_data max77686_ldo23_data = {
 		.min_uV		= 3300000,
 		.max_uV		= 3300000,
 #else
-		.min_uV		= 2800000,
-		.max_uV		= 2800000,
+		.min_uV		= 3000000,
+		.max_uV		= 3000000,
 #endif		
 		.apply_uV	= 1,
 #if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
@@ -755,7 +727,7 @@ static struct regulator_init_data max77686_ldo23_data = {
 #if defined(CONFIG_FB_S5P_S6E8AA1) || defined(CONFIG_FB_S5P_LG4591)
 			.uV		= 3300000,
 #else
-			.uV		= 2800000,
+			.uV		= 3000000,
 #endif			
 			.enabled = 1,
 		},
@@ -780,8 +752,8 @@ static struct regulator_init_data max77686_ldo24_data = {
 		.min_uV		= 3000000,
 		.max_uV		= 3000000,
 #else
-		.min_uV		= 3300000,
-		.max_uV		= 3300000,
+		.min_uV		= 3000000,
+		.max_uV		= 3000000,
 #endif		
 		.apply_uV	= 1,
 #if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
@@ -796,7 +768,7 @@ static struct regulator_init_data max77686_ldo24_data = {
 #elif defined(CONFIG_FB_S5P_S6EVR01)
 			.uV		= 3000000,
 #else
-			.uV		= 3300000,
+			.uV		= 3000000,
 #endif			
 			.enabled = 1,
 		},
@@ -818,8 +790,8 @@ static struct regulator_init_data max77686_ldo25_data = {
 		.min_uV		= 3100000,
 		.max_uV		= 3100000,
 #else
-		.min_uV		= 1800000,
-		.max_uV		= 1800000,
+		.min_uV		= 3000000,
+		.max_uV		= 3000000,
 #endif		
 		.apply_uV	= 1,
 		.always_on	= 1,
@@ -828,7 +800,7 @@ static struct regulator_init_data max77686_ldo25_data = {
 #if defined(CONFIG_FB_S5P_S6E8AA1)
 			.uV		= 3100000,
 #else
-			.uV		= 1800000,
+			.uV		= 3000000,
 #endif
 			.enabled = 1,
 		},
