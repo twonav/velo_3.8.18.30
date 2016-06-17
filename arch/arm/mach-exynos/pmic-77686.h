@@ -399,14 +399,14 @@ static struct regulator_consumer_supply ldo10_consumer_77686[] = {
 static struct regulator_init_data max77686_ldo10_data = {
 	.constraints	= {
 		.name		= "LDO10 VDD18_MIPI_1V8",
-		.min_uV		= 0,
-		.max_uV		= 0,
+		.min_uV		= 1800000,
+		.max_uV		= 1800000,
 		.boot_on	= 0,
 		.always_on	= 0,
 		.apply_uV	= 0,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV		= 0,
+			.uV		= 1800000,
 			.enabled = 0,
 		},
 	},
