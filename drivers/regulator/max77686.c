@@ -479,17 +479,105 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 		}
 	}
 
-	printk("YEEEEEEEE!!!!! PATXIIIIIIII \n");
-#define REGULATOR_POS_2v8	3 //LDO4
-#define REGULATOR_POS_1v8	4 //LDO5
-	
-	regulator_disable_regmap(max77686->rdev[REGULATOR_POS_2v8]);//OFF 2v8
-	regulator_disable_regmap(max77686->rdev[REGULATOR_POS_1v8]);//OFF 1v8
-	mdelay(100);
-	regulator_enable_regmap(max77686->rdev[REGULATOR_POS_1v8]);	 //ON 1v8	
-	mdelay(1);		
-	regulator_enable_regmap(max77686->rdev[REGULATOR_POS_2v8]);	 //ON 2v8
-	
+
+printk("Disabling Voltages \n");
+
+#define REGULATOR_LDO1		0
+#define REGULATOR_LDO2		1
+#define REGULATOR_LDO3		2
+#define REGULATOR_LDO4		3
+
+#define REGULATOR_LDO5		4
+
+#define REGULATOR_LDO6		5
+#define REGULATOR_LDO7		6
+#define REGULATOR_LDO8		7
+
+#define REGULATOR_LDO9		8
+
+#define REGULATOR_LDO10		9
+#define REGULATOR_LDO11		10
+#define REGULATOR_LDO12		11
+
+#define REGULATOR_LDO13		12
+
+#define REGULATOR_LDO14		13
+#define REGULATOR_LDO15		14
+#define REGULATOR_LDO16		15
+#define REGULATOR_LDO17		16
+#define REGULATOR_LDO18		17
+
+#define REGULATOR_LDO19		19
+
+#define REGULATOR_LDO20		19
+#define REGULATOR_LDO21		20
+#define REGULATOR_LDO22		21
+
+#define REGULATOR_LDO23		22
+
+#define REGULATOR_LDO24		23
+#define REGULATOR_LDO25		24
+#define REGULATOR_LDO26		25
+
+
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO4]);//OFF 2v8
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO5]);//OFF 1v8
+
+	//Shutting down LDO
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO1]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO2]);
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO5]);
+
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO6]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO7]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
+
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO11]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO14]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO15]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO16]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO17]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO18]);
+
+	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]);
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO20]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO22]);
+
+	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]);
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO24]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO25]);
+
+	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO26]);
+//
+//	mdelay(100);
+//	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO5]);	 //ON 1v8
+//	mdelay(1);
+//	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO4]);	 //ON 2v8
+
+//	int ldo = 0;
+//	while(ldo < MAX77686_LDOS)
+//	{
+//		if(ldo == 2 || ldo == 3 || ldo == 8 || ldo == 12) continue;
+//		printk("Disabling LDO %i\n", ldo+1);
+//		regulator_disable_regmap(max77686->rdev[ldo]);
+//		mdelay(1);
+//		++ldo;
+//	}
+
+	printk("Disabling BUCK8");
+	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK8]);
+	mdelay(1);
+	printk("Disabling BUCK9");
+	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK9]);
+	mdelay(1);
+
 	return 0;
 err:
 	while (--i >= 0)
