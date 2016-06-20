@@ -527,56 +527,47 @@ printk("Disabling Voltages \n");
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO1]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO2]);
 
-	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO5]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO3]); //J3,31 Not Connected
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO4]); //LCD_VCI
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO5]); //AUDIO.1V8
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO6]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO7]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO11]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO9]); //SENS.1V8
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO11]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
+
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO13]); //eMMC.VDD
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO14]);
-	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO15]);
+
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO15]);
+
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO16]);
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO17]);
-	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO18]);
 
-	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO18]);
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]); //GPS.VDD
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO20]);
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
-	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO22]);
 
-	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO22]); //APAGABLE
+
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]); //AUDIO.3V
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO24]);
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO25]);
 
-	//regulator_disable_regmap(max77686->rdev[REGULATOR_LDO26]);
-//
-//	mdelay(100);
-//	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO5]);	 //ON 1v8
-//	mdelay(1);
-//	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO4]);	 //ON 2v8
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO26]); //3V.HIGH
 
-//	int ldo = 0;
-//	while(ldo < MAX77686_LDOS)
-//	{
-//		if(ldo == 2 || ldo == 3 || ldo == 8 || ldo == 12) continue;
-//		printk("Disabling LDO %i\n", ldo+1);
-//		regulator_disable_regmap(max77686->rdev[ldo]);
-//		mdelay(1);
-//		++ldo;
-//	}
-
-	printk("Disabling BUCK8");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK8]);
-	mdelay(1);
-	printk("Disabling BUCK9");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK9]);
-	mdelay(1);
 
 	return 0;
 err:
