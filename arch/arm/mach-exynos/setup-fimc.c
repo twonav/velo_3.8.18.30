@@ -26,8 +26,8 @@ int exynos4_fimc_setup_gpio(enum s5p_camport_id id)
 		break;
 
 	case S5P_CAMPORT_B:
-		gpio8 = EXYNOS4_GPE0(0); /* DATA[0:7] */
-		gpio5 = EXYNOS4_GPE1(0); /* PCLK, VSYNC, HREF, CLKOUT, FIELD */
+		gpio8 = EXYNOS4210_GPE0(0); /* DATA[0:7] */
+		gpio5 = EXYNOS4210_GPE1(0); /* PCLK, VSYNC, HREF, CLKOUT, FIELD */
 		sfn = S3C_GPIO_SFN(3);
 		break;
 

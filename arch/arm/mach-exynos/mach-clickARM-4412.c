@@ -202,8 +202,8 @@ static int TSC2007_tsp_init(void)
 {
 	/* TOUCH_INT: XEINT_22 */
 	gpio_request(VELO_TS_INT, "TOUCH_INT");
-	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_SFN(0xf));
-	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_NONE);
+	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_INPUT);
+	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_UP);
 }
 
 struct tsc2007_platform_data tsc2007_info = {
@@ -464,7 +464,7 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 /*BACKLIGTH INIT*/
 
 static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
-	.no = EXYNOS4212_GPM1(5),
+	.no = EXYNOS4X12_GPM1(5),
 	.func = S3C_GPIO_SFN(2),
 };
 
@@ -503,11 +503,11 @@ static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
 	if (power) {
-		gpio_set_value(EXYNOS4212_GPM1(5),1);
+		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
-		gpio_set_value(EXYNOS4212_GPM1(5),0);
+		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
-		gpio_free(EXYNOS4212_GPM1(5));
+		gpio_free(EXYNOS4X12_GPM1(5));
 	
 }
 
@@ -530,7 +530,7 @@ static struct platform_device clickarm4412_lcd_t55149gd030j = {
 static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 	{
 		.code			= BTN_A,
-		.gpio			= EXYNOS4212_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
+		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
 		.desc			= "KEY_POWER",
 		.type			= EV_SW,
 		.active_low		= 1,
@@ -737,9 +737,9 @@ static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
 	
 	if (enable) {
-		gpio_set_value(EXYNOS4212_GPM1(5),1);
+		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
-		gpio_set_value(EXYNOS4212_GPM1(5),0);
+		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
 
 	return 1;
@@ -752,9 +752,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4212_GPM1(5));
-	gpio_request_one(EXYNOS4212_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
-	gpio_free(EXYNOS4212_GPM1(5));
+	gpio_free(EXYNOS4X12_GPM1(5));
+	gpio_request_one(EXYNOS4X12_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
+	gpio_free(EXYNOS4X12_GPM1(5));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
@@ -1008,8 +1008,20 @@ static void __init clickarm4412_gpio_init(void)
 	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
 
 	/* Power on/off button */
-	s3c_gpio_cfgpin(EXYNOS4212_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
-	s3c_gpio_setpull(EXYNOS4212_GPM3(7), S3C_GPIO_PULL_NONE);
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_NONE);
+	
+	/* TR/TL */
+	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
+        s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPF2(5));
+
+	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
+        s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4X12_GPM3(7));
+	
 }
 
 static void clickarm4412_power_off(void)
