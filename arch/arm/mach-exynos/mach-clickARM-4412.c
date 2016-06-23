@@ -502,13 +502,14 @@ static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
+
 	if (power) {
 		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
 		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
-		gpio_free(EXYNOS4X12_GPM1(5));
-	
+	gpio_free(EXYNOS4X12_GPM1(5));
+
 }
 
 static struct plat_lcd_data clickarm4412_lcd_t55149gd030j_data = {
@@ -735,7 +736,7 @@ static struct platform_device clickarm_fan = {
 
 static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
-	
+
 	if (enable) {
 		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
@@ -752,9 +753,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4X12_GPM1(5));
-	gpio_request_one(EXYNOS4X12_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
-	gpio_free(EXYNOS4X12_GPM1(5));
+//	gpio_free(EXYNOS4X12_GPM1(5));
+//	gpio_request_one(EXYNOS4X12_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
+//	gpio_free(EXYNOS4X12_GPM1(5));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
