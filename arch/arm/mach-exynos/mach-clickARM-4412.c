@@ -195,15 +195,28 @@ static struct usb3503_platform_data usb3503_pdata = {
 #define VELO_TS_INT      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
 static int TSC2007_get_pendown_state(void)
 {
-	return !gpio_get_value(VELO_TS_INT);
+	int val = 0;
+	gpio_free(VELO_TS_INT);
+	gpio_request(VELO_TS_INT, NULL);
+	gpio_direction_input(VELO_TS_INT);
+       
+	val = gpio_get_value(VELO_TS_INT);
+       
+	gpio_free(VELO_TS_INT);
+	gpio_request(VELO_TS_INT, NULL);
+       
+	return val ? 0 : 1;
+	/*return !gpio_get_value(VELO_TS_INT);*/
 }
 /*TOUCHSCREEN INTERRUPT INIT TOUCH_INT:XEINT22*/
 static int TSC2007_tsp_init(void)
 {
 	/* TOUCH_INT: XEINT_22 */
 	gpio_request(VELO_TS_INT, "TOUCH_INT");
-	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_INPUT);
+	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_SFN(0xf));
 	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_UP);
+
+	return 0;
 }
 
 struct tsc2007_platform_data tsc2007_info = {
@@ -249,6 +262,14 @@ static struct i2c_board_info clickarm4412_i2c_devs0[] __initdata = {
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
 
 static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
+#if defined(CONFIG_TOUCHSCREEN_TSC2007)
+        {
+                I2C_BOARD_INFO("tsc2007", 0x48),
+                .platform_data  = &tsc2007_info,
+                .irq            = IRQ_EINT(22),
+        },
+#endif
+
 #if defined(CONFIG_SND_SOC_MAX98090)
 	{
 		I2C_BOARD_INFO("max98090", (0x20>>1)),
@@ -257,13 +278,6 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 	},
 #endif
 
-#if defined(CONFIG_TOUCHSCREEN_TSC2007)
-	{
-		I2C_BOARD_INFO("tsc2007", 0x48),
-		.platform_data  = &tsc2007_info,
-		.irq		= VELO_TS_INT,
-	},
-#endif
 	/*UNCOMMENT WHEN READY*/
 //#if defined(CONFIG_TMP103_SENSOR)
 //	{
@@ -341,11 +355,13 @@ static struct i2c_board_info clickarm4412_i2c_devs3[] __initdata = {
 #endif
 };
 
+#if 0
 static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
 		{
 	/* nothing here yet */
 		}
 };
+#endif
 
 #if defined(CONFIG_CLICKARM_OTHERS)
 /* for u3 I/O shield board */
@@ -873,10 +889,12 @@ static struct lcd_platform_data t55149gd030j_platform_data = {
 #define		DISPLAY_SI	EXYNOS4_GPB(7)
 
 // SPI1
+#if 0
 static struct s3c64xx_spi_csinfo spi1_csi = {
 		.fb_delay = 0x2,
 		.line = EXYNOS4_GPB(5),
 };
+#endif
 
 static struct spi_board_info spi1_board_info[] __initdata = {
 	{
@@ -1021,7 +1039,18 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
         s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
         gpio_free(EXYNOS4X12_GPM3(7));
-	
+
+	/* BR/BL */
+        gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4_GPJ0(1));
+
+	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPJ1(1));
+
 }
 
 static void clickarm4412_power_off(void)
@@ -1068,6 +1097,7 @@ static void __init clickarm4412_machine_init(void)
 				ARRAY_SIZE(clickarm4412_i2c_devs0));
 
 	s3c_i2c1_set_platdata(NULL);
+
 	i2c_register_board_info(1, clickarm4412_i2c_devs1,
 				ARRAY_SIZE(clickarm4412_i2c_devs1));
 
