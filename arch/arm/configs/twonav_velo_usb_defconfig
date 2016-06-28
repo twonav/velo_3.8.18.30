@@ -42,13 +42,13 @@ CONFIG_HAVE_KERNEL_LZO=y
 # CONFIG_KERNEL_LZMA is not set
 CONFIG_KERNEL_XZ=y
 # CONFIG_KERNEL_LZO is not set
-CONFIG_DEFAULT_HOSTNAME="(none)"
+CONFIG_DEFAULT_HOSTNAME=""
 CONFIG_VERSION_SIGNATURE=""
-CONFIG_SWAP=y
+# CONFIG_SWAP is not set
 CONFIG_SYSVIPC=y
 CONFIG_SYSVIPC_SYSCTL=y
 # CONFIG_POSIX_MQUEUE is not set
-# CONFIG_FHANDLE is not set
+CONFIG_FHANDLE=y
 # CONFIG_AUDIT is not set
 CONFIG_HAVE_GENERIC_HARDIRQS=y
 
@@ -3338,6 +3338,7 @@ CONFIG_IIO=y
 #
 # Accelerometers
 #
+# CONFIG_HID_SENSOR_ACCEL_3D is not set
 
 #
 # Analog to digital converters
@@ -3359,6 +3360,7 @@ CONFIG_IIO=y
 #
 # Hid Sensor IIO Common
 #
+# CONFIG_HID_SENSOR_IIO_COMMON is not set
 
 #
 # Digital to analog converters
@@ -3396,6 +3398,7 @@ CONFIG_IIO=y
 # Digital gyroscope sensors
 #
 # CONFIG_ADIS16136 is not set
+# CONFIG_HID_SENSOR_GYRO_3D is not set
 
 #
 # Inertial measurement units
@@ -3408,10 +3411,12 @@ CONFIG_IIO=y
 # CONFIG_ADJD_S311 is not set
 # CONFIG_VCNL4000 is not set
 # CONFIG_SENSORS_MAX44005 is not set
+# CONFIG_HID_SENSOR_ALS is not set
 
 #
 # Magnetometer sensors
 #
+# CONFIG_HID_SENSOR_MAGNETOMETER_3D is not set
 CONFIG_PWM=y
 CONFIG_PWM_SAMSUNG=y
 CONFIG_PWM_SOFTWARE=y
@@ -3420,7 +3425,7 @@ CONFIG_PWM_SOFTWARE=y
 #
 # Hardkernel Specific Hardware
 #
-CONFIG_VIDEO_SAMSUNG_S5P_HDMI_CEC=y
+# CONFIG_VIDEO_SAMSUNG_S5P_HDMI_CEC is not set
 
 #
 # Ubuntu Supplied Third-Party Device Drivers

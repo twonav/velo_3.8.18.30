@@ -363,10 +363,9 @@ static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
 };
 #endif
 
-#if defined(CONFIG_CLICKARM_OTHERS)
 /* for u3 I/O shield board */
-#define		GPIO_I2C4_SDA	EXYNOS4_GPX1(1) /* GPIO-PIN 200 */
-#define		GPIO_I2C4_SCL	EXYNOS4_GPX1(0) /* GPIO-PIN 199 */
+#define		GPIO_I2C4_SDA	EXYNOS4_GPB(0) /* GPIO-PIN 200 */
+#define		GPIO_I2C4_SCL	EXYNOS4_GPB(1) /* GPIO-PIN 199 */
 
 static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
 	.sda_pin = GPIO_I2C4_SDA,
@@ -419,7 +418,6 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 	},
 #endif
 };
-#endif
 
 //#if defined(CONFIG_CLICKARM_OTHERS)
 //static struct gpio_led clickarm4412_gpio_config[] = {
@@ -933,6 +931,7 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 	&s3c_device_i2c1,
 	&gpio_device_i2c2,
 	&s3c_device_i2c3,
+	&s3c_device_i2c4,
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &clickarm_w1_device,
 #endif
@@ -1049,7 +1048,7 @@ static void __init clickarm4412_gpio_init(void)
 
 	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_NONE);
+        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
         gpio_free(EXYNOS4_GPJ1(1));
 
 }
@@ -1108,6 +1107,10 @@ static void __init clickarm4412_machine_init(void)
 	s3c_i2c3_set_platdata(NULL);
 	i2c_register_board_info(3, clickarm4412_i2c_devs3,
 				ARRAY_SIZE(clickarm4412_i2c_devs3));
+
+	s3c_i2c4_set_platdata(NULL);
+	i2c_register_board_info(4, clickarm4412_i2c_devs4,
+				ARRAY_SIZE(clickarm4412_i2c_devs4));
 
 #if defined(CONFIG_CLICKARM_OTHERS)
 //	i2c_register_board_info(4, clickarm4412_i2c_devs4,
