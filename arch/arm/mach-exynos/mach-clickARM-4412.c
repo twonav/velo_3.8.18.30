@@ -1046,9 +1046,9 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
         gpio_free(EXYNOS4_GPJ0(1));
 
-	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");
+        gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ1(1));
 
 }
