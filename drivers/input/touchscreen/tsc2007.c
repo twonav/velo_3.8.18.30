@@ -184,6 +184,7 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 			 * callback to check pendown state, we have to
 			 * assume that pen was lifted up.
 			 */
+			printk(KERN_WARNING "tsc2007: pressure 0!!!!");
 			break;
 		}
 
@@ -191,9 +192,6 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 			dev_dbg(&ts->client->dev,
 				"DOWN point(%4d,%4d), pressure (%4u)\n",
 				tc.x, tc.y, rt);
-
-			printk(KERN_WARNING "tsc2007: DOWN point(%4d,%4d), pressure (%4u)\n",
-					tc.x, tc.y, rt);
 
 			input_report_key(input, BTN_TOUCH, 1);
 			input_report_abs(input, ABS_X, tc.x);
@@ -217,6 +215,7 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 	}
 
 	dev_dbg(&ts->client->dev, "UP\n");
+	printk(KERN_WARNING "tsc2007: UP\n");
 
 	input_report_key(input, BTN_TOUCH, 0);
 	input_report_abs(input, ABS_PRESSURE, 0);
@@ -263,7 +262,6 @@ static int tsc2007_open(struct input_dev *input_dev)
 	/* Prepare for touch readings - power down ADC and enable PENIRQ */
 	err = tsc2007_xfer(ts, PWRDOWN);
 	if (err < 0) {
-		printk(KERN_WARNING "tsc2007: ERROR. errno: %u\n", err);
 		tsc2007_stop(ts);
 		return err;
 	}
@@ -274,7 +272,6 @@ static int tsc2007_open(struct input_dev *input_dev)
 static void tsc2007_close(struct input_dev *input_dev)
 {
 	struct tsc2007 *ts = input_get_drvdata(input_dev);
-	printk(KERN_WARNING "tsc2007: Closing...\n");
 
 	tsc2007_stop(ts);
 }
@@ -282,8 +279,6 @@ static void tsc2007_close(struct input_dev *input_dev)
 static int tsc2007_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
 {
-	printk(KERN_WARNING "tsc2007: Probe Started...\n");
-
 	struct tsc2007 *ts;
 	struct tsc2007_platform_data *pdata = client->dev.platform_data;
 	struct input_dev *input_dev;
@@ -291,7 +286,6 @@ static int tsc2007_probe(struct i2c_client *client,
 
 	if (!pdata) {
 		dev_err(&client->dev, "platform data is required!\n");
-		printk(KERN_WARNING "tsc2007: platform data is required!\n");
 		return -EINVAL;
 	}
 
@@ -321,16 +315,12 @@ static int tsc2007_probe(struct i2c_client *client,
 
 	if (pdata->x_plate_ohms == 0) {
 		dev_err(&client->dev, "x_plate_ohms is not set up in platform data");
-		printk(KERN_WARNING "x_plate_ohms is not set up in platform data\n");
 		err = -EINVAL;
 		goto err_free_mem;
 	}
-	printk(KERN_WARNING "x_plate_ohms =%u\n", pdata->x_plate_ohms);
 
 	snprintf(ts->phys, sizeof(ts->phys),
 		 "%s/input0", dev_name(&client->dev));
-
-	printk(KERN_WARNING "phys =%s\n", ts->phys);
 
 	input_dev->name = "TSC2007 Touchscreen";
 	input_dev->phys = ts->phys;
@@ -356,7 +346,6 @@ static int tsc2007_probe(struct i2c_client *client,
 				   IRQF_ONESHOT, client->dev.driver->name, ts);
 	if (err < 0) {
 		dev_err(&client->dev, "irq %d busy?\n", ts->irq);
-		printk(KERN_WARNING "irq %d busy?\n", ts->irq);
 		goto err_free_mem;
 	}
 
@@ -382,8 +371,6 @@ static int tsc2007_probe(struct i2c_client *client,
 
 static int tsc2007_remove(struct i2c_client *client)
 {
-	printk(KERN_WARNING "Removing tsc2007....\n");
-
 	struct tsc2007	*ts = i2c_get_clientdata(client);
 	struct tsc2007_platform_data *pdata = client->dev.platform_data;
 
@@ -414,7 +401,6 @@ static struct i2c_driver tsc2007_driver = {
 	.probe		= tsc2007_probe,
 	.remove		= tsc2007_remove,
 };
-
 
 module_i2c_driver(tsc2007_driver);
 

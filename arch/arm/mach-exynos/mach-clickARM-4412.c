@@ -192,45 +192,50 @@ static struct usb3503_platform_data usb3503_pdata = {
 /*touchscreen config tsc2007 XE_INT22*/
 #if defined(CONFIG_TOUCHSCREEN_TSC2007) || defined(CONFIG_TOUCHSCREEN_TSC2007_MODULE)
 #include <linux/i2c/tsc2007.h>
-#define VELO_TS_INT      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
-static int TSC2007_get_pendown_state(void)
+#define tsc2007_penirq_pin      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
+static int tsc2007_get_pendown_state(void)
 {
-	int val = 0;
-	gpio_free(VELO_TS_INT);
-	gpio_request(VELO_TS_INT, NULL);
-	gpio_direction_input(VELO_TS_INT);
-       
-	val = gpio_get_value(VELO_TS_INT);
-       
-	gpio_free(VELO_TS_INT);
-	gpio_request(VELO_TS_INT, NULL);
-       
-	return val ? 0 : 1;
-	/*return !gpio_get_value(VELO_TS_INT);*/
+	return !gpio_get_value(tsc2007_penirq_pin);
 }
 /*TOUCHSCREEN INTERRUPT INIT TOUCH_INT:XEINT22*/
-static int TSC2007_tsp_init(void)
+static int tsc2007_init_platform_hw(void)
 {
 	/* TOUCH_INT: XEINT_22 */
-	gpio_request(VELO_TS_INT, "TOUCH_INT");
-	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_SFN(0xf));
-	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_UP);
+	gpio_request(tsc2007_penirq_pin, "TOUCH_INT");
+	s3c_gpio_cfgpin(tsc2007_penirq_pin, S3C_GPIO_SFN(0xf));
+	s3c_gpio_setpull(tsc2007_penirq_pin, S3C_GPIO_PULL_UP);
 
 	return 0;
 }
 
+static void tsc2007_exit_platform_hw(void)
+{
+	gpio_free(tsc2007_penirq_pin);
+}
+
+static void tsc2007_clear_penirq(void)
+{
+	gpio_set_value(tsc2007_penirq_pin, 1);
+}
+
 struct tsc2007_platform_data tsc2007_info = {
-	.get_pendown_state	= TSC2007_get_pendown_state,
-	.init_platform_hw	= TSC2007_tsp_init,
 	.model 		= 2007,	/* 2007. */
+
 	.x_plate_ohms	= 300, /* must be non-zero value */
 	.max_rt		= 1<<12, /* max. resistance above which samples are ignored */
+
 	.poll_delay	= 5, /* delay (in ms) after pen-down event
-				     before polling starts */
-	.poll_period 	= 5,/* time (in ms) between samples */
+					     before polling starts */
+	.poll_period = 5,/* time (in ms) between samples */
+
 	.fuzzx		= 64, 	/* fuzz factor for X, Y and pressure axes */
 	.fuzzy		= 64,
 	.fuzzz		= 64,
+
+	.get_pendown_state	= tsc2007_get_pendown_state,
+	.clear_penirq 		= tsc2007_clear_penirq,
+	.init_platform_hw	= tsc2007_init_platform_hw,
+	.exit_platform_hw	= tsc2007_exit_platform_hw
 };
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
