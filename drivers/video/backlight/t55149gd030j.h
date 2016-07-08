@@ -66,7 +66,8 @@
 #define V_BASE_IMAGE_NB_LINE    0x3500
 #define V_DRIVER_OUT            0x0100
 #define V_LCD_DRIVE             0x0100
-#define V_ENTRY_MODE            0x1010
+//#define V_ENTRY_MODE            0x0020 // high power consumption - correct direction - correct color
+#define V_ENTRY_MODE            0x0220 // low power consumption - correct direction - correct color
 #define V_DISP_CONT2            0x0808
 #define V_LOW_POWER_CONT2       0x0010
 #define V_EX_DISP_INT1          0x0110
@@ -290,7 +291,7 @@ static const unsigned short SEQ_SETTING[] = {
     0x0212, 0x0000, //Window Vertical start address
     0x0213, 0x018F, //Window Vertical end address
     0x0210, 0x0000, //Window Horizontal start address
-    0x0211, 0x00EF, //Window Horizontal end address	
+    0x0211, 0x00EF, //Window Horizontal end address
     0x0202, 0x0000,
 	ENDDEF, 0x0000
 };
