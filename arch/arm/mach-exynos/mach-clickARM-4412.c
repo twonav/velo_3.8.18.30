@@ -570,7 +570,7 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 	},
 	{
 		.code			= BTN_X,
-		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BL */
+		.gpio			= EXYNOS4_GPJ1(0), /* VELO FRONT BUTTON BL */
 		.desc			= "BL_BUTTON",
 		.type			= EV_SW,
 		.active_low		= 1,
@@ -678,15 +678,16 @@ static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
 };
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
-		.max_width		= 4,
-		.host_caps		= MMC_CAP_4_BIT_DATA |
-					MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-		.cd_type		= S3C_SDHCI_CD_EXTERNAL,
-		};
+	.max_width		= 4,
+	.host_caps		= MMC_CAP_4_BIT_DATA |
+		MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.cd_type		= S3C_SDHCI_CD_NONE,
+};
+
 /* DWMMC */
 static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
 {
-       return 8;
+       return 4;
 }
 
 static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
@@ -697,7 +698,7 @@ static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *dat
 static struct dw_mci_board clickarm4412_dwmci_pdata = {
 	.num_slots			= 1,
 	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
-	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_8_BIT_DATA | MMC_CAP_CMD23,
+	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23,
 	.fifo_depth			= 0x80,
 	.bus_hz				= 104 * 1000 * 1000,
 	.detect_delay_ms	= 200,
@@ -1046,10 +1047,21 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
         gpio_free(EXYNOS4_GPJ0(1));
 
-	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");
-        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4_GPJ1(1));
+	gpio_request_one(EXYNOS4_GPJ1(0), GPIOF_IN, "BL");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(0), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ1(0), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4_GPJ1(0));
+
+	/* WLAN_EN */	
+	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_HIGH, "WLAN_EN");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(4), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ1(4), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPJ1(4));
+	/* BT_EN */	
+	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_HIGH, "BT_EN");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ0(6), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPJ0(6));
 
 }
 
@@ -1107,7 +1119,9 @@ static void __init clickarm4412_machine_init(void)
 	s3c_i2c3_set_platdata(NULL);
 	i2c_register_board_info(3, clickarm4412_i2c_devs3,
 				ARRAY_SIZE(clickarm4412_i2c_devs3));
-
+	
+	gpio_set_value(EXYNOS4_GPJ1(4), 0);
+	gpio_set_value(EXYNOS4_GPJ0(6), 0);
 #if defined(CONFIG_CLICKARM_OTHERS)
 //	i2c_register_board_info(4, clickarm4412_i2c_devs4,
 //				ARRAY_SIZE(clickarm4412_i2c_devs4));
@@ -1123,7 +1137,7 @@ static void __init clickarm4412_machine_init(void)
 	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
 	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
 
-	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_8);
+	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
 	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
 
 	clickarm4412_ehci_init();

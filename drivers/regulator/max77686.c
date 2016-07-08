@@ -490,6 +490,8 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 	mdelay(1);		
 	regulator_enable_regmap(max77686->rdev[REGULATOR_POS_2v8]);	 //ON 2v8
 	
+	regmap_update_bits(iodev->regmap, MAX77686_REG_32KHZ, 0x06, 0x06);
+	
 	return 0;
 err:
 	while (--i >= 0)
