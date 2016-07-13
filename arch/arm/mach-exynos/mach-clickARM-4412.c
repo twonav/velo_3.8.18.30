@@ -226,7 +226,7 @@ struct tsc2007_platform_data tsc2007_info = {
 
 	.poll_delay	= 5, /* delay (in ms) after pen-down event
 					     before polling starts */
-	.poll_period = 5,/* time (in ms) between samples */
+	.poll_period = 25,/* time (in ms) between samples */
 
 	.fuzzx		= 64, 	/* fuzz factor for X, Y and pressure axes */
 	.fuzzy		= 64,
