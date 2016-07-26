@@ -1,0 +1,1 @@
+cmd_drivers/net/wireless/ti/wlcore/wlcore_sdio.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/net/wireless/ti/wlcore/wlcore_sdio.o drivers/net/wireless/ti/wlcore/sdio.o ; scripts/mod/modpost drivers/net/wireless/ti/wlcore/wlcore_sdio.o

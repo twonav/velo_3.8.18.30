@@ -1,0 +1,2 @@
+kernel/drivers/pwm/pwm-samsung.ko
+kernel/drivers/pwm/soft_pwm.ko

@@ -1,0 +1,1 @@
+cmd_drivers/staging/iio/imu/adis16400.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/staging/iio/imu/adis16400.o drivers/staging/iio/imu/adis16400_core.o ; scripts/mod/modpost drivers/staging/iio/imu/adis16400.o

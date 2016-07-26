@@ -1,0 +1,2 @@
+kernel/sound/soc/snd-soc-core.ko
+kernel/sound/soc/samsung/snd-soc-s3c24xx.ko

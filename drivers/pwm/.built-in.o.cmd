@@ -1,0 +1,1 @@
+cmd_drivers/pwm/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/pwm/built-in.o drivers/pwm/core.o drivers/pwm/pwm-samsung.o drivers/pwm/soft_pwm.o ; scripts/mod/modpost drivers/pwm/built-in.o

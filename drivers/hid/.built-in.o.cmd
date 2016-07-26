@@ -1,0 +1,1 @@
+cmd_drivers/hid/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/hid/built-in.o drivers/hid/hid.o drivers/hid/uhid.o drivers/hid/hid-generic.o drivers/hid/hid-sensor-hub.o drivers/hid/usbhid/built-in.o drivers/hid/i2c-hid/built-in.o ; scripts/mod/modpost drivers/hid/built-in.o

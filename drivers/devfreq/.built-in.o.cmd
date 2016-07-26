@@ -1,0 +1,1 @@
+cmd_drivers/devfreq/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/devfreq/built-in.o drivers/devfreq/devfreq.o drivers/devfreq/governor_powersave.o ; scripts/mod/modpost drivers/devfreq/built-in.o

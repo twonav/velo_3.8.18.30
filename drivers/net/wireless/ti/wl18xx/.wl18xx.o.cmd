@@ -1,0 +1,1 @@
+cmd_drivers/net/wireless/ti/wl18xx/wl18xx.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/net/wireless/ti/wl18xx/wl18xx.o drivers/net/wireless/ti/wl18xx/main.o drivers/net/wireless/ti/wl18xx/acx.o drivers/net/wireless/ti/wl18xx/tx.o drivers/net/wireless/ti/wl18xx/io.o drivers/net/wireless/ti/wl18xx/debugfs.o ; scripts/mod/modpost drivers/net/wireless/ti/wl18xx/wl18xx.o

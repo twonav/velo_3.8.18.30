@@ -1,0 +1,2 @@
+kernel/drivers/net/usb/pegasus.ko
+kernel/drivers/net/usb/rtl8150.ko

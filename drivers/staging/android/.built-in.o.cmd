@@ -1,0 +1,1 @@
+cmd_drivers/staging/android/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/staging/android/built-in.o drivers/staging/android/timed_output.o ; scripts/mod/modpost drivers/staging/android/built-in.o

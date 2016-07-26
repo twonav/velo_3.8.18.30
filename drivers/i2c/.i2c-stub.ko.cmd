@@ -1,0 +1,1 @@
+cmd_drivers/i2c/i2c-stub.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/i2c/i2c-stub.ko drivers/i2c/i2c-stub.o drivers/i2c/i2c-stub.mod.o
