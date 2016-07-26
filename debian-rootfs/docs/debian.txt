@@ -1,0 +1,76 @@
+~$ sudo apt-get install multistrap
+** Para Ubuntu 14.04 el paquete multistrap (versión 2.2) tiene un BUG. Instalar así:
+		~$ sudo apt-get install realpath
+		~$ wget http://mirrors.kernel.org/ubuntu/pool/universe/m/multistrap/multistrap_2.1.6ubuntu3_all.deb
+		~$ sudo dpkg -i multistrap_2.1.6ubuntu3_all.deb
+~$ sudo apt-get install qemu
+~$ sudo apt-get install qemu-user-static
+~$ sudo apt-get install binfmt-support
+~$ sudo apt-get install dpkg-cross
+
+~$ mkdir multistrap
+~$ cd multistrap
+~/multistrap$
+
+    multistrap_arietta.conf
+
+
+~/multistrap$ sudo multistrap -a armel -f multistrap_arietta.conf
+
+~/multistrap$ sudo cp /usr/bin/qemu-arm-static target-rootfs/usr/bin
+~/multistrap$ sudo mount -o bind /dev/ target-rootfs/dev/
+~/multistrap$ sudo LC_ALL=C LANGUAGE=C LANG=C chroot target-rootfs dpkg --configure -a
+
+At this prompt:
+
+Reply with < No >.
+
+~/multistrap$ sudo chroot target-rootfs passwd
+Enter new UNIX password:
+Retype new UNIX password:
+passwd: password updated successfully
+
+List the packages installed
+
+~/multistrap$ sudo chroot target-rootfs dpkg --get-selections | more
+
+Ugrade the system and install new packages
+
+~/multistrap$ sudo chroot target-rootfs dpkg --get-selections
+
+At this point you can upgrade Debian to the latest version by typing:
+
+~/multistrap$ sudo LC_ALL=C LANGUAGE=C LANG=C chroot target-rootfs apt-get update
+~/multistrap$ sudo LC_ALL=C LANGUAGE=C LANG=C chroot target-rootfs apt-get upgrade
+~/multistrap$ sudo LC_ALL=C LANGUAGE=C LANG=C chroot target-rootfs apt-get clean
+
+Check the version:
+
+~/multistrap$ cat target-rootfs/etc/debian_version
+7.7
+
+In the same way you add packages:
+
+~/multistrap$ sudo LC_ALL=C LANGUAGE=C LANG=C chroot target-rootfs apt-get install packagename
+
+Please nore that will be possible to add packages also directly on the target board. In than case the command will be simply:
+
+# apt-get install packagename
+
+then remove the qemu-arm-static executable:
+Copy the rootfs contents on microSD
+
+Remove qemu from the target rootfs contents:
+
+~/multistrap$ sudo rm target-rootfs/usr/bin/qemu-arm-static
+
+then format a new microSD.
+
+Mount the microSD on your Ubuntu Linux PC and copy all the target-rootfs contents in the second microSD partition mounted on /media/$USER/rootfs.
+
+If you are using an Ubuntu release older than 13.04 remove $USER in the path
+
+~/multistrap$ sudo rsync -axHAX --progress target-rootfs/ /media/$USER/rootfs/
+
+
+# rsync -aAXv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} /* /path/to/backup/folder
