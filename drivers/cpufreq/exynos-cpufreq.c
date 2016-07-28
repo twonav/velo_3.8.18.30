@@ -281,7 +281,7 @@ static int __init exynos_cpufreq_init(void)
 		goto err_vdd_arm;
 	}
 
-	arm_regulator = regulator_get(NULL, "vdd_arm");
+	arm_regulator = regulator_get(NULL, "BUCK2 vdd_arm"); // el * delante permite usar BUCK2 vdd_arm de nombre, aunque a veces ni va
 	if (IS_ERR(arm_regulator)) {
 		pr_err("%s: failed to get resource vdd_arm\n", __func__);
 		goto err_vdd_arm;
