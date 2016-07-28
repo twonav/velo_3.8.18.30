@@ -203,15 +203,16 @@ static void t55149gd030j_set_spimode()
 }
 
 
-static void t55149gd030j_disable_RGBLines()
+static void t55149gd030j_disable_RGBLines(void)
 {
 	s3c_gpio_cfgall_range(EXYNOS4_GPF0(0), 8, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
 	s3c_gpio_cfgall_range(EXYNOS4_GPF1(0), 8, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
-	s3c_gpio_cfgall_range(EXYNOS4_GPF2(0), 8, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
+	s3c_gpio_cfgall_range(EXYNOS4_GPF2(0), 5, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
+	s3c_gpio_cfgall_range(EXYNOS4_GPF2(7), 2, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
 	s3c_gpio_cfgall_range(EXYNOS4_GPF3(0), 4, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
-
-
 }
+
+
 
 /*
 extern void s3cfb_gpio_setup_24bpp(unsigned int start, unsigned int size,
