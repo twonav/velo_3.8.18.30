@@ -639,11 +639,11 @@ static struct regulator_init_data max77686_ldo19_data = {
 		.max_uV		= 1800000,
 		.apply_uV	= 0,
 		.always_on	= 0,
-		.boot_on	= 0,
+		.boot_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
 			.uV		= 1800000,
-			.enabled = 0,
+			.enabled = 1,
 		},
 	},
 	.num_consumer_supplies  = 1,
@@ -870,18 +870,18 @@ static struct regulator_init_data max77686_ldo26_data = {
 
 ////-----------------------------------------------------------------------------------
 ////-----------------------------------------------------------------------------------
-//static struct regulator_init_data max77686_32KHz_AP_data = {
-//	.constraints	= {
-//		.name		= "EN32KHz AP",
-//		.always_on	= 1,
-//	},
-//};
-//static struct regulator_init_data max77686_32KHz_CP_data = {
-//	.constraints	= {
-//		.name		= "EN32KHz CP",
-//		.always_on	= 1,
-//	},
-//};
+static struct regulator_init_data max77686_32KHz_AP_data = {
+	.constraints	= {
+		.name		= "EN32KHz AP",
+		.always_on	= 1,
+	},
+};
+static struct regulator_init_data max77686_32KHz_CP_data = {
+	.constraints	= {
+		.name		= "EN32KHz CP",
+		.always_on	= 1,
+	},
+};
 
 
 //-----------------------------------------------------------------------------------
@@ -925,8 +925,8 @@ static struct max77686_regulator_data max77686_regulators[] = {
 	{ MAX77686_BUCK8,       &max77686_buck8_data },  
 	{ MAX77686_BUCK9,       &max77686_buck9_data },  
 
-//	{ MAX77686_EN32KHZ_AP, 	&max77686_32KHz_AP_data },  
-//	{ MAX77686_EN32KHZ_CP, 	&max77686_32KHz_CP_data },  
+	{ MAX77686_EN32KHZ_AP, 	&max77686_32KHz_AP_data },  
+	{ MAX77686_EN32KHZ_CP, 	&max77686_32KHz_CP_data },  
 };
 
 static struct max77686_platform_data exynos4_max77686_info = {

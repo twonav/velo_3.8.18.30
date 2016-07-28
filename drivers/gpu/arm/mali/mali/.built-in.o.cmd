@@ -1,0 +1,1 @@
+cmd_drivers/gpu/arm/mali/built-in.o :=  /home/clickarm/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-ld -EL    -r -o drivers/gpu/arm/mali/built-in.o drivers/gpu/arm/mali/mali.o 

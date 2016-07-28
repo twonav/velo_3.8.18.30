@@ -7,7 +7,7 @@ else
         echo "zImage no se ha copiado bien"
         exit 1
 fi
-sudo rsync -avc ./modules/lib/. /media/$USER/rootfs/lib.
+sudo rsync -avc ./modules/lib/. /media/$USER/trusty/lib.
 if [ $? -eq 0 ]; then
 	echo "modulos listos"
 else

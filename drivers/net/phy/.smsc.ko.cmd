@@ -1,0 +1,1 @@
+cmd_drivers/net/phy/smsc.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/net/phy/smsc.ko drivers/net/phy/smsc.o drivers/net/phy/smsc.mod.o

@@ -15,6 +15,7 @@ kernel/drivers/cpufreq/freq_table.ko
 kernel/drivers/devfreq/governor_powersave.ko
 kernel/drivers/dma/pl330.ko
 kernel/drivers/extcon/extcon-class.ko
+kernel/drivers/gpu/arm/mali/mali.ko
 kernel/drivers/gpu/drm/drm_kms_helper.ko
 kernel/drivers/gpu/drm/drm.ko
 kernel/drivers/gpu/drm/exynos/exynosdrm.ko

@@ -1,1 +1,1 @@
-cmd_drivers/gpu/drm/drm_kms_helper.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/gpu/drm/drm_kms_helper.o drivers/gpu/drm/drm_fb_helper.o drivers/gpu/drm/drm_crtc_helper.o drivers/gpu/drm/drm_dp_helper.o ; scripts/mod/modpost drivers/gpu/drm/drm_kms_helper.o
+cmd_drivers/gpu/drm/drm_kms_helper.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/gpu/drm/drm_kms_helper.o drivers/gpu/drm/drm_fb_helper.o drivers/gpu/drm/drm_crtc_helper.o drivers/gpu/drm/drm_dp_helper.o drivers/gpu/drm/drm_edid_load.o ; scripts/mod/modpost drivers/gpu/drm/drm_kms_helper.o
