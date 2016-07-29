@@ -27,6 +27,7 @@ kernel/drivers/hid/i2c-hid/i2c-hid.ko
 kernel/drivers/hid/usbhid/usbhid.ko
 kernel/drivers/hwmon/hwmon.ko
 kernel/drivers/i2c/i2c-core.ko
+kernel/drivers/i2c/i2c-dev.ko
 kernel/drivers/i2c/algos/i2c-algo-bit.ko
 kernel/drivers/i2c/busses/i2c-cbus-gpio.ko
 kernel/drivers/i2c/busses/i2c-designware-core.ko
@@ -64,6 +65,8 @@ kernel/drivers/mmc/host/sdhci.ko
 kernel/drivers/mmc/host/sdhci-s3c.ko
 kernel/drivers/mmc/host/dw_mmc.ko
 kernel/drivers/net/netconsole.ko
+kernel/drivers/net/wireless/ti/wl1251/wl1251.ko
+kernel/drivers/net/wireless/ti/wl12xx/wl12xx.ko
 kernel/drivers/net/wireless/ti/wl18xx/wl18xx.ko
 kernel/drivers/net/wireless/ti/wlcore/wlcore.ko
 kernel/drivers/net/wireless/ti/wlcore/wlcore_sdio.ko

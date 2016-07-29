@@ -1073,12 +1073,12 @@ static void __init clickarm4412_gpio_init(void)
 /*				WIFI MDULE CONFIGURATION									 */
 /*********************************************************************/
 	/* WLAN_EN */	
-	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_HIGH, "WLAN_EN");
+	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_LOW, "WLAN_EN");
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(4), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ1(4), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ1(4));
 	/* BT_EN */	
-	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_HIGH, "BT_EN");
+	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_LOW, "BT_EN");
         s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ0(6), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ0(6));
@@ -1107,9 +1107,9 @@ static void __init clickarm4412_gpio_init(void)
 /*				GPRS CONFIGURATION									 */
 /*********************************************************************/
         /* GPRS PowerON/OFF */
-     gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_HIGH, "GPRS_PON");
+     gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
         s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_UP);
+        s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4X12_GPM1(1));
         /* GPRS STATUS*/
      gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");

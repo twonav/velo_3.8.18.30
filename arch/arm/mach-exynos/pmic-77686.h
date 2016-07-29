@@ -925,8 +925,8 @@ static struct max77686_regulator_data max77686_regulators[] = {
 	{ MAX77686_BUCK8,       &max77686_buck8_data },  
 	{ MAX77686_BUCK9,       &max77686_buck9_data },  
 
-	{ MAX77686_EN32KHZ_AP, 	&max77686_32KHz_AP_data },  
-	{ MAX77686_EN32KHZ_CP, 	&max77686_32KHz_CP_data },  
+//	{ MAX77686_EN32KHZ_AP, 	&max77686_32KHz_AP_data },  
+//	{ MAX77686_EN32KHZ_CP, 	&max77686_32KHz_CP_data },  
 };
 
 static struct max77686_platform_data exynos4_max77686_info = {
