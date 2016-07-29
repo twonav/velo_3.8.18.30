@@ -1,1 +1,0 @@
-cmd_drivers/rtc/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/rtc/built-in.o drivers/rtc/rtc-lib.o drivers/rtc/hctosys.o drivers/rtc/rtc-core.o drivers/rtc/rtc-max77686.o ; scripts/mod/modpost drivers/rtc/built-in.o

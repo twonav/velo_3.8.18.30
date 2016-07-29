@@ -1,1 +1,0 @@
-cmd_crypto/twofish_generic.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o crypto/twofish_generic.ko crypto/twofish_generic.o crypto/twofish_generic.mod.o

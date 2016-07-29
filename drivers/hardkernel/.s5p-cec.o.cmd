@@ -1,1 +1,0 @@
-cmd_drivers/hardkernel/s5p-cec.o := arm-linux-gnueabihf-ld -EL    -r -o drivers/hardkernel/s5p-cec.o drivers/hardkernel/cec_drv.o drivers/hardkernel/cec_hw.o ; scripts/mod/modpost drivers/hardkernel/s5p-cec.o

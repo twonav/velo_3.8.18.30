@@ -1,1 +1,0 @@
-cmd_drivers/net/wireless/ti/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/net/wireless/ti/built-in.o drivers/net/wireless/ti/wlcore/built-in.o drivers/net/wireless/ti/wl12xx/built-in.o drivers/net/wireless/ti/wl1251/built-in.o drivers/net/wireless/ti/wl18xx/built-in.o ; scripts/mod/modpost drivers/net/wireless/ti/built-in.o

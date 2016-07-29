@@ -1,1 +1,0 @@
-cmd_drivers/usb/serial/kobil_sct.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/usb/serial/kobil_sct.ko drivers/usb/serial/kobil_sct.o drivers/usb/serial/kobil_sct.mod.o

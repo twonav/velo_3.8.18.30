@@ -1,1 +1,0 @@
-cmd_drivers/devfreq/governor_userspace.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/devfreq/governor_userspace.ko drivers/devfreq/governor_userspace.o drivers/devfreq/governor_userspace.mod.o
