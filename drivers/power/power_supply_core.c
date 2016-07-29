@@ -145,15 +145,20 @@ static int power_supply_match_device_by_name(struct device *dev, void *data)
 {
 	const char *name = data;
 	struct power_supply *psy = dev_get_drvdata(dev);
-
+	printk(KERN_INFO "power_supply_match_device_by_name 1:%s 2:%s\n",name, psy->name);
 	return strcmp(psy->name, name) == 0;
 }
 
 struct power_supply *power_supply_get_by_name(char *name)
 {
+	printk(KERN_INFO "power_supply_get_by_name\n");
 	struct device *dev = class_find_device(power_supply_class, NULL, name,
 					power_supply_match_device_by_name);
-
+	if (dev){
+		printk(KERN_INFO "power_supply_get_by_name DEV NOT null\n");
+	}else{
+		printk(KERN_INFO "power_supply_get_by_name NULL device\n");
+	}
 	return dev ? dev_get_drvdata(dev) : NULL;
 }
 EXPORT_SYMBOL_GPL(power_supply_get_by_name);
