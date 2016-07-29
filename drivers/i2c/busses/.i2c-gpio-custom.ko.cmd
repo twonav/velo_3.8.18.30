@@ -1,1 +1,0 @@
-cmd_drivers/i2c/busses/i2c-gpio-custom.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/i2c/busses/i2c-gpio-custom.ko drivers/i2c/busses/i2c-gpio-custom.o drivers/i2c/busses/i2c-gpio-custom.mod.o

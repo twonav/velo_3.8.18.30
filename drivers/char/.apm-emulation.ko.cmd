@@ -1,1 +1,0 @@
-cmd_drivers/char/apm-emulation.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/char/apm-emulation.ko drivers/char/apm-emulation.o drivers/char/apm-emulation.mod.o

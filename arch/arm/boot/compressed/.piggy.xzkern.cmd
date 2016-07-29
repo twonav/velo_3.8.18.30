@@ -1,1 +1,0 @@
-cmd_arch/arm/boot/compressed/piggy.xzkern := (cat arch/arm/boot/compressed/../Image | sh /home/arturo/clickarm_3.8.18.30_IMASD/scripts/xz_wrap.sh && printf \\340\\223\\231\\000) > arch/arm/boot/compressed/piggy.xzkern || (rm -f arch/arm/boot/compressed/piggy.xzkern ; false)

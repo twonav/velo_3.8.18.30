@@ -1,1 +1,0 @@
-cmd_drivers/usb/serial/hp4x.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/usb/serial/hp4x.ko drivers/usb/serial/hp4x.o drivers/usb/serial/hp4x.mod.o

@@ -1,1 +1,0 @@
-cmd_drivers/video/exynos/built-in.o :=  arm-linux-gnueabihf-ld -EL    -r -o drivers/video/exynos/built-in.o drivers/video/exynos/exynos_mipi_dsi.o drivers/video/exynos/exynos_mipi_dsi_common.o drivers/video/exynos/exynos_mipi_dsi_lowlevel.o drivers/video/exynos/exynos_dp_core.o drivers/video/exynos/exynos_dp_reg.o ; scripts/mod/modpost drivers/video/exynos/built-in.o

@@ -1,1 +1,0 @@
-cmd_net/netfilter/xt_policy.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o net/netfilter/xt_policy.ko net/netfilter/xt_policy.o net/netfilter/xt_policy.mod.o

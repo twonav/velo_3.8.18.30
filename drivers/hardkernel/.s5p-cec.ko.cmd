@@ -1,1 +1,0 @@
-cmd_drivers/hardkernel/s5p-cec.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o drivers/hardkernel/s5p-cec.ko drivers/hardkernel/s5p-cec.o drivers/hardkernel/s5p-cec.mod.o

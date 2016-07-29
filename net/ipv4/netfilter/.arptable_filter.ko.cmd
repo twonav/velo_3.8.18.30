@@ -1,1 +1,0 @@
-cmd_net/ipv4/netfilter/arptable_filter.ko := arm-linux-gnueabihf-ld -EL -r  -T /home/arturo/clickarm_3.8.18.30_IMASD/scripts/module-common.lds --build-id  -o net/ipv4/netfilter/arptable_filter.ko net/ipv4/netfilter/arptable_filter.o net/ipv4/netfilter/arptable_filter.mod.o
