@@ -1,0 +1,5 @@
+0x00000000	mali_set_user_setting	/home/arturo/Clickarm_Kernel_3.8-DTS_config_velo/drivers/gpu/arm/mali/mali	EXPORT_SYMBOL
+0x00000000	mali_perf_set_num_pp_cores	/home/arturo/Clickarm_Kernel_3.8-DTS_config_velo/drivers/gpu/arm/mali/mali	EXPORT_SYMBOL
+0x00000000	mali_dev_resume	/home/arturo/Clickarm_Kernel_3.8-DTS_config_velo/drivers/gpu/arm/mali/mali	EXPORT_SYMBOL
+0x00000000	mali_dev_pause	/home/arturo/Clickarm_Kernel_3.8-DTS_config_velo/drivers/gpu/arm/mali/mali	EXPORT_SYMBOL
+0x00000000	mali_get_user_setting	/home/arturo/Clickarm_Kernel_3.8-DTS_config_velo/drivers/gpu/arm/mali/mali	EXPORT_SYMBOL

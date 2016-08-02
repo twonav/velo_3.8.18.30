@@ -303,38 +303,37 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 	{
 		I2C_BOARD_INFO("max44005", 0x44), /*CONFIG DIRECCTION SET DEFAULT*/
 		.platform_data  = &????????, /*CONFIG PDATA*/
-
 	},
 #endif
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
-/* I2C2 bus GPIO-Bitbanging */
-#define		GPIO_I2C2_SDA	EXYNOS4_GPA0(6)
-#define		GPIO_I2C2_SCL	EXYNOS4_GPA0(7)
-static struct 	i2c_gpio_platform_data 	i2c2_gpio_platdata = {
-	.sda_pin = GPIO_I2C2_SDA,
-	.scl_pin = GPIO_I2C2_SCL,
-	.udelay  = 5,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c2 = {
-	.name 	= "i2c-gpio",
-	.id  	= 2,    // adepter number
-	.dev.platform_data = &i2c2_gpio_platdata,
-};
+///* I2C2 bus GPIO-Bitbanging */
+//#define		GPIO_I2C2_SDA	EXYNOS4_GPA0(6)
+//#define		GPIO_I2C2_SCL	EXYNOS4_GPA0(7)
+//static struct 	i2c_gpio_platform_data 	i2c2_gpio_platdata = {
+//	.sda_pin = GPIO_I2C2_SDA,
+//	.scl_pin = GPIO_I2C2_SCL,
+//	.udelay  = 5,
+//	.sda_is_open_drain = 0,
+//	.scl_is_open_drain = 0,
+//	.scl_is_output_only = 0
+//};
+//
+//static struct 	platform_device 	gpio_device_i2c2 = {
+//	.name 	= "i2c-gpio",
+//	.id  	= 2,    // adepter number
+//	.dev.platform_data = &i2c2_gpio_platdata,
+//};
 
 /* Odroid-O2 schematics show the DDC of the remote HDMI device connected to
  * I2C2. HDMI specs state that DDC always sits at bus address 0x50. */
-static struct i2c_board_info clickarm4412_i2c_devs2[] __initdata = {
-	{
-			/* nothing here yet */
-		//I2C_BOARD_INFO("s5p_ddc", 0x50),
-	},
-};
+//static struct i2c_board_info clickarm4412_i2c_devs2[] __initdata = {
+//	{
+//			/* nothing here yet */
+//		//I2C_BOARD_INFO("s5p_ddc", 0x50),
+//	},
+//};
 
 /* I2C4 bus GPIO-Bitbanging */
 #define		GPIO_I2C4_SDA	EXYNOS4_GPB(0)
@@ -377,13 +376,13 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 #endif
 };
 
-#if 0
-static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
-		{
-	/* nothing here yet */
-		}
-};
-#endif
+//#if 0
+//static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
+//		{
+//	/* nothing here yet */
+//		}
+//};
+//#endif
 
 #if defined(CONFIG_CLICKARM_OTHERS)
 /* for u3 I/O shield board */
@@ -954,13 +953,13 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&gpio_device_i2c2,
+//	&gpio_device_i2c2,
 	&gpio_device_i2c4,
 //	&s3c_device_i2c3,
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &clickarm_w1_device,
 #endif
-	&s3c_device_i2c7,
+//	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
 	&s3c_device_wdt,
@@ -1060,10 +1059,10 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
 
-	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4X12_GPM3(7));
+//	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
+//        s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
+//        s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+//        gpio_free(EXYNOS4X12_GPM3(7));
 
 	/* BR/BL */
         gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
@@ -1080,54 +1079,54 @@ static void __init clickarm4412_gpio_init(void)
 /*				WIFI MODULE CONFIGURATION									 */
 /*********************************************************************/
 	/* WLAN_EN */	
-	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_HIGH, "WLAN_EN");
+	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_LOW, "WLAN_EN");
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(4), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ1(4), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ1(4));
 	/* BT_EN */	
-	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_HIGH, "BT_EN");
+	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_LOW, "BT_EN");
         s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ0(6), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ0(6));
-///*********************************************************************/
-///*				GPS CONFIGURATION									 */
-///*********************************************************************/
-//     /* GPS PowerON/OFF */
-//    gpio_request_one(EXYNOS4X12_GPM4(2), GPIOF_OUT_INIT_LOW, "GPS_PON");
-//        s3c_gpio_cfgpin(EXYNOS4X12_GPM4(2), S3C_GPIO_OUTPUT );
-//        s3c_gpio_setpull(EXYNOS4X12_GPM4(2), S3C_GPIO_PULL_NONE);
-//        gpio_free(EXYNOS4X12_GPM4(2));
-//
-//        /* GPS Status */
-//     gpio_request_one(EXYNOS4X12_GPM4(5), GPIOF_IN, "GPS_STATUS");
-//           s3c_gpio_cfgpin(EXYNOS4X12_GPM4(5), S3C_GPIO_INPUT );
-//           s3c_gpio_setpull(EXYNOS4X12_GPM4(5), S3C_GPIO_PULL_NONE);
-//           gpio_free(EXYNOS4X12_GPM4(5));
-//
-//           /* GPS Reset */
-//     gpio_request_one(EXYNOS4X12_GPM1(3), GPIOF_IN, "GPS_RESET");
-//            s3c_gpio_cfgpin(EXYNOS4X12_GPM1(3), S3C_GPIO_INPUT );
-//            s3c_gpio_setpull(EXYNOS4X12_GPM1(3), S3C_GPIO_PULL_NONE);
-//            gpio_free(EXYNOS4X12_GPM1(3));
-//
-///*********************************************************************/
-///*				GPRS CONFIGURATION									 */
-///*********************************************************************
-//     /* GPRS PowerON/OFF */
-//     gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_HIGH, "GPRS_PON");
-//        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
-//        s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_UP);
-//        gpio_free(EXYNOS4X12_GPM1(1));
-//     /* GPRS STATUS*/
-//     gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
-//        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
-//        s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
-//        gpio_free(EXYNOS4X12_GPM1(6));
-//     /* GPRS PWRKEY*/
-//     gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
-//        s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
-//        s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
-//        gpio_free(EXYNOS4X12_GPM0(4));
+/*********************************************************************/
+/*				GPS CONFIGURATION									 */
+/*********************************************************************/
+     /* GPS PowerON/OFF */
+    gpio_request_one(EXYNOS4X12_GPM4(2), GPIOF_OUT_INIT_LOW, "GPS_PON");
+        s3c_gpio_cfgpin(EXYNOS4X12_GPM4(2), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4X12_GPM4(2), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4X12_GPM4(2));
+
+        /* GPS Status */
+     gpio_request_one(EXYNOS4X12_GPM4(5), GPIOF_IN, "GPS_STATUS");
+           s3c_gpio_cfgpin(EXYNOS4X12_GPM4(5), S3C_GPIO_INPUT );
+           s3c_gpio_setpull(EXYNOS4X12_GPM4(5), S3C_GPIO_PULL_NONE);
+           gpio_free(EXYNOS4X12_GPM4(5));
+
+           /* GPS Reset */
+     gpio_request_one(EXYNOS4X12_GPM1(3), GPIOF_IN, "GPS_RESET");
+            s3c_gpio_cfgpin(EXYNOS4X12_GPM1(3), S3C_GPIO_INPUT );   
+            s3c_gpio_setpull(EXYNOS4X12_GPM1(3), S3C_GPIO_PULL_NONE);
+            gpio_free(EXYNOS4X12_GPM1(3));
+
+/*********************************************************************/
+/*				GPRS CONFIGURATION									 */
+/*********************************************************************/
+        /* GPRS PowerON/OFF */
+     gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
+        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4X12_GPM1(1));
+        /* GPRS STATUS*/
+     gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
+        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4X12_GPM1(6));
+                /* GPRS PWRKEY*/
+     gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
+        s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4X12_GPM0(4));
 
 }
 
@@ -1179,8 +1178,8 @@ static void __init clickarm4412_machine_init(void)
 	i2c_register_board_info(1, clickarm4412_i2c_devs1,
 				ARRAY_SIZE(clickarm4412_i2c_devs1));
 
-	i2c_register_board_info(2, clickarm4412_i2c_devs2,
-				ARRAY_SIZE(clickarm4412_i2c_devs2));
+//	i2c_register_board_info(2, clickarm4412_i2c_devs2,
+//				ARRAY_SIZE(clickarm4412_i2c_devs2));
 
 //	s3c_i2c3_set_platdata(NULL);
 //	i2c_register_board_info(3, clickarm4412_i2c_devs3,
@@ -1197,7 +1196,7 @@ static void __init clickarm4412_machine_init(void)
 //				ARRAY_SIZE(clickarm4412_i2c_devs4));
 #endif
 
-	s3c_i2c7_set_platdata(NULL);
+//	s3c_i2c7_set_platdata(NULL);
 //	i2c_register_board_info(7, clickarm4412_i2c_devs7,
 //				ARRAY_SIZE(clickarm4412_i2c_devs7));
 /*BACKLIGTH CONFIGURATION GPIO ARRAY*/
@@ -1221,7 +1220,7 @@ static void __init clickarm4412_machine_init(void)
 	//s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
 
-#if defined(CONFIG_S5P_DEV_TV)
+#if defined(CONFIG_S5P_DEV_TV) && defined(CONFIG_S5P_DEV_I2C_HDMIPHY)
 	s5p_i2c_hdmiphy_set_platdata(NULL);
 	s5p_hdmi_set_platdata(&hdmiphy_info, NULL, 0, EXYNOS4_GPX3(7));
 	s5p_hdmi_cec_set_platdata(&hdmi_cec_data);

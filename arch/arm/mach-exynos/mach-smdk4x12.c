@@ -35,7 +35,9 @@
 #include <plat/devs.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
+#if defined(CONFIG_EXYNOS4_SETUP_KEYPAD)
 #include <plat/keypad.h>
+#endif
 #include <plat/mfc.h>
 #include <plat/regs-serial.h>
 #include <plat/sdhci.h>
@@ -212,13 +214,13 @@ static struct i2c_board_info smdk4x12_i2c_devs1[] __initdata = {
 	{ I2C_BOARD_INFO("wm8994", 0x1a), }
 };
 
-static struct i2c_board_info smdk4x12_i2c_devs3[] __initdata = {
-	/* nothing here yet */
-};
-
-static struct i2c_board_info smdk4x12_i2c_devs7[] __initdata = {
-	/* nothing here yet */
-};
+//static struct i2c_board_info smdk4x12_i2c_devs3[] __initdata = {
+//	/* nothing here yet */
+//};
+//
+//static struct i2c_board_info smdk4x12_i2c_devs7[] __initdata = {
+//	/* nothing here yet */
+//};
 
 static struct samsung_bl_gpio_info smdk4x12_bl_gpio_info = {
 	.no = EXYNOS4_GPD0(1),
@@ -227,13 +229,14 @@ static struct samsung_bl_gpio_info smdk4x12_bl_gpio_info = {
 
 static struct platform_pwm_backlight_data smdk4x12_bl_data = {
 	.pwm_id = 1,
-	.pwm_period_ns  = 1000,
+	.pwm_period_ns  = 100,
 };
 
 static struct pwm_lookup smdk4x12_pwm_lookup[] = {
 	PWM_LOOKUP("s3c24xx-pwm.1", 0, "pwm-backlight.0", NULL),
 };
 
+#if defined(CONFIG_EXYNOS4_SETUP_KEYPAD)
 static uint32_t smdk4x12_keymap[] __initdata = {
 	/* KEY(row, col, keycode) */
 	KEY(1, 3, KEY_1), KEY(1, 4, KEY_2), KEY(1, 5, KEY_3),
@@ -246,12 +249,15 @@ static struct matrix_keymap_data smdk4x12_keymap_data __initdata = {
 	.keymap		= smdk4x12_keymap,
 	.keymap_size	= ARRAY_SIZE(smdk4x12_keymap),
 };
+#endif
 
+#if defined(CONFIG_EXYNOS4_SETUP_KEYPAD)
 static struct samsung_keypad_platdata smdk4x12_keypad_data __initdata = {
 	.keymap_data	= &smdk4x12_keymap_data,
 	.rows		= 3,
 	.cols		= 8,
 };
+#endif
 
 #if defined(CONFIG_S5P_DEV_TV)
 static struct s5p_platform_cec hdmi_cec_data __initdata = {
@@ -280,10 +286,10 @@ static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 };
 #else
 static struct s3c_fb_pd_win smdk4x12_fb_win0 = {
-	.xres		= 480,
-	.yres		= 800,
-	.virtual_x	= 480,
-	.virtual_y	= 800 * 2,
+	.xres		= 240,
+	.yres		= 400,
+	.virtual_x	= 240,
+	.virtual_y	= 400,
 	.max_bpp	= 32,
 	.default_bpp	= 24,
 };
@@ -295,8 +301,8 @@ static struct fb_videomode smdk4x12_lcd_timing = {
 	.lower_margin	= 6,
 	.hsync_len	= 6,
 	.vsync_len	= 4,
-	.xres		= 480,
-	.yres		= 800,
+	.xres		= 240,
+	.yres		= 400,
 };
 
 static struct s3c_fb_platdata smdk4x12_lcd_pdata __initdata = {
@@ -316,7 +322,7 @@ static struct platform_device *smdk4x12_devices[] __initdata = {
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&s3c_device_i2c3,
+//	&s3c_device_i2c3,
 	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
@@ -330,7 +336,9 @@ static struct platform_device *smdk4x12_devices[] __initdata = {
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
+#if defined(CONFIG_EXYNOS4_SETUP_KEYPAD)
 	&samsung_device_keypad,
+#endif
 };
 
 static void __init smdk4x12_map_io(void)
@@ -363,18 +371,20 @@ static void __init smdk4x12_machine_init(void)
 	i2c_register_board_info(1, smdk4x12_i2c_devs1,
 				ARRAY_SIZE(smdk4x12_i2c_devs1));
 
-	s3c_i2c3_set_platdata(NULL);
-	i2c_register_board_info(3, smdk4x12_i2c_devs3,
-				ARRAY_SIZE(smdk4x12_i2c_devs3));
+//	s3c_i2c3_set_platdata(NULL);
+//	i2c_register_board_info(3, smdk4x12_i2c_devs3,
+//				ARRAY_SIZE(smdk4x12_i2c_devs3));
 
-	s3c_i2c7_set_platdata(NULL);
-	i2c_register_board_info(7, smdk4x12_i2c_devs7,
-				ARRAY_SIZE(smdk4x12_i2c_devs7));
+//	s3c_i2c7_set_platdata(NULL);
+//	i2c_register_board_info(7, smdk4x12_i2c_devs7,
+//				ARRAY_SIZE(smdk4x12_i2c_devs7));
 
 	samsung_bl_set(&smdk4x12_bl_gpio_info, &smdk4x12_bl_data);
 	pwm_add_table(smdk4x12_pwm_lookup, ARRAY_SIZE(smdk4x12_pwm_lookup));
 
+#if defined(CONFIG_EXYNOS4_SETUP_KEYPAD)
 	samsung_keypad_set_platdata(&smdk4x12_keypad_data);
+#endif
 
 	s3c_sdhci2_set_platdata(&smdk4x12_hsmmc2_pdata);
 	s3c_sdhci3_set_platdata(&smdk4x12_hsmmc3_pdata);
