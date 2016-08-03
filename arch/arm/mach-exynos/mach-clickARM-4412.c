@@ -192,45 +192,50 @@ static struct usb3503_platform_data usb3503_pdata = {
 /*touchscreen config tsc2007 XE_INT22*/
 #if defined(CONFIG_TOUCHSCREEN_TSC2007) || defined(CONFIG_TOUCHSCREEN_TSC2007_MODULE)
 #include <linux/i2c/tsc2007.h>
-#define VELO_TS_INT      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
-static int TSC2007_get_pendown_state(void)
+#define tsc2007_penirq_pin      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
+static int tsc2007_get_pendown_state(void)
 {
-	int val = 0;
-	gpio_free(VELO_TS_INT);
-	gpio_request(VELO_TS_INT, NULL);
-	gpio_direction_input(VELO_TS_INT);
-       
-	val = gpio_get_value(VELO_TS_INT);
-       
-	gpio_free(VELO_TS_INT);
-	gpio_request(VELO_TS_INT, NULL);
-       
-	return val ? 0 : 1;
-	/*return !gpio_get_value(VELO_TS_INT);*/
+	return !gpio_get_value(tsc2007_penirq_pin);
 }
 /*TOUCHSCREEN INTERRUPT INIT TOUCH_INT:XEINT22*/
-static int TSC2007_tsp_init(void)
+static int tsc2007_init_platform_hw(void)
 {
 	/* TOUCH_INT: XEINT_22 */
-	gpio_request(VELO_TS_INT, "TOUCH_INT");
-	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_SFN(0xf));
-	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_UP);
+	gpio_request(tsc2007_penirq_pin, "TOUCH_INT");
+	s3c_gpio_cfgpin(tsc2007_penirq_pin, S3C_GPIO_SFN(0xf));
+	s3c_gpio_setpull(tsc2007_penirq_pin, S3C_GPIO_PULL_UP);
 
 	return 0;
 }
 
+static void tsc2007_exit_platform_hw(void)
+{
+	gpio_free(tsc2007_penirq_pin);
+}
+
+static void tsc2007_clear_penirq(void)
+{
+	gpio_set_value(tsc2007_penirq_pin, 1);
+}
+
 struct tsc2007_platform_data tsc2007_info = {
-	.get_pendown_state	= TSC2007_get_pendown_state,
-	.init_platform_hw	= TSC2007_tsp_init,
 	.model 		= 2007,	/* 2007. */
+
 	.x_plate_ohms	= 300, /* must be non-zero value */
 	.max_rt		= 1<<12, /* max. resistance above which samples are ignored */
+
 	.poll_delay	= 5, /* delay (in ms) after pen-down event
-				     before polling starts */
-	.poll_period = 15,/* time (in ms) between samples */
+					     before polling starts */
+	.poll_period = 25,/* time (in ms) between samples */
+
 	.fuzzx		= 64, 	/* fuzz factor for X, Y and pressure axes */
 	.fuzzy		= 64,
 	.fuzzz		= 64,
+
+	.get_pendown_state	= tsc2007_get_pendown_state,
+	.clear_penirq 		= tsc2007_clear_penirq,
+	.init_platform_hw	= tsc2007_init_platform_hw,
+	.exit_platform_hw	= tsc2007_exit_platform_hw
 };
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
@@ -266,7 +271,7 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
         {
                 I2C_BOARD_INFO("tsc2007", 0x48),
                 .platform_data  = &tsc2007_info,
-                .irq            = VELO_TS_INT,
+                .irq            = IRQ_EINT(22),
         },
 #endif
 
@@ -303,33 +308,6 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 #endif
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
-
-/* I2C2 bus GPIO-Bitbanging */
-#define		GPIO_I2C2_SDA	EXYNOS4_GPA0(6)
-#define		GPIO_I2C2_SCL	EXYNOS4_GPA0(7)
-static struct 	i2c_gpio_platform_data 	i2c2_gpio_platdata = {
-	.sda_pin = GPIO_I2C2_SDA,
-	.scl_pin = GPIO_I2C2_SCL,
-	.udelay  = 5,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c2 = {
-	.name 	= "i2c-gpio",
-	.id  	= 2,    // adepter number
-	.dev.platform_data = &i2c2_gpio_platdata,
-};
-
-/* Odroid-O2 schematics show the DDC of the remote HDMI device connected to
- * I2C2. HDMI specs state that DDC always sits at bus address 0x50. */
-static struct i2c_board_info clickarm4412_i2c_devs2[] __initdata = {
-	{
-			/* nothing here yet */
-		//I2C_BOARD_INFO("s5p_ddc", 0x50),
-	},
-};
 
 /* I2C4 bus GPIO-Bitbanging */
 #define		GPIO_I2C4_SDA	EXYNOS4_GPB(0)
@@ -372,130 +350,6 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 #endif
 };
 
-#if 0
-static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
-		{
-	/* nothing here yet */
-		}
-};
-#endif
-
-#if defined(CONFIG_CLICKARM_OTHERS)
-/* for u3 I/O shield board */
-#define		GPIO_I2C4_SDA	EXYNOS4_GPX1(1) /* GPIO-PIN 200 */
-#define		GPIO_I2C4_SCL	EXYNOS4_GPX1(0) /* GPIO-PIN 199 */
-
-static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
-	.sda_pin = GPIO_I2C4_SDA,
-	.scl_pin = GPIO_I2C4_SCL,
-	.udelay  = 0,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c4 = {
-	.name 	= "i2c-gpio",
-	.id  	= 4,    // adepter number
-	.dev.platform_data = &i2c4_gpio_platdata,
-};
-
-#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
-/* Enables W1 on Pin 6 of the I/-Header of U3 */
-/* Breaks support for I/O shield board */
-#define               GPIO_W1         EXYNOS4_GPX1(5) /* GPIO-PIN 204 */
-
-static struct w1_gpio_platform_data w1_gpio_pdata = {
-       .pin = GPIO_W1,
-       .is_open_drain = 0,
-};
-
-static struct platform_device clickarm_w1_device = {
-   .name  = "w1-gpio",
-   .id    = -1,
-   .dev.platform_data      = &w1_gpio_pdata,
-};
-#endif
-
-#if defined(CONFIG_GPIO_PCA953X)
-static struct pca953x_platform_data clickarm_gpio_expander_pdata = {
-	.gpio_base	= EXYNOS4_GPIO_END,
-};
-#endif
-
-static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
-#if defined(CONFIG_SENSORS_BH1780)
-	{
-		I2C_BOARD_INFO("bh1780", 0x29),
-	},
-#endif
-#if defined(CONFIG_GPIO_PCA953X)
-	{
-		I2C_BOARD_INFO("tca6416", 0x20),
-		.platform_data 	= &clickarm_gpio_expander_pdata,
-	},
-#endif
-};
-#endif
-
-//#if defined(CONFIG_CLICKARM_OTHERS)
-//static struct gpio_led clickarm4412_gpio_config[] = {
-//        {
-//                .name			= "led1",
-//                .default_trigger	= "heartbeat",
-//                .gpio			= EXYNOS4_GPC1(0),
-//                .active_low		= 1,
-//        },
-//};
-//#else
-//static struct gpio_config clickarm4412_gpio_config[] = {
-//	{
-//		/* TL_VELO button */
-//		gpio_request_one(EXYNOS4_GPF2(5), GPIOF_INIT_HIGH	, "GPX1");
-//		gpio_free(EXYNOS4_GPF2(5));
-//
-//		/* BR_VELO button */
-//		gpio_free(EXYNOS4_GPJ0(1));
-//		gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/* BL_VELO button */
-//		gpio_free(EXYNOS4_GPJ1(1));
-//		gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/* GPS PowerON/OFF */
-//		gpio_free(EXYNOS4212_GPM4(2));
-//		gpio_request_one(EXYNOS4212_GPM4(2), GPIOF_OUT_INIT_LOW	, "GPX1");
-//		/*GPS_ON*/
-//		gpio_free(EXYNOS4212_GPM4(2));
-//		gpio_set_value(EXYNOS4212_GPM4(2), 1);
-//		mdelay(100);
-//		gpio_set_value(EXYNOS4212_GPM4(2), 0);
-//		/* GPRS POWER */
-//		gpio_free(EXYNOS4212_GPM1(1));
-//		gpio_request_one(EXYNOS4212_GPM1(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/*GPRS_ON*/
-//		gpio_free(EXYNOS4212_GPM0(4));
-//		gpio_request_one(EXYNOS4212_GPM0(4), GPIOF_OUT_INIT_LOW	, "GPX1");
-//		/* to poweron gprs need to drive EXYNOS4212_GPM0(4) to HIG (1) over 1500ms*/
-//
-//	},
-//
-//};
-//#endif
-//
-//static struct gpio_led_platform_data clickarm4412_gpio_config_info = {
-//	.leds		= clickarm4412_gpio_config,
-//	.num_leds	= ARRAY_SIZE(clickarm4412_gpio_config),
-//};
-//
-//static struct platform_device clickarm4412_config_gpio = {
-//	.name	= "config-gpio",
-//	.id	= -1,
-//	.dev	= {
-//		.platform_data	= &clickarm4412_gpio_config_info,
-//	},
-//};
-/* LCD Backlight data tps611xx PWM_platform_data*/
-/*BACKLIGTH INIT*/
-
 static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
 	.no = EXYNOS4X12_GPM1(5),
 	.func = S3C_GPIO_SFN(2),
@@ -529,7 +383,7 @@ static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | 
 				  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
 	.default_win 	= 0,
-	.bpp 		= 32,
+	.bpp 		= 24,
 };
 	
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
@@ -947,13 +801,10 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&gpio_device_i2c2,
 	&gpio_device_i2c4,
-//	&s3c_device_i2c3,
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &clickarm_w1_device,
 #endif
-	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
 	&s3c_device_wdt,
@@ -1052,11 +903,6 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
         s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
-
-	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4X12_GPM3(7));
 
 	/* BR/BL */
         gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
@@ -1172,27 +1018,12 @@ static void __init clickarm4412_machine_init(void)
 	i2c_register_board_info(1, clickarm4412_i2c_devs1,
 				ARRAY_SIZE(clickarm4412_i2c_devs1));
 
-	i2c_register_board_info(2, clickarm4412_i2c_devs2,
-				ARRAY_SIZE(clickarm4412_i2c_devs2));
-
 	i2c_register_board_info(4, clickarm4412_i2c_devs4,
 				ARRAY_SIZE(clickarm4412_i2c_devs4));
-
-//	s3c_i2c3_set_platdata(NULL);
-//	i2c_register_board_info(3, clickarm4412_i2c_devs3,
-//				ARRAY_SIZE(clickarm4412_i2c_devs3));
 	
 	gpio_set_value(EXYNOS4_GPJ1(4), 0);
 	gpio_set_value(EXYNOS4_GPJ0(6), 0);
-#if defined(CONFIG_CLICKARM_OTHERS)
-//	i2c_register_board_info(4, clickarm4412_i2c_devs4,
-//				ARRAY_SIZE(clickarm4412_i2c_devs4));
-#endif
 
-	s3c_i2c7_set_platdata(NULL);
-//	i2c_register_board_info(7, clickarm4412_i2c_devs7,
-//				ARRAY_SIZE(clickarm4412_i2c_devs7));
-/*BACKLIGTH CONFIGURATION GPIO ARRAY*/
 	samsung_bl_set(&clickarm4412_bl_gpio_info, &clickarm4412_bl_data);
 	pwm_add_table(clickarm4412_pwm_lookup, ARRAY_SIZE(clickarm4412_pwm_lookup));
 /*SDIO_HCI CONFIGURATION ARRAY*/
