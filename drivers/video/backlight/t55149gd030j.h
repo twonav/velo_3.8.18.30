@@ -66,8 +66,8 @@
 #define V_BASE_IMAGE_NB_LINE    0x3500
 #define V_DRIVER_OUT            0x0100
 #define V_LCD_DRIVE             0x0100
-//#define V_ENTRY_MODE            0x0020 // high power consumption - correct direction - correct color
-#define V_ENTRY_MODE            0x0220 // low power consumption - correct direction - correct color
+//#define V_ENTRY_MODE            0x1020 // high power consumption - correct direction - correct color
+#define V_ENTRY_MODE            0x1220 // low power consumption - correct direction - correct color
 #define V_DISP_CONT2            0x0808
 #define V_LOW_POWER_CONT2       0x0010
 #define V_EX_DISP_INT1          0x0110

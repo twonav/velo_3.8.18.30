@@ -373,8 +373,8 @@ static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 			.right_margin 	= 9,
 			.upper_margin 	= 5,
 			.lower_margin 	= 5,
-			.hsync_len 	= 2,
-			.vsync_len 	= 2,
+			.hsync_len 	= 1,
+			.vsync_len 	= 1,
 			.xres 		= 240,
 			.yres 		= 400,
 		},
@@ -896,7 +896,7 @@ static void __init clickarm4412_gpio_init(void)
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_NONE);
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
 	
 	/* TR/TL */
 	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
