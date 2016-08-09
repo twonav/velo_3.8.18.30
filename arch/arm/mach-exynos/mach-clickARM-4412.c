@@ -218,18 +218,24 @@ static void tsc2007_clear_penirq(void)
 	gpio_set_value(tsc2007_penirq_pin, 1);
 }
 
+// 2016-08-08 DNP TWON-13812: [#1] Ajustar umbral de resistencia a un valor mas bajo (max_rt)
+//				=> Cuando se pulsa flojo, los valores X, Y tienen mucho error
+//                            [#2] Aumentar control fuzz de los valores X, Y (fuzzx, fuzzy)
+//				=> Para evitar baile de X, Y debido a variaciones electricas en el touch
 struct tsc2007_platform_data tsc2007_info = {
 	.model 		= 2007,	/* 2007. */
 
 	.x_plate_ohms	= 300, /* must be non-zero value */
-	.max_rt		= 1<<12, /* max. resistance above which samples are ignored */
+	/* max. resistance above which samples are ignored */
+	.max_rt		= 1<<9, // [#1] antes 1<<12
 
 	.poll_delay	= 5, /* delay (in ms) after pen-down event
 					     before polling starts */
 	.poll_period = 25,/* time (in ms) between samples */
 
-	.fuzzx		= 64, 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzy		= 64,
+	/* fuzz factor for X, Y and pressure axes */
+	.fuzzx		= 96, // [#2] antes 64
+	.fuzzy		= 96, // [#2] antes 64
 	.fuzzz		= 64,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
