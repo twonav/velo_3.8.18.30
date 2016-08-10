@@ -400,12 +400,13 @@ static struct regulator_init_data max77686_ldo8_data = {
 
 //-----------------------------------------------------------------------------------
 // LDO9 : VT_CORE (1.0V)
+// 2016-06-10 DNP Subimos a 1.8V: I2C SENSORS POWER ON VELO (1.8V)
 //-----------------------------------------------------------------------------------
 static struct regulator_init_data max77686_ldo9_data = {
 	.constraints	= {
 		.name		= "LDO9 VT_CORE_1V0",
-		.min_uV		= 1000000,
-		.max_uV		= 1000000,
+		.min_uV		= 1800000,
+		.max_uV		= 1800000,
 		.apply_uV	= 1,
 #if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
         .always_on  = 0,

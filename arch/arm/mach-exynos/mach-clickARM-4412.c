@@ -234,8 +234,8 @@ struct tsc2007_platform_data tsc2007_info = {
 	.poll_period = 25,/* time (in ms) between samples */
 
 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 96, // [#2] antes 64
-	.fuzzy		= 96, // [#2] antes 64
+	.fuzzx		= 128, // [#2] antes 64
+	.fuzzy		= 128, // [#2] antes 64
 	.fuzzz		= 64,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
