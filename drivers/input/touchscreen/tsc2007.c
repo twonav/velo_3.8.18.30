@@ -26,6 +26,7 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/delay.h>
 
 #define TSC2007_MEASURE_TEMP0		(0x0 << 4)
 #define TSC2007_MEASURE_AUX		(0x2 << 4)
@@ -173,6 +174,9 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 	struct ts_event tc;
 	u32 rt;
 
+	if (ts->poll_delay > 0)
+		msleep(ts->poll_delay);
+
 	while (!ts->stopped && tsc2007_is_pen_down(ts)) {
 
 		/* pen is down, continue with the measurement */
@@ -194,16 +198,12 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 				"DOWN point(%4d,%4d), pressure (%4u)\n",
 				tc.x, tc.y, rt);
 
+			
+			input_report_key(input, BTN_TOUCH, 1);
 			input_report_abs(input, ABS_X, tc.x);
 			input_report_abs(input, ABS_Y, tc.y);
 			input_report_abs(input, ABS_PRESSURE, rt);
-			if (!ts->pendown) {
-				input_report_key(input, BTN_TOUCH, 1);
-				ts->pendown = true;
-			}
-
 			input_sync(input);
-
 		} else {
 			/*
 			 * Sample found inconsistent by debouncing or pressure is
@@ -219,13 +219,10 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 
 	dev_dbg(&ts->client->dev, "UP\n");
 
-	if (ts->pendown) {
-		input_report_key(input, BTN_TOUCH, 0);
-		input_report_abs(input, ABS_PRESSURE, 0);
-		input_sync(input);
+	input_report_key(input, BTN_TOUCH, 0);
+	input_report_abs(input, ABS_PRESSURE, 0);
+	input_sync(input);
 
-		ts->pendown = false;
-	}
 
 	if (ts->clear_penirq)
 		ts->clear_penirq();
