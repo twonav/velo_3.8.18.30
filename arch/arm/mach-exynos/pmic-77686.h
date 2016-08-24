@@ -398,13 +398,13 @@ static struct regulator_init_data max77686_ldo8_data = {
 };
 
 //-----------------------------------------------------------------------------------
-// LDO9 : VT_CORE (1.0V)
+// LDO9 : VT_CORE (1.8V)
 //-----------------------------------------------------------------------------------
 static struct regulator_init_data max77686_ldo9_data = {
 	.constraints	= {
 		.name		= "LDO9 VT_CORE_1V0",
-		.min_uV		= 1000000,
-		.max_uV		= 1000000,
+		.min_uV		= 1800000,
+		.max_uV		= 1800000,
 		.apply_uV	= 1,
 #if defined(CONFIG_ODROID_U)||defined(CONFIG_ODROID_U2)
         .always_on  = 0,
@@ -870,24 +870,24 @@ static struct regulator_init_data max77686_ldo26_data = {
 
 ////-----------------------------------------------------------------------------------
 ////-----------------------------------------------------------------------------------
-//static struct regulator_init_data max77686_32KHz_AP_data = {
-//	.constraints	= {
-//		.name		= "EN32KHz AP",
-//		.always_on	= 1,
-//	},
-//};
-//static struct regulator_init_data max77686_32KHz_CP_data = {
-//	.constraints	= {
-//		.name		= "EN32KHz CP",
-//		.always_on	= 1,
-//	},
-//};
+static struct regulator_init_data max77686_32KHz_AP_data = {
+	.constraints	= {
+		.name		= "EN32KHz AP",
+		.always_on	= 1,
+	},
+};
+static struct regulator_init_data max77686_32KHz_CP_data = {
+	.constraints	= {
+		.name		= "EN32KHz CP",
+		.always_on	= 1,
+	},
+};
 
 
 //-----------------------------------------------------------------------------------
 // Regulator Init data
 //-----------------------------------------------------------------------------------
-static struct max77686_regulator_data max77686_regulators[] = {
+static struct max77686_regulator_data __refdata max77686_regulators[] = {
 	{ MAX77686_LDO1,		&max77686_ldo1_data },  		
 	{ MAX77686_LDO2,     	&max77686_ldo2_data },  
 	{ MAX77686_LDO3,     	&max77686_ldo3_data },  
@@ -1004,7 +1004,7 @@ static struct fixed_voltage_config __initdata hdmi_fixed_voltage_config = {
 	.init_data	= &hdmi_fixed_voltage_init_data,
 };
 
-static struct platform_device hdmi_fixed_voltage = {
+static struct platform_device __refdata hdmi_fixed_voltage = {
 	.name	= "reg-fixed-voltage",
 	.id	= FIXED_REG_ID_HDMI_5V,
 	.dev	= {

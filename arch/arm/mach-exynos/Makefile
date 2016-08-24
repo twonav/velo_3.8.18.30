@@ -46,6 +46,7 @@ obj-$(CONFIG_MACH_NURI)			+= mach-nuri.o
 obj-$(CONFIG_MACH_ORIGEN)		+= mach-origen.o
 
 obj-$(CONFIG_MACH_SMDK4212)		+= mach-smdk4x12.o
+obj-$(CONFIG_MACH_SMDK4412)		+= mach-smdk4x12.o
 obj-$(CONFIG_MACH_HKDK4412)		+= mach-hkdk4412.o
 
 obj-$(CONFIG_MACH_CLICKARM4412)		+= mach-clickARM-4412.o

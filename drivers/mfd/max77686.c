@@ -46,7 +46,7 @@ static struct regmap_config max77686_regmap_config = {
 
 #ifdef CONFIG_OF
 static struct of_device_id max77686_pmic_dt_match[] = {
-	{.compatible = "maxim,max77686",        .data = 0},
+	{.compatible = "maxim,max77686",        .data = NULL},
 	{},
 };
 
@@ -80,7 +80,6 @@ static int max77686_i2c_probe(struct i2c_client *i2c,
 	unsigned int data;
 	int ret = 0;
 
-	printk("max77686_i2c_probe\n");
 	if (i2c->dev.of_node)
 		pdata = max77686_i2c_parse_dt_pdata(&i2c->dev);
 

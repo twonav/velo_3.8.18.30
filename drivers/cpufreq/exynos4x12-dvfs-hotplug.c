@@ -53,19 +53,19 @@ static unsigned int reached_min_cpu;
 static unsigned int hotplug_effective_interval;
 
 // function declerations
-static void dynamic_hotplug_work();
-static void fixed_hotplug_work();
-static void start_hotplug_dynamic_tick();
-static void start_hotplug_fixed_tick(unsigned int);
-static void stop_hotplug_ticks();
-static void set_anticipation();
-static void unset_anticipation();
-static void boot_fixed_cores();
-static int cpu_adjust(unsigned int);
-static void cpu_increase();
-static void cpu_decrease();
-static void hotplug_deploy(struct cpufreq_policy*);
-static int hotplug_cpufreq_transition(struct notifier_block*,unsigned long, void*);
+static void __cpuinit dynamic_hotplug_work(void);
+static void __cpuinit fixed_hotplug_work(void);
+static void __cpuinit start_hotplug_dynamic_tick(void);
+static void __cpuinit start_hotplug_fixed_tick(unsigned int);
+static void __cpuinit stop_hotplug_ticks(void);
+static void __cpuinit set_anticipation(void);
+static void __cpuinit unset_anticipation(void);
+static void __cpuinit boot_fixed_cores(void);
+static int __cpuinit cpu_adjust(unsigned int);
+static void __cpuinit cpu_increase(void);
+static void __cpuinit cpu_decrease(void);
+static void __cpuinit hotplug_deploy(struct cpufreq_policy*);
+static int __cpuinit hotplug_cpufreq_transition(struct notifier_block*,unsigned long, void*);
 
 
 // sysfs objects and functions
@@ -211,7 +211,7 @@ static struct attribute *hotplug_attributes[] = {
 
 // End of "sysfs objects and functions"
 
-static void __hotplug_tick_step_freq_track()
+static void __refdata __hotplug_tick_step_freq_track(void)
 {
 	unsigned int tolerated_freq_in, tolerated_freq_out;
 
@@ -247,7 +247,7 @@ static void __hotplug_tick_step_freq_track()
 	}
 }
 
-static void dynamic_hotplug_work()
+static void __refdata dynamic_hotplug_work()
 {
 	(*dynamic_tick_step)();
 
@@ -255,12 +255,12 @@ static void dynamic_hotplug_work()
 		start_hotplug_dynamic_tick();
 }
 
-static void fixed_hotplug_work()
+static void __refdata fixed_hotplug_work()
 {
 	boot_fixed_cores();
 }
 
-static void start_hotplug_dynamic_tick()
+static void __refdata start_hotplug_dynamic_tick()
 {
 	dynamic_tick_suspended = 0;
 
@@ -268,7 +268,7 @@ static void start_hotplug_dynamic_tick()
 			msecs_to_jiffies(hotplug_effective_interval));
 }
 
-static void start_hotplug_fixed_tick(unsigned int cpu_count)
+static void __refdata start_hotplug_fixed_tick(unsigned int cpu_count)
 {
 	fixed_tick_cpu_count = cpu_count;
 
@@ -276,13 +276,13 @@ static void start_hotplug_fixed_tick(unsigned int cpu_count)
 			msecs_to_jiffies(500));
 }
 
-static void stop_hotplug_ticks()
+static void __refdata stop_hotplug_ticks()
 {
 	cancel_delayed_work_sync(&hotplug_dynamic_tick_work);
 	cancel_delayed_work_sync(&hotplug_fixed_tick_work);
 }
 
-static void boot_fixed_cores()
+static void __refdata boot_fixed_cores()
 {
 	int operation_count;
 	unsigned int i,online_count;
@@ -306,7 +306,7 @@ static void boot_fixed_cores()
 		(*fix_operation)();
 }
 
-static void set_anticipation()
+static void __refdata set_anticipation()
 {
 	if(freq_in_limit > 1)
 	{
@@ -314,13 +314,13 @@ static void set_anticipation()
 	}
 }
 
-static void unset_anticipation()
+static void __refdata unset_anticipation()
 {
 	hotplug_effective_interval = hotplug_tick_interval;
 	freq_in_limit = 3;
 }
 
-static int cpu_adjust(unsigned int increase)
+static int __refdata cpu_adjust(unsigned int increase)
 {
 	unsigned int nr_cpus;
 
@@ -351,7 +351,7 @@ static int cpu_adjust(unsigned int increase)
 	}
 }
 
-static void cpu_increase()
+static void __refdata cpu_increase()
 {
 	unsigned int i;
 
@@ -368,7 +368,7 @@ static void cpu_increase()
 	}
 }
 
-static void cpu_decrease()
+static void __refdata cpu_decrease()
 {
 	unsigned int i;
 
@@ -385,7 +385,7 @@ static void cpu_decrease()
 	}
 }
 
-static void hotplug_deploy(struct cpufreq_policy * policy)
+static void __refdata hotplug_deploy(struct cpufreq_policy * policy)
 {
 	unsigned int cpu;
 
@@ -437,7 +437,7 @@ static void hotplug_deploy(struct cpufreq_policy * policy)
 	}
 }
 
-static int hotplug_cpufreq_transition(struct notifier_block *nb,
+static int __refdata hotplug_cpufreq_transition(struct notifier_block *nb,
 		unsigned long val, void *data)
 {
 	struct cpufreq_freqs *freqs = (struct cpufreq_freqs *) data;
@@ -466,7 +466,7 @@ static int hotplug_cpufreq_transition(struct notifier_block *nb,
 	return 0;
 }
 
-static int hotplug_cpufreq_policy(struct notifier_block *nb, unsigned long val,	void * data)
+static int __refdata hotplug_cpufreq_policy(struct notifier_block *nb, unsigned long val,	void * data)
 {
 	struct cpufreq_policy * policy = (struct cpufreq_policy*) data;
 
@@ -479,7 +479,7 @@ static int hotplug_cpufreq_policy(struct notifier_block *nb, unsigned long val,	
 	return 0;
 }
 
-static int hotplug_pm_transition(struct notifier_block *nb,	unsigned long val, void *data)
+static int __refdata hotplug_pm_transition(struct notifier_block *nb,	unsigned long val, void *data)
 {
 	switch (val) {
 	case PM_SUSPEND_PREPARE:
@@ -512,7 +512,7 @@ static struct notifier_block pm_hotplug =
  * driver for exynos4. The cpufreq_frequency_table for exynos4 should be
  * established before calling this function.
  */
-static int __init exynos4_dvfs_hotplug_init(void)
+static int __refdata exynos4_dvfs_hotplug_init(void)
 {
 	int i, register_result = 0;
 	struct cpufreq_frequency_table *table;
