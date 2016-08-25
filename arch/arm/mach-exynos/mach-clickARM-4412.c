@@ -897,22 +897,22 @@ static void __init clickarm4412_gpio_init(void)
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
 	
-	/* TR/TL */
-	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-        s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
-	gpio_free(EXYNOS4_GPF2(5));
+//	/* TR/TL (Lo muevo a setup-fimd0.c)*/
+//	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
+//	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+//	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+//	gpio_free(EXYNOS4_GPF2(5));
 
 	/* BR/BL */
-        gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
-        s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4_GPJ0(1));
+	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
+	s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ0(1));
 
 	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  //modificado
-        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4_GPJ1(1));
+	s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ1(1));
 
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
@@ -930,42 +930,42 @@ static void __init clickarm4412_gpio_init(void)
 /*********************************************************************/
 /*				GPS CONFIGURATION									 */
 /*********************************************************************/
-     /* GPS PowerON/OFF */
-    gpio_request_one(EXYNOS4X12_GPM4(2), GPIOF_OUT_INIT_LOW, "GPS_PON");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM4(2), S3C_GPIO_OUTPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM4(2), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4X12_GPM4(2));
+	/* GPS PowerON/OFF */
+	gpio_request_one(EXYNOS4X12_GPM4(2), GPIOF_OUT_INIT_LOW, "GPS_ONOFF");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(2), S3C_GPIO_OUTPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(2), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(2));
 
-        /* GPS Status */
-     gpio_request_one(EXYNOS4X12_GPM4(5), GPIOF_IN, "GPS_STATUS");
-           s3c_gpio_cfgpin(EXYNOS4X12_GPM4(5), S3C_GPIO_INPUT );
-           s3c_gpio_setpull(EXYNOS4X12_GPM4(5), S3C_GPIO_PULL_NONE);
-           gpio_free(EXYNOS4X12_GPM4(5));
+	/* GPS Reset */
+	gpio_request_one(EXYNOS4X12_GPM1(3), GPIOF_IN, "GPS_RESET");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(3), S3C_GPIO_INPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM1(3), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM1(3));
 
-           /* GPS Reset */
-     gpio_request_one(EXYNOS4X12_GPM1(3), GPIOF_IN, "GPS_RESET");
-            s3c_gpio_cfgpin(EXYNOS4X12_GPM1(3), S3C_GPIO_INPUT );   
-            s3c_gpio_setpull(EXYNOS4X12_GPM1(3), S3C_GPIO_PULL_NONE);
-            gpio_free(EXYNOS4X12_GPM1(3));
+	/* GPS Status */
+	gpio_request_one(EXYNOS4X12_GPM4(5), GPIOF_IN, "GPS_STATUS");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(5), S3C_GPIO_INPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(5), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(5));
 
 /*********************************************************************/
 /*				GPRS CONFIGURATION									 */
 /*********************************************************************/
-        /* GPRS PowerON/OFF */
-     gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4X12_GPM1(1));
-        /* GPRS STATUS*/
-     gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4X12_GPM1(6));
-                /* GPRS PWRKEY*/
-     gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4X12_GPM0(4));
+	/* GPRS PWRKEY*/
+	gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM0(4));
+	/* GPRS PowerON/OFF */
+	gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM1(1));
+	/* GPRS STATUS*/
+	gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM1(6));
 
 }
 
