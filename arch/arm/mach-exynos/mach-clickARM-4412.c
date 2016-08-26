@@ -422,12 +422,12 @@ static struct platform_device clickarm4412_lcd_t55149gd030j = {
 /* GPIO KEYS KEYBOARD*/
 static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 	{
-		.code			= BTN_A,
-		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
-		.desc			= "KEY_POWER",
-		.type			= EV_SW,
-		.active_low		= 1,
-		.wakeup			= 1,
+		.code				= BTN_A,
+		.gpio				= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
+		.desc				= "KEY_POWER",
+		.type				= EV_SW,
+		.active_low			= 1,
+		.debounce_interval	= 5,
 	},
 	{
 		.code			= BTN_B,
@@ -435,7 +435,7 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 		.desc			= "TL_BUTTON",
 		.type			= EV_SW,
 		.active_low		= 1,
-		.wakeup			= 1,
+		.debounce_interval	= 5,
 	},
 	{
 		.code			= BTN_C,
@@ -443,7 +443,7 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 		.desc			= "BR_BUTTON",
 		.type			= EV_SW,
 		.active_low		= 1,
-		.wakeup			= 1,
+		.debounce_interval	= 5,
 	},
 	{
 		.code			= BTN_X,
@@ -451,17 +451,18 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 		.desc			= "BL_BUTTON",
 		.type			= EV_SW,
 		.active_low		= 1,
-		.wakeup			= 1,
+		.debounce_interval	= 5,
 	},
 };
 
 static struct gpio_keys_platform_data clickarm4412_gpio_keys_data = {
 	.buttons	= clickarm4412_gpio_keys_tables,
 	.nbuttons	= ARRAY_SIZE(clickarm4412_gpio_keys_tables),
+    .poll_interval  = 20
 };
 
 static struct platform_device clickarm4412_gpio_keys = {
-	.name	= "gpio-keys",
+	.name	= "gpio-keys-polled",
 	.dev	= {
 		.platform_data	= &clickarm4412_gpio_keys_data,
 	},
@@ -556,8 +557,7 @@ static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
-	.host_caps		= MMC_CAP_4_BIT_DATA |
-		MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.host_caps		= MMC_CAP_4_BIT_DATA,
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
 
@@ -907,8 +907,10 @@ static void __init clickarm4412_gpio_init(void)
 	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
 
 	/* Power on/off button */
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
+	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT);	/* VELO SIDE BUTTON TR POWERON */
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4X12_GPM3(7));
 	
 //	/* TR/TL (Lo muevo a setup-fimd0.c)*/
 //	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
