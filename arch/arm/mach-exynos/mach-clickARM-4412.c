@@ -39,6 +39,7 @@
 #include <linux/spi/spi_gpio.h>
 #include <linux/reboot.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/wl12xx.h>
 
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
@@ -560,6 +561,12 @@ static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
 
+static struct wl12xx_platform_data clickarm4412_wl12xx_wlan_data __initdata = {
+	.irq			= -1,
+	.board_ref_clock	= WL12XX_REFCLOCK_26,
+	.platform_quirks	= WL12XX_PLATFORM_QUIRK_EDGE_IRQ,
+};
+
 /* DWMMC */
 static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
 {
@@ -580,7 +587,7 @@ static struct dw_mci_board clickarm4412_dwmci_pdata = {
 	.detect_delay_ms	= 200,
 	.init				= clickarm4412_dwmci_init,
 	.get_bus_wd			= clickarm4412_dwmci_get_bus_wd,
-//	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
+	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
 };
 
 static struct resource tmu_resource[] = {
@@ -933,6 +940,12 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ0(6), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ0(6));
+
+	/* WLAN_IRQ */	
+	gpio_request_one(EXYNOS4_GPX0(1), GPIOF_IN, "WLAN_IRQ");
+    s3c_gpio_cfgpin(EXYNOS4_GPX0(1), S3C_GPIO_INPUT );
+    s3c_gpio_setpull(EXYNOS4_GPX0(1), S3C_GPIO_PULL_DOWN);
+	
 /*********************************************************************/
 /*				GPS CONFIGURATION									 */
 /*********************************************************************/
@@ -1066,6 +1079,12 @@ static void __init clickarm4412_machine_init(void)
 	platform_add_devices(clickarm4412_devices, ARRAY_SIZE(clickarm4412_devices));
 
 	register_reboot_notifier(&clickarm4412_reboot_notifier_nb);
+
+	/*WIFI PLATFORM DATA*/
+	clickarm4412_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
+	printk("clickarm4412_wl12xx_wlan_data.irq: %d\n",clickarm4412_wl12xx_wlan_data.irq);
+	wl12xx_set_platform_data(&clickarm4412_wl12xx_wlan_data);
+
 }
 
 MACHINE_START(CLICKARM4412, "ClickArm4412")
