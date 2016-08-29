@@ -243,7 +243,6 @@ struct fan5404x_chg {
 	uint8_t	prev_hz_opa;
 
 	struct delayed_work heartbeat_work;
-	struct delayed_work boost_check_work;
 	struct notifier_block notifier;
 	struct qpnp_vadc_chip	*vadc_dev;
 	struct dentry	    *debug_root;
@@ -264,7 +263,7 @@ struct fan5404x_chg {
 	int ic_info_pn;
 	bool factory_configured;
 	int max_rate_cap;
-	struct delayed_work iusb_work;
+
 	bool demo_mode;
 	bool usb_suspended;
 };
@@ -343,9 +342,6 @@ static int fan5404x_read(struct fan5404x_chg *chip, int reg,
 
 	return rc;
 }
-
-static int fan5404x_charging_reboot(struct notifier_block *, unsigned long,
-				void *);
 
 static int fan5404x_masked_write(struct fan5404x_chg *chip, int reg,
 						uint8_t mask, uint8_t val)
@@ -579,104 +575,16 @@ static int fan5404x_set_iocharge(struct fan5404x_chg *chip,
 	return 0;
 }
 
+static int fan5404x_set_safety(struct fan5404x_chg *chip,
+		int limit)
+{
+	fan5404x_masked_write(chip,REG_SAFETY, SAFETY_ISAFE, 6 << SAFETY_ISAFE_SHIFT);
+	fan5404x_masked_write(chip,REG_SAFETY, SAFETY_VSAFE, 7 << SAFETY_VSAFE_SHIFT);
+	return 0;
+}
+
 #define OREG_FACTORY      0x23
 #define IBUSLIM_UNLIMITED 0x03
-static int configure_for_factory_cable_insertion(struct fan5404x_chg *chip)
-{
-	int rc = 0;
-
-	/*
-	 * Tickle the timer, enable charging and disable T32. This works
-	 * around the internal 2.5s reset.
-	 */
-
-	if (chip->factory_configured)
-		return rc;
-
-	rc = fan5404x_masked_write_fac(chip, REG_CONTROL0,  // reset t32 timer
-				   CONTROL0_TMR_RST, CONTROL0_TMR_RST);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Tickle the Timer\n");
-		printk("Factory Mode Failure: Tickle the Timer\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_CONTROL1, // enable charging
-				       CONTROL1_CE_N, 0);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Enable Charging\n");
-		printk("Factory Mode Failure: Enable Charging\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_WD_CONTROL, // disable the t32 timer
-				  WD_CONTROL_WD_DIS, WD_CONTROL_WD_DIS);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Disable 32s timer\n");
-		printk("Factory Mode Failure: Disable 32s timer\n");
-		return rc;
-	}
-
-	/*
-	 * Disable Charging, Set IBUS to Unlimited, VOREG to 4.2V and
-	 * disable T32. This is needed to configure factory mode.
-	 */
-
-	rc = fan5404x_masked_write_fac(chip, REG_CONTROL1, //  disable charging
-				       CONTROL1_CE_N, CONTROL1_CE_N);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Disable charging\n");
-		printk("Factory Mode Failure: Disable charging\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_CONTROL1, // HZ = 0
-				       CONTROL1_HZ_MODE, 0);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Disable HZ mode\n");
-		printk("Factory Mode Failure: Disable HZ mode\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_CONTROL1, // No Input current limit
-			       CONTROL1_IBUSLIM,
-			       IBUSLIM_UNLIMITED << CONTROL1_IBUSLIM_SHIFT);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Set I/P current\n");
-		printk("Factory Mode Failure: Set I/P current\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_OREG, OREG_OREG, // Set output voltage to 4.2V
-				       OREG_FACTORY << OREG_OREG_SHIFT);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Set Voreg to 4.2\n");
-		printk("Factory Mode Failure: Set Voreg to 4.2\n");
-		return rc;
-	}
-
-	rc = fan5404x_masked_write_fac(chip, REG_WD_CONTROL, // Disable the t32 timer
-				   WD_CONTROL_WD_DIS, WD_CONTROL_WD_DIS);
-	if (rc) {
-		dev_err(chip->dev, "Factory Mode Failure: Disable 32s timer\n");
-		printk("Factory Mode Failure: Disable 32s timer\n");
-		return rc;
-	}
-
-	chip->factory_configured = true;
-
-	return rc;
-}
-
-static void iusb_work(struct work_struct *work)
-{
-	struct fan5404x_chg *chip =
-		container_of(work, struct fan5404x_chg,
-					iusb_work.work);
-
-	if (chip)
-		chip->max_rate_cap = 0;
-}
 
 static int start_charging(struct fan5404x_chg *chip)
 {
@@ -695,19 +603,6 @@ static int start_charging(struct fan5404x_chg *chip)
 	dev_dbg(chip->dev, "starting to charge...\n");
 	printk("starting to charge...\n");
 
-	/***** configure the chip with factory parameters *****/
-	if (chip->factory_mode) {
-		rc = chip->usb_psy->get_property(chip->usb_psy,
-				 POWER_SUPPLY_PROP_TYPE, &prop);
-		dev_dbg(chip->dev, "External Power Changed: usb=%d\n",
-			prop.intval);
-		printk("External Power Changed: usb=%d\n",
-			prop.intval);
-		if ((prop.intval == POWER_SUPPLY_TYPE_USB) ||
-		    (prop.intval == POWER_SUPPLY_TYPE_USB_CDP))
-			configure_for_factory_cable_insertion(chip);
-	}
-
 	/* Set TMR_RST */
 	rc = fan5404x_masked_write(chip, REG_CONTROL0,
 				   CONTROL0_TMR_RST,
@@ -718,16 +613,24 @@ static int start_charging(struct fan5404x_chg *chip)
 		return rc;
 	}
 
-	rc = chip->usb_psy->get_property(chip->usb_psy,
-				POWER_SUPPLY_PROP_CURRENT_MAX, &prop);
-	if (rc < 0) {
-		dev_err(chip->dev,
-			"could not read USB current_max property, rc=%d\n", rc);
-		printk("could not read USB current_max property, rc=%d\n", rc);
-		return rc;
+	if (!chip->usb_psy){
+		printk("chip->factory_mode\n");
+		// Hardcode POWER_SUPPLY_PROP_CURRENT_MAX
+		current_limit = INT_MAX; // TEST THIS VALUE !!!!!!
 	}
+	else
+	{
+		rc = chip->usb_psy->get_property(chip->usb_psy,
+					POWER_SUPPLY_PROP_CURRENT_MAX, &prop);
+		if (rc < 0) {
+			dev_err(chip->dev,
+				"could not read USB current_max property, rc=%d\n", rc);
+			printk("could not read USB current_max property, rc=%d\n", rc);
+			return rc;
+		}
 
-	current_limit = prop.intval / 1000;
+		current_limit = prop.intval / 1000;
+	}
 	rc = fan5404x_set_ibuslim(chip, current_limit);
 	if (rc)
 		return rc;
@@ -817,9 +720,7 @@ static int stop_charging(struct fan5404x_chg *chip)
 			chip->max_rate_cap =
 				ARRAY_SIZE(ibuslim_fan54046_vals) - 1;
 	}
-	cancel_delayed_work(&chip->iusb_work);
-	schedule_delayed_work(&chip->iusb_work,
-			      msecs_to_jiffies(1000));
+
 
 	cancel_delayed_work(&chip->heartbeat_work);
 	schedule_delayed_work(&chip->heartbeat_work, msecs_to_jiffies(0));
@@ -878,12 +779,19 @@ static void fan5404x_external_power_changed(struct power_supply *psy)
 		chip->bms_psy = power_supply_get_by_name(
 					(char *)chip->bms_psy_name);
 
-	rc = chip->usb_psy->get_property(chip->usb_psy,
+	if (!chip->usb_psy) {
+		printk("fan5404x_external_power_changed\n");
+		printk("USB present detection will be used to start/stop charging\n");
+		chip->usb_present = false; // ??????? how do we detect if there is a cable connected ??????
+	}
+	else{
+		rc = chip->usb_psy->get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_PRESENT, &prop);
-	pr_debug("External Power Changed: usb=%d\n", prop.intval);
-	printk("External Power Changed: usb=%d\n", prop.intval);
+		pr_debug("External Power Changed: usb=%d\n", prop.intval);
+		printk("External Power Changed: usb=%d\n", prop.intval);
 
-	chip->usb_present = prop.intval;
+		chip->usb_present = prop.intval;
+	}
 	if (chip->usb_present)
 		start_charging(chip);
 	else
@@ -893,16 +801,21 @@ static void fan5404x_external_power_changed(struct power_supply *psy)
 		&& !chip->factory_present)
 		chip->factory_present = true;
 
-	if (chip->factory_mode && chip->usb_psy && chip->factory_present
-						&& !factory_kill_disable) {
-		rc = chip->usb_psy->get_property(chip->usb_psy,
-			POWER_SUPPLY_PROP_ONLINE, &prop);
-		if (!rc && (prop.intval == 0) && !chip->usb_present /*&& !reboot_in_progress()*/) {
-			pr_err("External Power Changed: UsbOnline=%d\n",
-							prop.intval);
-			printk("External Power Changed: UsbOnline=%d\n",
-							prop.intval);
-			kernel_power_off();
+	if (!chip->usb_psy) {
+			printk("FAN54040 no idea kernel_power_off()\n");
+	}
+	else {
+		if (chip->factory_mode && chip->usb_psy && chip->factory_present
+							&& !factory_kill_disable) {
+			rc = chip->usb_psy->get_property(chip->usb_psy,
+				POWER_SUPPLY_PROP_ONLINE, &prop);
+			if (!rc && (prop.intval == 0) && !chip->usb_present /*&& !reboot_in_progress()*/) {
+				pr_err("External Power Changed: UsbOnline=%d\n",
+								prop.intval);
+				printk("External Power Changed: UsbOnline=%d\n",
+								prop.intval);
+				kernel_power_off();
+			}
 		}
 	}
 }
@@ -935,12 +848,14 @@ static enum power_supply_property fan5404x_batt_properties[] = {
 
 static int fan5404x_reset_vbat_monitoring(struct fan5404x_chg *chip)
 {
+	return 0;
 	int rc = 0;
 	chip->vbat_monitor_params.state_request = ADC_TM_HIGH_LOW_THR_DISABLE;
 
 	rc = qpnp_adc_tm_channel_measure(chip->adc_tm_dev,
 					 &chip->vbat_monitor_params);
 
+	printk(KERN_INFO "fan5404x_reset_vbat_monitoring\n");
 	if (rc) {
 		dev_err(chip->dev, "tm disable failed: %d\n", rc);
 		printk("tm disable failed: %d\n", rc);
@@ -1561,59 +1476,63 @@ static void heartbeat_work(struct work_struct *work)
 		container_of(work, struct fan5404x_chg,
 					heartbeat_work.work);
 
-	bool poll_status = chip->poll_fast;
-	int batt_soc = fan5404x_get_prop_batt_capacity(chip);
-	int batt_health = fan5404x_get_prop_batt_health(chip);
-	bool taper_reached = fan5404x_get_prop_taper_reached(chip);
-
-	dev_dbg(chip->dev, "HB Pound!\n");
-
-	if (batt_soc < 20)
-		chip->poll_fast = true;
-	else
-		chip->poll_fast = false;
-
-	if (poll_status != chip->poll_fast)
-		fan5404x_setup_vbat_monitoring(chip);
-
-	if (/*(batt_health == POWER_SUPPLY_HEALTH_WARM) ||
-	    (batt_health == POWER_SUPPLY_HEALTH_COOL) ||*/
-	    (batt_health == POWER_SUPPLY_HEALTH_OVERHEAT) ||
-	    (batt_health == POWER_SUPPLY_HEALTH_COLD))
-		fan5404x_check_temp_range(chip);
-
-	if (chip->demo_mode) {
-		dev_warn(chip->dev, "Battery in Demo Mode charging Limited\n");
-		printk("Battery in Demo Mode charging Limited\n");
-
-		if (!chip->usb_suspended &&
-		    (batt_soc >= DEMO_MODE_MAX_SOC))
-			fan5404x_usb_suspend(chip, true);
-		else if (chip->usb_suspended &&
-			   (batt_soc <=
-			    (DEMO_MODE_MAX_SOC - DEMO_MODE_HYS_SOC)))
-			fan5404x_usb_suspend(chip, false);
-
-	} else if (taper_reached && !chip->chg_done_batt_full) {
-		dev_dbg(chip->dev, "Charge Complete!\n");
-		printk("Charge Complete!\n");
-		chip->chg_done_batt_full = true;
-	} else if (chip->chg_done_batt_full && batt_soc < 100) {
-		dev_dbg(chip->dev, "SOC dropped,  Charge Resume!\n");
-		printk("SOC dropped,  Charge Resume!\n");
-		chip->chg_done_batt_full = false;
+	/* Set TMR_RST */
+	int rc;
+	rc = fan5404x_masked_write(chip, REG_CONTROL0,
+				   CONTROL0_TMR_RST,
+				   CONTROL0_TMR_RST);
+	if (rc) {
+		dev_err(chip->dev, "start-charge: Couldn't set TMR_RST\n");
+		return;
 	}
 
-	fan5404x_set_chrg_path_temp(chip);
+	/* Set IBUSLIM */
+	rc = fan5404x_set_ibuslim(chip, INT_MAX);
+	if (rc){
+		dev_err(chip->dev, "start-charge: Couldn't set IBUSLIM\n");
+		return;
+	}
 
-	power_supply_changed(&chip->batt_psy);
-	schedule_delayed_work(&chip->heartbeat_work,
-			      msecs_to_jiffies(60000));
-	fan_relax(&chip->fan_wake_source);
-}
+	/* Set IOCHARGE */
+	rc = fan5404x_set_iocharge(chip, 1150);
+	if (rc) {
+		dev_err(chip->dev, "start-charge: Couldn't set IOCHARGE\n");
+		return;
+	}
+
+	/* Clear IO_LEVEL */
+	rc = fan5404x_masked_write(chip, REG_VBUS_CONTROL, VBUS_IO_LEVEL, 0); // battery is controlled by IOCHARGE
+	if (rc) {
+		dev_err(chip->dev, "start-charge: Couldn't set IO_LEVEL\n");
+		return;
+	}
+
+	/* Set SAFETY ISAFE 1150mA VSAFE 4.34V*/
+	fan5404x_set_safety(chip,0);
+
+	/* Set OREG to 4.34V */
+	rc = fan5404x_set_oreg(chip, 4340);
+	if (rc) {
+		dev_err(chip->dev, "start-charge: Couldn't set OREG\n");
+		return;
+	}
+
+	rc = fan5404x_masked_write(chip, REG_CONTROL0,
+					   CONTROL0_TMR_RST,
+					   CONTROL0_TMR_RST);
+	if (rc) {
+		dev_err(chip->dev, "start-charge: Couldn't set TMR_RST\n");
+		return;
+	}
+
+	cancel_delayed_work(&chip->heartbeat_work);
+	schedule_delayed_work(&chip->heartbeat_work, msecs_to_jiffies(20000));
+	return;
+};
 
 static int fan5404x_of_init(struct fan5404x_chg *chip) // OF : Open Firmware
 {
+	printk(KERN_INFO "FAN5404x fan5404x_of_init\n");
 	int rc;
 	struct device_node *node = chip->dev->of_node;
 
@@ -1655,108 +1574,6 @@ static int fan5404x_hw_init(struct fan5404x_chg *chip)
 	return 0;
 }
 
-#define VBUS_OFF_THRESHOLD 2000000
-static int fan5404x_charging_reboot(struct notifier_block *nb,
-				unsigned long event, void *unused)
-{
-	struct qpnp_vadc_result result;
-
-	/*
-	 * Hack to power down when both VBUS and BPLUS are present.
-	 * This targets factory environment, where we need to power down
-	 * units with non-removable batteries between stations so that we
-	 * do not drain batteries to death.
-	 * Poll for VBUS to got away (controlled by external supply)
-	 * before proceeding with shutdown.
-	 */
-	switch (event) {
-	case SYS_POWER_OFF:
-		if (!the_chip) {
-			pr_err("called before fan5404x charging init\n");
-			printk("called before fan5404x charging init\n");
-			break;
-		}
-
-		if (!the_chip->factory_mode)
-			break;
-		do {
-			if (qpnp_vadc_read(the_chip->vadc_dev,
-				USBIN, &result)) {
-				pr_err("VBUS ADC read err\n");
-				printk("VBUS ADC read err\n");
-				break;
-			} else {
-				pr_info("VBUS:= %lld mV\n", result.physical);
-				printk("VBUS:= %lld mV\n", result.physical);
-			}
-			mdelay(100);
-		} while (result.physical > VBUS_OFF_THRESHOLD);
-		break;
-	default:
-		break;
-	}
-
-	if (the_chip->factory_mode) {
-		pr_info("Reboot Notification: FACTORY MODE VBUS missing!!\n");
-		printk("Reboot Notification: FACTORY MODE VBUS missing!!\n");
-	}
-
-	return NOTIFY_DONE;
-}
-
-#define VBUS_POWERUP_THRESHOLD 4000000
-static int determine_initial_status(struct fan5404x_chg *chip)
-/* Initialize some bool vars and if usb is present start charging */
-{
-	struct qpnp_vadc_result result; // qpnp_vadc : interface to read voltage
-	int rc;
-	union power_supply_propval prop = {0,};
-	uint8_t reg;
-
-	chip->batt_present = true;
-	rc = fan5404x_read(chip, REG_MONITOR1, &reg);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't read monitor1 rc = %d\n", rc);
-		printk("Couldn't read monitor1 rc = %d\n", rc);
-		return rc;
-	}
-
-	if (reg & MONITOR1_NOBAT)
-		chip->batt_present = false;
-
-	chip->chg_done_batt_full = false;
-
-	if (chip->factory_mode) {
-		if (qpnp_vadc_read(chip->vadc_dev, USBIN, &result)) {
-			pr_err("VBUS ADC read err\n");
-			printk("VBUS ADC read err\n");
-		}else {
-			pr_info("VBUS:= %lld mV\n", result.physical);
-			printk("VBUS:= %lld mV\n", result.physical);
-			if (result.physical > VBUS_POWERUP_THRESHOLD)
-				chip->factory_present = true;
-		}
-	}
-
-	rc = chip->usb_psy->get_property(chip->usb_psy,
-				POWER_SUPPLY_PROP_PRESENT, &prop);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't get USB present rc = %d\n", rc);
-		printk("Couldn't get USB present rc = %d\n", rc);
-		return rc;
-	}
-	chip->usb_present = !!prop.intval;
-
-	if (chip->usb_present)
-		start_charging(chip);
-	else {
-		stop_charging(chip);
-		chip->max_rate_cap = 0;
-	}
-
-	return 0;
-}
-
 static int fan5404x_read_chip_id(struct fan5404x_chg *chip, uint8_t *val)
 {
 	int rc;
@@ -1778,737 +1595,6 @@ static int fan5404x_read_chip_id(struct fan5404x_chg *chip, uint8_t *val)
 	return 0;
 }
 
-
-#define CHG_SHOW_MAX_SIZE 50
-static ssize_t force_demo_mode_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long mode;
-
-	r = kstrtoul(buf, 0, &mode);
-	if (r) {
-		pr_err("Invalid usb suspend mode value = %lu\n", mode);
-		printk("Invalid usb suspend mode value = %lu\n", mode);
-		return -EINVAL;
-	}
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	the_chip->demo_mode = (mode) ? true : false;
-
-	return r ? r : count;
-}
-
-static ssize_t force_demo_mode_show(struct device *dev,
-				    struct device_attribute *attr,
-				    char *buf)
-{
-	int state;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	state = (the_chip->demo_mode) ? 1 : 0;
-
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "%d\n", state);
-}
-
-static DEVICE_ATTR(force_demo_mode, 0644,
-		force_demo_mode_show,
-		force_demo_mode_store);
-
-#define USB_SUSPEND_BIT BIT(4)
-static ssize_t force_chg_usb_suspend_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long mode;
-
-	r = kstrtoul(buf, 0, &mode);
-	if (r) {
-		pr_err("Invalid usb suspend mode value = %lu\n", mode);
-		printk("Invalid usb suspend mode value = %lu\n", mode);
-		return -EINVAL;
-	}
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	r = fan5404x_masked_write_fac(the_chip, REG_CONTROL1,
-				      CONTROL1_HZ_MODE,
-				      mode ? CONTROL1_HZ_MODE : 0);
-
-	return r ? r : count;
-}
-
-#define USB_SUSPEND_STATUS_BIT BIT(3)
-static ssize_t force_chg_usb_suspend_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	int state;
-	int ret;
-	u8 value;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	ret = fan5404x_read(the_chip, REG_CONTROL1, &value);
-	if (ret) {
-		pr_err("USB_SUSPEND_STATUS_BIT failed ret = %d\n", ret);
-		printk("USB_SUSPEND_STATUS_BIT failed ret = %d\n", ret);
-		state = -EFAULT;
-		goto end;
-	}
-
-	state = (CONTROL1_HZ_MODE & value) ? 1 : 0;
-
-end:
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "%d\n", state);
-}
-
-static DEVICE_ATTR(force_chg_usb_suspend, 0664,
-		force_chg_usb_suspend_show,
-		force_chg_usb_suspend_store);
-
-static ssize_t force_chg_fail_clear_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long mode;
-
-	r = kstrtoul(buf, 0, &mode);
-	if (r) {
-		pr_err("Invalid chg fail mode value = %lu\n", mode);
-		printk("Invalid chg fail mode value = %lu\n", mode);
-		return -EINVAL;
-	}
-
-	/* do nothing for fan5404x */
-	r = 0;
-
-	return r ? r : count;
-}
-
-static ssize_t force_chg_fail_clear_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	/* do nothing for fan5404x */
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "0\n");
-}
-
-static DEVICE_ATTR(force_chg_fail_clear, 0664,
-		force_chg_fail_clear_show,
-		force_chg_fail_clear_store);
-
-static ssize_t force_chg_auto_enable_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long mode;
-
-	r = kstrtoul(buf, 0, &mode);
-	if (r) {
-		pr_err("Invalid chrg enable value = %lu\n", mode);
-		printk("Invalid chrg enable value = %lu\n", mode);
-		return -EINVAL;
-	}
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	r = fan5404x_masked_write_fac(the_chip, REG_VBUS_CONTROL,
-				      VBUS_IO_LEVEL, 0);
-	if (r) {
-		dev_err(the_chip->dev, "auto_enable: Couldn't clear IOLEVEL\n");
-		printk("auto_enable: Couldn't clear IOLEVEL\n");
-		return r;
-	}
-
-	r = fan5404x_masked_write_fac(the_chip, REG_CONTROL1,
-				      CONTROL1_CE_N, mode ? 0 : CONTROL1_CE_N);
-	if (r < 0) {
-		dev_err(the_chip->dev,
-			"Couldn't set CHG_ENABLE_BIT enable = %d r = %d\n",
-			(int)mode, (int)r);
-		printk("Couldn't set CHG_ENABLE_BIT enable = %d r = %d\n",
-			(int)mode, (int)r);
-		return r;
-	}
-
-	return r ? r : count;
-}
-
-static ssize_t force_chg_auto_enable_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	int state;
-	int ret;
-	u8 value;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		state = -ENODEV;
-		goto end;
-	}
-
-	ret = fan5404x_read(the_chip, REG_CONTROL1, &value);
-	if (ret) {
-		pr_err("CHG_EN_BIT failed ret = %d\n", ret);
-		printk("CHG_EN_BIT failed ret = %d\n", ret);
-		state = -EFAULT;
-		goto end;
-	}
-
-	state = (CONTROL1_CE_N & value) ? 0 : 1;
-
-end:
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "%d\n", state);
-}
-
-static DEVICE_ATTR(force_chg_auto_enable, 0664,
-		force_chg_auto_enable_show,
-		force_chg_auto_enable_store);
-
-#define MAX_IBATT_LEVELS 31
-static ssize_t force_chg_ibatt_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long chg_current;
-	int i;
-
-	r = kstrtoul(buf, 0, &chg_current);
-	if (r) {
-		pr_err("Invalid ibatt value = %lu\n", chg_current);
-		printk("Invalid ibatt value = %lu\n", chg_current);
-		return -EINVAL;
-	}
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	for (i = IBAT_IOCHARGE_STEPS; i >= 0; i--)
-		if (chg_current >= IBAT_STEP_CURRENT(i))
-			break;
-
-	if (i < 0)
-		return -EINVAL;
-
-	/* Need to keep RESET low... */
-	r = fan5404x_masked_write_fac(the_chip, REG_IBAT,
-				      IBAT_IOCHARGE | IBAT_RESET,
-				      i << IBAT_IOCHARGE_SHIFT);
-	if (r) {
-		dev_err(the_chip->dev,
-			"Couldn't set Fast Charge Current = %d r = %d\n",
-			(int)chg_current, (int)r);
-		printk("Couldn't set Fast Charge Current = %d r = %d\n",
-			(int)chg_current, (int)r);
-		return r;
-	}
-
-	return r ? r : count;
-}
-
-static ssize_t force_chg_ibatt_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	int state;
-	int ret;
-	u8 value;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		state = -ENODEV;
-		goto end;
-	}
-
-	ret = fan5404x_read(the_chip, REG_IBAT, &value);
-
-	if (ret) {
-		pr_err("Fast Charge Current failed ret = %d\n", ret);
-		printk("Fast Charge Current failed ret = %d\n", ret);
-		state = -EFAULT;
-		goto end;
-	}
-
-	value = ((value & IBAT_IOCHARGE) >> IBAT_IOCHARGE_SHIFT);
-
-	if (value > (IBAT_IOCHARGE_STEPS - 1))
-		value = IBAT_IOCHARGE_STEPS;
-
-	state = IBAT_STEP_CURRENT(value);
-
-end:
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "%d\n", state);
-}
-
-static DEVICE_ATTR(force_chg_ibatt, 0664,
-		force_chg_ibatt_show,
-		force_chg_ibatt_store);
-
-static ssize_t force_chg_iusb_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long usb_curr;
-	int i;
-
-	r = kstrtoul(buf, 0, &usb_curr);
-	if (r) {
-		pr_err("Invalid iusb value = %lu\n", usb_curr);
-		printk("Invalid iusb value = %lu\n", usb_curr);
-		return -EINVAL;
-	}
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	if (the_chip->ic_info_pn == FAN54046) {
-		for (i = ARRAY_SIZE(ibuslim_fan54046_vals) - 1; i >= 0; i--)
-			if (usb_curr >= ibuslim_fan54046_vals[i])
-				break;
-	} else {
-		for (i = ARRAY_SIZE(ibuslim_fan54053_vals) - 1; i >= 0; i--)
-			if (usb_curr >= ibuslim_fan54053_vals[i])
-				break;
-	}
-
-	if (i < 0)
-		return -EINVAL;
-
-	r = fan5404x_masked_write_fac(the_chip, REG_CONTROL1,
-				      CONTROL1_IBUSLIM,
-				      i << CONTROL1_IBUSLIM_SHIFT);
-	if (r) {
-		dev_err(the_chip->dev,
-			"Couldn't set USBIN Current = %d r = %d\n",
-			(int)usb_curr, (int)r);
-		printk("Couldn't set USBIN Current = %d r = %d\n",
-			(int)usb_curr, (int)r);
-		return r;
-	}
-
-	return r ? r : count;
-}
-
-#define CONTROL1_IBUSLIM_SHIFT_MASK 0x03
-static ssize_t force_chg_iusb_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	int state = 0;
-	int ret;
-	u8 value;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		ret = -ENODEV;
-		goto end;
-	}
-
-	ret = fan5404x_read(the_chip, REG_CONTROL1, &value);
-	if (ret) {
-		pr_err("USBIN Current failed ret = %d\n", ret);
-		printk("USBIN Current failed ret = %d\n", ret);
-		state = -EFAULT;
-		goto end;
-	}
-
-	value = value >> CONTROL1_IBUSLIM_SHIFT;
-	value &= CONTROL1_IBUSLIM_SHIFT_MASK;
-
-	if (the_chip->ic_info_pn == FAN54046)
-		state = ibuslim_fan54046_vals[value];
-	else
-		state = ibuslim_fan54053_vals[value];
-end:
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "%d\n", state);
-}
-
-static DEVICE_ATTR(force_chg_iusb, 0664,
-		force_chg_iusb_show,
-		force_chg_iusb_store);
-
-static ssize_t force_chg_itrick_store(struct device *dev,
-				      struct device_attribute *attr,
-				      const char *buf, size_t count)
-{
-	unsigned long r;
-	unsigned long mode;
-
-	r = kstrtoul(buf, 0, &mode);
-	if (r) {
-		pr_err("Invalid itrick value = %lu\n", mode);
-		printk("Invalid itrick value = %lu\n", mode);
-		return -EINVAL;
-	}
-
-	/* do nothing for fan5404x */
-	r = 0;
-
-	return r ? r : count;
-}
-
-static ssize_t force_chg_itrick_show(struct device *dev,
-				     struct device_attribute *attr,
-				     char *buf)
-{
-	/* do nothing for fan5404x */
-	return scnprintf(buf, CHG_SHOW_MAX_SIZE, "340\n");
-}
-
-static DEVICE_ATTR(force_chg_itrick, 0664,
-		   force_chg_itrick_show,
-		   force_chg_itrick_store);
-
-static int get_reg(void *data, u64 *val)
-{
-	int rc;
-	u8 temp;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	rc = fan5404x_read(the_chip, the_chip->peek_poke_address, &temp);
-	if (rc < 0) {
-		dev_err(the_chip->dev,
-			"Couldn't read reg %x rc = %d\n",
-			the_chip->peek_poke_address, rc);
-		printk("Couldn't read reg %x rc = %d\n",
-			the_chip->peek_poke_address, rc);
-		return -EAGAIN;
-	}
-	*val = temp;
-	return 0;
-}
-
-static int set_reg(void *data, u64 val)
-{
-	int rc;
-	u8 temp;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		return -ENODEV;
-	}
-
-	temp = (u8) val;
-	rc = __fan5404x_write_fac(the_chip, the_chip->peek_poke_address, temp);
-	if (rc < 0) {
-		dev_err(the_chip->dev,
-			"Couldn't write 0x%02x to 0x%02x rc= %d\n",
-			the_chip->peek_poke_address, temp, rc);
-		printk("Couldn't write 0x%02x to 0x%02x rc= %d\n",
-			the_chip->peek_poke_address, temp, rc);
-		return -EAGAIN;
-	}
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(poke_poke_debug_ops, get_reg, set_reg, "0x%02llx\n");
-
-static int show_registers(struct seq_file *m, void *data)
-{
-	int rc, i;
-	u8 reg;
-
-	if (!the_chip) {
-		pr_err("chip not valid\n");
-		printk("chip not valid\n");
-		return -ENODEV;
-	}
-
-	for (i = 0; i < ARRAY_SIZE(fan_regs); i++) {
-		rc = fan5404x_read(the_chip, fan_regs[i].regaddress, &reg);
-		if (!rc) {
-			seq_printf(m, "%s - 0x%02x = 0x%02x\n",
-					fan_regs[i].regname,
-					fan_regs[i].regaddress,
-					reg);
-			printk("%s - 0x%02x = 0x%02x\n",
-					fan_regs[i].regname,
-					fan_regs[i].regaddress,
-					reg);
-		}
-	}
-
-	return 0;
-}
-
-static int registers_debugfs_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, show_registers, the_chip);
-}
-
-static const struct file_operations registers_debugfs_ops = {
-	.owner          = THIS_MODULE,
-	.open           = registers_debugfs_open,
-	.read           = seq_read,
-	.llseek         = seq_lseek,
-	.release        = single_release,
-};
-
-
-static bool fan5404x_charger_mmi_factory(void)
-{
-	struct device_node *np = of_find_node_by_path("/chosen");
-	bool factory = false;
-
-	if (np)
-		factory = of_property_read_bool(np, "mmi,factory-cable");
-
-	of_node_put(np);
-
-	return factory;
-}
-
-static bool fan5404x_charger_test_mode(void)
-{
-	struct device_node *np = of_find_node_by_path("/chosen");
-	const char *mode;
-	int rc;
-	bool test = false;
-
-	if (!np)
-		return test;
-
-	rc = of_property_read_string(np, "mmi,battery", &mode);
-	if ((rc >= 0) && mode) {
-		if (strcmp(mode, "test") == 0)
-			test = true;
-	}
-	of_node_put(np);
-
-	return test;
-}
-
-static int fan5404x_chg_otg_regulator_is_enable(struct regulator_dev *rdev)
-{
-	struct fan5404x_chg *chip = rdev_get_drvdata(rdev);
-
-	dev_dbg(chip->dev, "fan5404x_chg_otg_regulator_is_enable\n");
-	printk("fan5404x_chg_otg_regulator_is_enable\n");
-	return fan5404x_boost_read(chip);
-}
-
-static int fan5404x_chg_enable_boost(struct fan5404x_chg *chip, bool reg_enable)
-{
-	int rc = 0;
-	uint8_t reg = 0;
-	/* save current HZ and OPA if regulator is being enabled*/
-	if (reg_enable) {
-		rc = fan5404x_read(chip, REG_CONTROL1, &reg);
-		if (rc == 0)
-			chip->prev_hz_opa = reg &
-					(CONTROL1_HZ_MODE | CONTROL1_OPA_MODE);
-		else
-			chip->prev_hz_opa = 0;
-	}
-
-	/* reset T32 timer */
-	rc = fan5404x_masked_write(chip, REG_CONTROL0,
-				CONTROL0_TMR_RST, CONTROL0_TMR_RST);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't reset T32 timer, rc=%d\n", rc);
-		printk("Couldn't reset T32 timer, rc=%d\n", rc);
-		return rc;
-	}
-
-	rc = fan5404x_masked_write(chip, REG_CONTROL1,
-		CONTROL1_HZ_MODE | CONTROL1_OPA_MODE, CONTROL1_OPA_MODE);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't enable regulator, rc=%d\n",
-			rc);
-		printk("Couldn't enable regulator, rc=%d\n",
-			rc);
-		return rc;
-	}
-
-	/* disable the T32 watchdog timer */
-	rc = fan5404x_masked_write(chip, REG_WD_CONTROL,
-				WD_CONTROL_WD_DIS, WD_CONTROL_WD_DIS);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't disable WD timer, rc=%d\n", rc);
-		printk("Couldn't disable WD timer, rc=%d\n", rc);
-	}
-
-	return rc;
-
-}
-
-static void boost_check_work(struct work_struct *work)
-{
-	struct fan5404x_chg *chip =
-			container_of(work, struct fan5404x_chg,
-					boost_check_work.work);
-
-	if (!atomic_read(&chip->otg_enabled))
-		return;
-
-	dev_dbg(chip->dev, "boost check - %d\n", fan5404x_boost_read(chip));
-	printk("boost check - %d\n", fan5404x_boost_read(chip));
-
-	if (!fan5404x_boost_read(chip))
-		fan5404x_chg_enable_boost(chip, 0);
-
-	schedule_delayed_work(&chip->boost_check_work,
-		msecs_to_jiffies(BOOST_CHECK_DELAY));
-}
-
-static int fan5404x_chg_otg_regulator_enable(struct regulator_dev *rdev)
-{
-	struct fan5404x_chg *chip = rdev_get_drvdata(rdev);
-	int rc = 0;
-
-	dev_dbg(chip->dev, "fan5404x_chg_otg_regulator_enable\n");
-	printk("fan5404x_chg_otg_regulator_enable\n");
-	if (fan5404x_chg_otg_regulator_is_enable(chip->otg_vreg.rdev) == 1)
-		return 0;
-
-	rc = fan5404x_chg_enable_boost(chip, 1);
-
-	if (!rc) {
-		atomic_set(&chip->otg_enabled, 1);
-		schedule_delayed_work(&chip->boost_check_work,
-			msecs_to_jiffies(BOOST_CHECK_DELAY));
-	}
-
-	return rc;
-}
-
-static int fan5404x_chg_otg_regulator_disable(struct regulator_dev *rdev)
-{
-	int rc = 0;
-	struct fan5404x_chg *chip = rdev_get_drvdata(rdev);
-
-	dev_dbg(chip->dev, "fan5404x_chg_otg_regulator_disable\n");
-	printk("fan5404x_chg_otg_regulator_disable\n");
-
-	cancel_delayed_work(&chip->boost_check_work);
-
-	rc = fan5404x_masked_write(chip, REG_CONTROL0, CONTROL0_TMR_RST, 0);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't reset T32 timer, rc=%d\n", rc);
-		printk("Couldn't reset T32 timer, rc=%d\n", rc);
-		return rc;
-	}
-
-	rc = fan5404x_masked_write(chip, REG_WD_CONTROL,
-				WD_CONTROL_WD_DIS, 0);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't disable WD timer, rc=%d\n", rc);
-		printk("Couldn't disable WD timer, rc=%d\n", rc);
-		return rc;
-	}
-
-	rc = fan5404x_masked_write(chip, REG_CONTROL1,
-		CONTROL1_HZ_MODE | CONTROL1_OPA_MODE, chip->prev_hz_opa);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't disable OTG mode rc=%d\n", rc);
-		printk("Couldn't disable OTG mode rc=%d\n", rc);
-	}
-
-	atomic_set(&chip->otg_enabled, 0);
-	return rc;
-}
-
-static struct regulator_ops fan5404x_chg_otg_reg_ops = {
-	.enable		= fan5404x_chg_otg_regulator_enable,
-	.disable	= fan5404x_chg_otg_regulator_disable,
-	.is_enabled	= fan5404x_chg_otg_regulator_is_enable,
-};
-
-static int fan5404x_regulator_init(struct fan5404x_chg *chip)
-{
-	int rc = 0;
-	struct regulator_init_data *init_data;
-	struct regulator_config cfg = {};
-
-	init_data = of_get_regulator_init_data(chip->dev, chip->dev->of_node);
-	if (!init_data) {
-		dev_err(chip->dev, "Unable to allocate memory\n");
-		printk("Unable to allocate memory\n");
-		return -ENOMEM;
-	}
-
-	if (init_data->constraints.name) {
-		chip->otg_vreg.rdesc.owner = THIS_MODULE;
-		chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
-		chip->otg_vreg.rdesc.ops = &fan5404x_chg_otg_reg_ops;
-		chip->otg_vreg.rdesc.name = init_data->constraints.name;
-
-		cfg.dev = chip->dev;
-		cfg.init_data = init_data;
-		cfg.driver_data = chip;
-		cfg.of_node = chip->dev->of_node;
-
-		init_data->constraints.valid_ops_mask
-			|= REGULATOR_CHANGE_STATUS;
-
-		chip->otg_vreg.rdev = regulator_register(
-						&chip->otg_vreg.rdesc, &cfg);
-		if (IS_ERR(chip->otg_vreg.rdev)) {
-			rc = PTR_ERR(chip->otg_vreg.rdev);
-			chip->otg_vreg.rdev = NULL;
-			if (rc != -EPROBE_DEFER) {
-				dev_err(chip->dev,
-					"OTG reg failed, rc=%d\n", rc);
-				printk("OTG reg failed, rc=%d\n", rc);
-			}
-
-		}
-	}
-
-	return rc;
-}
-
-static void fan5404x_regulator_deinit(struct fan5404x_chg *chip)
-{
-	dev_dbg(chip->dev, "fan5404x_regulator_deinit\n");
-	printk("fan5404x_regulator_deinit\n");
-	if (chip->otg_vreg.rdev)
-		regulator_unregister(chip->otg_vreg.rdev);
-}
-
 static struct of_device_id fan5404x_match_table[] = {
 	{ .compatible = "fairchild,fan54040_charger", },
 	{ },
@@ -2519,52 +1605,26 @@ static struct of_device_id fan5404x_match_table[] = {
 static int fan5404x_charger_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-	printk(KERN_INFO "fan5404x_charger_probe\n");
-	//pr_info("INFO fan5404x_charger_probe\n");
-
 	int rc;
 	struct fan5404x_chg *chip;
-	struct power_supply *usb_psy;
+
 	uint8_t reg;
 	union power_supply_propval ret = {0, };
 
-	usb_psy = power_supply_get_by_name("usb"); // check if usb power supply connected
-	if (!usb_psy) {
-		dev_dbg(&client->dev, "USB supply not found; defer probe\n");
-		printk("USB supply not found; defer probe\n");
-		return -EPROBE_DEFER;
-	}
-
 	chip = devm_kzalloc(&client->dev, sizeof(*chip), GFP_KERNEL); // device memory allocation
 	if (!chip) {
-		dev_err(&client->dev, "Unable to allocate memory\n");
-		//printk("Unable to allocate memory\n");
+		dev_err(&client->dev, "fan5404x_charger Unable to allocate memory\n");
 		return -ENOMEM;
 	}
 
 	chip->client = client; // i2c_client
 	chip->dev = &client->dev; // should be bus controller
-	chip->usb_psy = usb_psy;  // Power supply class used to represent battery, UPS, AC or DC power supply
-							  // properties to user-space. Attributes are available via sysfs and uevent
-							  // interfaces.
-	chip->test_mode_soc = DEFAULT_TEST_MODE_SOC;
-	chip->test_mode_temp = DEFAULT_TEST_MODE_TEMP;
-	chip->demo_mode = false;
-	chip->usb_suspended = false;
-	chip->factory_mode = false;
-	chip->test_mode = false;
-	chip->factory_present = false;
-	chip->poll_fast = false;
-	chip->shutdown_voltage_tripped = false;
-	chip->chg_enabled = true;
-	chip->factory_configured = false;
 
 	mutex_init(&chip->read_write_lock);
 
 	rc = fan5404x_read_chip_id(chip, &reg); // identify chip, in our case is 54040
 	if (rc) {
 		dev_err(&client->dev, "Could not read from FAN5404x: %d\n", rc);
-		printk("Could not read from FAN5404x: %d\n", rc);
 		return -ENODEV;
 	}
 
@@ -2573,287 +1633,18 @@ static int fan5404x_charger_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, chip); // This is a void pointer that is for the driver to use.
 	                                  // One would use this pointer mainly to pass driver related data around.
 
-	wakeup_source_init(&chip->fan_wake_source.source, "fan5404x_wake"); //  ???? Nodes that describe devices which has wakeup capability must contain an
-																		// "wakeup-source" boolean property.
-
-	// these are the workers with timers maybe ?????
 	INIT_DELAYED_WORK(&chip->heartbeat_work, heartbeat_work);
-	INIT_DELAYED_WORK(&chip->boost_check_work, boost_check_work);
-	INIT_DELAYED_WORK(&chip->iusb_work, iusb_work);
-
-	// Battery power supply
-	chip->batt_psy.desc->name = "battery";
-	chip->batt_psy.desc->type = POWER_SUPPLY_TYPE_BATTERY;
-	chip->batt_psy.desc->get_property = fan5404x_batt_get_property;
-	chip->batt_psy.desc->set_property = fan5404x_batt_set_property;
-	chip->batt_psy.desc->properties = fan5404x_batt_properties;
-	chip->batt_psy.desc->num_properties = ARRAY_SIZE(fan5404x_batt_properties);
-	chip->batt_psy.desc->external_power_changed = fan5404x_external_power_changed;
-	chip->batt_psy.desc->property_is_writeable = fan5404x_batt_is_writeable;
-
-	rc = power_supply_register(chip->dev, &chip->batt_psy, NULL); // (needs power supply config?????) Register new power supply
-	if (rc < 0) {
-		dev_err(&client->dev,
-			"Unable to register batt_psy rc = %d\n", rc);
-		printk("Unable to register batt_psy rc = %d\n", rc);
-		return rc;
-	}
-
-	rc = fan5404x_regulator_init(chip);
-	if  (rc) {
-		dev_err(&client->dev,
-			"Couldn't initialize fan5404x regulator rc=%d\n", rc);
-		printk("Couldn't initialize fan5404x regulator rc=%d\n", rc);
-		return rc;
-	}
-
-	chip->factory_mode = fan5404x_charger_mmi_factory();
-	if (chip->factory_mode) {
-		dev_info(&client->dev, "Factory Mode: writes disabled\n");
-		printk("Factory Mode: writes disabled\n");
-	}
-
-	chip->test_mode = fan5404x_charger_test_mode();
-	if (chip->test_mode) {
-		dev_info(&client->dev, "Test Mode Enabled\n");
-		printk("Test Mode Enabled\n");
-	}
-
-	rc = fan5404x_of_init(chip); // initialize voltages and stuff IMPORTANT!!!!!
-	if (rc) {
-		dev_err(&client->dev, "Couldn't initialize OF DT values\n");
-		printk("Couldn't initialize OF DT values\n");
-		goto unregister_batt_psy;
-	}
-
-	chip->vadc_dev = qpnp_get_vadc(chip->dev, "fan5404x"); // NO IDEA ?????????
-	if (IS_ERR(chip->vadc_dev)) {
-		rc = PTR_ERR(chip->vadc_dev);
-		if (rc == -EPROBE_DEFER) {
-			pr_err("vadc not ready, defer probe\n");
-			printk("vadc not ready, defer probe\n");
-		}
-		goto unregister_batt_psy;
-	}
-
-	chip->adc_tm_dev = qpnp_get_adc_tm(chip->dev, "fan5404x");
-	if (IS_ERR(chip->adc_tm_dev)) {
-		rc = PTR_ERR(chip->adc_tm_dev);
-		if (rc == -EPROBE_DEFER) {
-			pr_err("adc_tm not ready, defer probe\n");
-			printk("adc_tm not ready, defer probe\n");
-		}
-		goto unregister_batt_psy;
-	}
-
-	if (!chip->bms_psy && chip->bms_psy_name) { // if there is no battery power supply and battery name ok
-		chip->bms_psy =
-			power_supply_get_by_name((char *)chip->bms_psy_name);
-
-		if (!chip->bms_psy) {
-			if (chip->factory_mode) {
-				chip->bms_psy = NULL;
-				pr_err("bms not ready, factory mode\n");
-				printk("bms not ready, factory mode\n");
-			} else {
-				dev_dbg(&client->dev,
-					"%s not found; defer probe\n",
-					chip->bms_psy_name);
-				printk("%s not found; defer probe\n",
-					chip->bms_psy_name);
-				rc = -EPROBE_DEFER;
-				goto unregister_batt_psy;
-			}
-		}
-	}
-
-	fan5404x_hw_init(chip); // disables the T32 timer
-
-
-	determine_initial_status(chip); // Initialize bool params and if usb present start charging
-
-	/* STAT irq configuration */
-
-	if (client->irq) { // ???? HOW IS THIS SET ??????
-		rc = devm_request_threaded_irq(&client->dev, client->irq, NULL,
-				fan5404x_chg_stat_handler,
-				IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING |
-				IRQF_ONESHOT,
-				"fan5404x_chg_stat_irq", chip);
-		if (rc < 0) {
-			dev_err(&client->dev,
-				"request_irq for irq=%d  failed rc = %d\n",
-				client->irq, rc);
-			printk("request_irq for irq=%d  failed rc = %d\n",
-				client->irq, rc);
-			goto unregister_batt_psy;
-		}
-		enable_irq_wake(client->irq);
-	}
-
-	chip->notifier.notifier_call = &fan5404x_charging_reboot;
-	the_chip = chip;
-
-	rc = device_create_file(chip->dev,
-				&dev_attr_force_demo_mode);
-	if (rc) {
-		pr_err("couldn't create force_demo_mode\n");
-		printk("couldn't create force_demo_mode\n");
-		goto unregister_batt_psy;
-	}
-
-	chip->debug_root = debugfs_create_dir("fan5404x", NULL);
-	if (!chip->debug_root) {
-		dev_err(chip->dev, "Couldn't create debug dir\n");
-		printk("Couldn't create debug dir\n");
-	}else {
-		struct dentry *ent;
-
-		ent = debugfs_create_x32("address", S_IFREG | S_IWUSR | S_IRUGO,
-					chip->debug_root,
-					&(chip->peek_poke_address));
-		if (!ent) {
-			dev_err(chip->dev,
-				"Couldn't create address debug file rc = %d\n",
-				rc);
-			printk("Couldn't create address debug file rc = %d\n",
-				rc);
-		}
-
-		ent = debugfs_create_file("data", S_IFREG | S_IWUSR | S_IRUGO,
-					chip->debug_root, chip,
-					&poke_poke_debug_ops);
-		if (!ent) {
-			dev_err(chip->dev,
-				"Couldn't create data debug file rc = %d\n",
-				rc);
-			printk("Couldn't create data debug file rc = %d\n",
-				rc);
-		}
-
-		ent = debugfs_create_file("registers", S_IFREG | S_IRUGO,
-					chip->debug_root, chip,
-					&registers_debugfs_ops);
-		if (!ent) {
-			dev_err(chip->dev,
-				"Couldn't create regs debug file rc = %d\n",
-				rc);
-			printk("Couldn't create regs debug file rc = %d\n",
-				rc);
-		}
-	}
-
-	if (chip->factory_mode) {
-		rc = device_create_file(chip->dev,
-					&dev_attr_force_chg_usb_suspend);
-		if (rc) {
-			pr_err("couldn't create force_chg_usb_suspend\n");
-			printk("couldn't create force_chg_usb_suspend\n");
-			goto unregister_batt_psy;
-		}
-
-		rc = device_create_file(chip->dev,
-					&dev_attr_force_chg_fail_clear);
-		if (rc) {
-			pr_err("couldn't create force_chg_fail_clear\n");
-			printk("couldn't create force_chg_fail_clear\n");
-			goto unregister_batt_psy;
-		}
-
-		rc = device_create_file(chip->dev,
-					&dev_attr_force_chg_auto_enable);
-		if (rc) {
-			pr_err("couldn't create force_chg_auto_enable\n");
-			printk("couldn't create force_chg_auto_enable\n");
-			goto unregister_batt_psy;
-		}
-
-		rc = device_create_file(chip->dev,
-				&dev_attr_force_chg_ibatt);
-		if (rc) {
-			pr_err("couldn't create force_chg_ibatt\n");
-			printk("couldn't create force_chg_ibatt\n");
-			goto unregister_batt_psy;
-		}
-
-		rc = device_create_file(chip->dev,
-					&dev_attr_force_chg_iusb);
-		if (rc) {
-			pr_err("couldn't create force_chg_iusb\n");
-			printk("couldn't create force_chg_iusb\n");
-			goto unregister_batt_psy;
-		}
-
-		rc = device_create_file(chip->dev,
-					&dev_attr_force_chg_itrick);
-		if (rc) {
-			pr_err("couldn't create force_chg_itrick\n");
-			printk("couldn't create force_chg_itrick\n");
-			goto unregister_batt_psy;
-		}
-
-	}
-
-	fan5404x_chg_stat_handler(client->irq, chip); // ?????
-
-	rc = register_reboot_notifier(&chip->notifier);
-	if (rc) {
-		pr_err("%s can't register reboot notifier\n", __func__);
-		printk("%s can't register reboot notifier\n", __func__);
-	}
-
-	rc = fan5404x_setup_vbat_monitoring(chip); // setup battery monitoring voltage & temperature
-	if (rc < 0) {
-		pr_err("failed to set up voltage notifications: %d\n", rc);
-		printk(KERN_INFO "failed to set up voltage notifications: %d\n", rc);
-	}
-
-	if (chip->bms_psy) {
-		rc = chip->bms_psy->get_property(chip->bms_psy,
-				POWER_SUPPLY_PROP_HEALTH, &ret);
-		if (rc) {
-			dev_err(chip->dev, "Couldn't get batt health\n");
-			printk("Couldn't get batt health\n");
-		} else
-			fan5404x_set_prop_batt_health(chip, ret.intval);
-	}
-
-	schedule_delayed_work(&chip->heartbeat_work,
-				msecs_to_jiffies(60000));
-
-	dev_dbg(&client->dev, "FAN5404X batt=%d usb=%d done=%d\n",
-			chip->batt_present, chip->usb_present,
-			chip->chg_done_batt_full);
-	printk("FAN5404X batt=%d usb=%d done=%d\n",
-			chip->batt_present, chip->usb_present,
-			chip->chg_done_batt_full);
+	schedule_delayed_work(&chip->heartbeat_work, msecs_to_jiffies(20000));
 
 	return 0;
-
-unregister_batt_psy:
-	power_supply_unregister(&chip->batt_psy);
-	fan5404x_regulator_deinit(chip);
-	wakeup_source_trash(&chip->fan_wake_source.source);
-	devm_kfree(chip->dev, chip);
-	the_chip = NULL;
-
-	return rc;
 }
 
 static int fan5404x_charger_remove(struct i2c_client *client)
 {
 	printk(KERN_INFO "fan5404x_charger_remove\n");
-	pr_info("INFO fan5404x_charger_remove\n");
 
 	struct fan5404x_chg *chip = i2c_get_clientdata(client);
-
-	device_remove_file(chip->dev,
-			   &dev_attr_force_demo_mode);
-	unregister_reboot_notifier(&chip->notifier);
-	debugfs_remove_recursive(chip->debug_root);
-	power_supply_unregister(&chip->batt_psy);
-	fan5404x_regulator_deinit(chip);
-	wakeup_source_trash(&chip->fan_wake_source.source);
+	cancel_delayed_work(&chip->heartbeat_work);
 	devm_kfree(chip->dev, chip);
 	the_chip = NULL;
 
@@ -2918,22 +1709,18 @@ static struct i2c_client *fan5404x_client;
 
 static int __init fan5404x_charger_init(void)
 {
-
-	printk(KERN_INFO "fan5404x_init 1\n");
-
 	int err;
 	struct i2c_adapter *adapter;
-	adapter = i2c_get_adapter(1); // get i2c-1
+	adapter = i2c_get_adapter(4);
 
 	if (adapter == NULL) {
-		printk(KERN_INFO "fan5404x error getting i2c-1 adapter \n");
+		printk(KERN_INFO "fan5404x error getting i2c-4 adapter \n");
 		err = -ENXIO;
 		goto error;
 	}
 
 	fan5404x_client = i2c_new_device(adapter, &fan5404x_charger_board_info);
 	err = fan5404x_client ? 0 : -ENXIO;
-	printk(KERN_INFO "fan5404x end init\n");
 	return i2c_add_driver(&fan5404x_charger_driver);
 
 error:
