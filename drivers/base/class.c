@@ -423,34 +423,26 @@ struct device *class_find_device(struct class *class, struct device *start,
 				 void *data,
 				 int (*match)(struct device *, void *))
 {
-	printk(KERN_INFO "class_find_device 1\n");
 	struct class_dev_iter iter;
 	struct device *dev;
 
-	if (!class){
-		printk(KERN_INFO "class NULL\n");
+	if (!class)
 		return NULL;
-	}
 
 	if (!class->p) {
 		WARN(1, "%s called for class '%s' before it was initialized",
 		     __func__, class->name);
-		printk(KERN_INFO "%s called for class '%s' before it was initialized\n",
-		       __func__, class->name);
 		return NULL;
 	}
 
 	class_dev_iter_init(&iter, class, start, NULL);
-	printk(KERN_INFO "class_find_device 2\n");
 	while ((dev = class_dev_iter_next(&iter))) {
-		printk(KERN_INFO "iteration\n");
 		if (match(dev, data)) {
 			get_device(dev);
 			break;
 		}
 	}
 	class_dev_iter_exit(&iter);
-	printk(KERN_INFO "class_find_device 3\n");
 	return dev;
 }
 EXPORT_SYMBOL_GPL(class_find_device);
