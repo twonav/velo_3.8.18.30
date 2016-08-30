@@ -428,6 +428,7 @@ struct device *class_find_device(struct class *class, struct device *start,
 
 	if (!class)
 		return NULL;
+
 	if (!class->p) {
 		WARN(1, "%s called for class '%s' before it was initialized",
 		     __func__, class->name);
@@ -442,7 +443,6 @@ struct device *class_find_device(struct class *class, struct device *start,
 		}
 	}
 	class_dev_iter_exit(&iter);
-
 	return dev;
 }
 EXPORT_SYMBOL_GPL(class_find_device);

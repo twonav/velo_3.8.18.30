@@ -80,7 +80,6 @@ struct tsc2007 {
 
 	wait_queue_head_t	wait;
 	bool			stopped;
-	bool			pendown;
 
 	int			(*get_pendown_state)(void);
 	void			(*clear_penirq)(void);
