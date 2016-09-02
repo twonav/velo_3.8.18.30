@@ -228,15 +228,15 @@ struct tsc2007_platform_data tsc2007_info = {
 
 	.x_plate_ohms	= 300, /* must be non-zero value */
 	/* max. resistance above which samples are ignored */
-	.max_rt		= 1<<9, // [#1] antes 1<<12
+	.max_rt		= 1<<12, // [#1] antes 1<<12
 
 	.poll_delay	= 100, /* delay (in ms) after pen-down event
 					     before polling starts */
 	.poll_period = 25,/* time (in ms) between samples */
 
 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 160, // [#2] antes 64
-	.fuzzy		= 160, // [#2] antes 64
+	.fuzzx		= 64, // [#2] antes 64
+	.fuzzy		= 64, // [#2] antes 64
 	.fuzzz		= 64,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
@@ -651,9 +651,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4_GPD0(2));
-	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
-	gpio_free(EXYNOS4_GPD0(2));
+//	gpio_free(EXYNOS4_GPD0(2));
+//	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
+//	gpio_free(EXYNOS4_GPD0(2));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));

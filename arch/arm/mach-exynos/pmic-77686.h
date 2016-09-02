@@ -383,7 +383,7 @@ static struct regulator_init_data max77686_ldo9_data = {
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV		= 1000000,
+			.uV		= 1800000,
 			.enabled = 1,
 		},
 	},
