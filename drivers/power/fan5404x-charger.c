@@ -277,7 +277,6 @@ static void fan_stay_awake(struct fan_wakeup_source *source)
 	if (__test_and_clear_bit(0, &source->disabled)) {
 		__pm_stay_awake(&source->source);
 		pr_debug("enabled source %s\n", source->source.name);
-		printk("enabled source %s\n", source->source.name);
 	}
 }
 
@@ -286,7 +285,6 @@ static void fan_relax(struct fan_wakeup_source *source)
 	if (!__test_and_set_bit(0, &source->disabled)) {
 		__pm_relax(&source->source);
 		pr_debug("disabled source %s\n", source->source.name);
-		printk("disabled source %s\n", source->source.name);
 	}
 }
 
@@ -299,7 +297,6 @@ static int __fan5404x_read(struct fan5404x_chg *chip, int reg,
 	if (ret < 0) {
 		dev_err(chip->dev,
 			"i2c read fail: can't read from %02x: %d\n", reg, ret);
-		printk("i2c read fail: can't read from %02x: %d\n", reg, ret);
 		return ret;
 	} else {
 		*val = ret;
@@ -321,13 +318,10 @@ static int __fan5404x_write(struct fan5404x_chg *chip, int reg,
 		dev_err(chip->dev,
 			"i2c write fail: can't write %02x to %02x: %d\n",
 			val, reg, ret);
-		printk("i2c write fail: can't write %02x to %02x: %d\n",
-				val, reg, ret);
 		return ret;
 	}
 
 	dev_dbg(chip->dev, "Writing 0x%02x=0x%02x\n", reg, val);
-	printk(chip->dev, "Writing 0x%02x=0x%02x\n", reg, val);
 	return 0;
 }
 
@@ -353,7 +347,6 @@ static int fan5404x_masked_write(struct fan5404x_chg *chip, int reg,
 	rc = __fan5404x_read(chip, reg, &temp);
 	if (rc < 0) {
 		dev_err(chip->dev, "read failed: reg=%03X, rc=%d\n", reg, rc);
-		printk("read failed: reg=%03X, rc=%d\n", reg, rc);
 		goto out;
 	}
 	temp &= ~mask;
@@ -362,7 +355,6 @@ static int fan5404x_masked_write(struct fan5404x_chg *chip, int reg,
 	if (rc < 0) {
 		dev_err(chip->dev,
 			"write failed: reg=%03X, rc=%d\n", reg, rc);
-		printk("write failed: reg=%03X, rc=%d\n", reg, rc);
 	}
 out:
 	mutex_unlock(&chip->read_write_lock);
@@ -379,13 +371,10 @@ static int __fan5404x_write_fac(struct fan5404x_chg *chip, int reg,
 		dev_err(chip->dev,
 			"i2c write fail: can't write %02x to %02x: %d\n",
 			val, reg, ret);
-		printk("i2c write fail: can't write %02x to %02x: %d\n",
-				val, reg, ret);
 		return ret;
 	}
 
 	dev_dbg(chip->dev, "Writing 0x%02x=0x%02x\n", reg, val);
-	printk(chip->dev, "Writing 0x%02x=0x%02x\n", reg, val);
 	return 0;
 }
 
@@ -399,7 +388,6 @@ static int fan5404x_masked_write_fac(struct fan5404x_chg *chip, int reg,
 	rc = __fan5404x_read(chip, reg, &temp);
 	if (rc < 0) {
 		dev_err(chip->dev, "read failed: reg=%03X, rc=%d\n", reg, rc);
-		printk("read failed: reg=%03X, rc=%d\n", reg, rc);
 		goto out;
 	}
 	temp &= ~mask;
@@ -408,7 +396,6 @@ static int fan5404x_masked_write_fac(struct fan5404x_chg *chip, int reg,
 	if (rc < 0) {
 		dev_err(chip->dev,
 			"write failed: reg=%03X, rc=%d\n", reg, rc);
-		printk("write failed: reg=%03X, rc=%d\n", reg, rc);
 	}
 out:
 	mutex_unlock(&chip->read_write_lock);
@@ -424,7 +411,6 @@ static int fan5404x_stat_read(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_CONTROL0, &reg);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't read STAT rc = %d\n", rc);
-		printk("Couldn't read STAT rc = %d\n", rc);
 		return rc;
 	}
 
@@ -439,7 +425,6 @@ static int fan5404x_fault_read(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_CONTROL0, &reg);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't read STAT rc = %d\n", rc);
-		printk("Couldn't read STAT rc = %d\n", rc);
 		return rc;
 	}
 
@@ -454,7 +439,6 @@ static int fan5404x_boost_read(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_CONTROL0, &reg);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't read STAT rc = %d\n", rc);
-		printk("Couldn't read STAT rc = %d\n", rc);
 		return rc;
 	}
 
@@ -481,7 +465,6 @@ static int fan5404x_set_oreg(struct fan5404x_chg *chip, int value)
 					i << OREG_OREG_SHIFT);
 	if (rc) {
 		dev_err(chip->dev, "Failed to set OREG_OREG: %d\n", rc);
-		printk("Failed to set OREG_OREG: %d\n", rc);
 		return rc;
 	}
 
@@ -529,18 +512,13 @@ static int fan5404x_set_ibuslim(struct fan5404x_chg *chip,
 					i << CONTROL1_IBUSLIM_SHIFT);
 	if (rc) {
 		dev_err(chip->dev, "Failed to set IBUSLIM: %d\n", rc);
-		printk("Failed to set IBUSLIM: %d\n", rc);
 		return rc;
 	} else if (chip->ic_info_pn == FAN54046) {
 		dev_warn(chip->dev, "Set IBUSLIM: %d mA\n",
 			 ibuslim_fan54046_vals[i]);
-		printk("Set IBUSLIM: %d mA\n",
-			 ibuslim_fan54046_vals[i]);
 	} else {
 		dev_warn(chip->dev, "Set IBUSLIM: %d mA\n",
 			 ibuslim_fan54053_vals[i]);
-		printk("Set IBUSLIM: %d mA\n",
-				 ibuslim_fan54053_vals[i]);
 	}
 
 	return 0;
@@ -568,7 +546,6 @@ static int fan5404x_set_iocharge(struct fan5404x_chg *chip,
 						i << IBAT_IOCHARGE_SHIFT);
 	if (rc) {
 		dev_err(chip->dev, "Failed to set IOCHARGE: %d\n", rc);
-		printk("Failed to set IOCHARGE: %d\n", rc);
 		return rc;
 	}
 
@@ -595,13 +572,10 @@ static int start_charging(struct fan5404x_chg *chip)
 	if (!chip->chg_enabled) {
 		dev_dbg(chip->dev, "%s: charging enable = %d\n",
 				 __func__, chip->chg_enabled);
-		printk("%s: charging enable = %d\n",
-				 __func__, chip->chg_enabled);
 		return 0;
 	}
 
 	dev_dbg(chip->dev, "starting to charge...\n");
-	printk("starting to charge...\n");
 
 	/* Set TMR_RST */
 	rc = fan5404x_masked_write(chip, REG_CONTROL0,
@@ -609,12 +583,10 @@ static int start_charging(struct fan5404x_chg *chip)
 				   CONTROL0_TMR_RST);
 	if (rc) {
 		dev_err(chip->dev, "start-charge: Couldn't set TMR_RST\n");
-		printk("start-charge: Couldn't set TMR_RST\n");
 		return rc;
 	}
 
 	if (!chip->usb_psy){
-		printk("chip->factory_mode\n");
 		// Hardcode POWER_SUPPLY_PROP_CURRENT_MAX
 		current_limit = INT_MAX; // TEST THIS VALUE !!!!!!
 	}
@@ -625,7 +597,6 @@ static int start_charging(struct fan5404x_chg *chip)
 		if (rc < 0) {
 			dev_err(chip->dev,
 				"could not read USB current_max property, rc=%d\n", rc);
-			printk("could not read USB current_max property, rc=%d\n", rc);
 			return rc;
 		}
 
@@ -644,7 +615,6 @@ static int start_charging(struct fan5404x_chg *chip)
 	rc = fan5404x_masked_write(chip, REG_VBUS_CONTROL, VBUS_IO_LEVEL, 0); // battery is controlled by IOCHARGE
 	if (rc) {
 		dev_err(chip->dev, "start-charge: Couldn't clear IOLEVEL\n");
-		printk("start-charge: Couldn't clear IOLEVEL\n");
 		return rc;
 	}
 
@@ -658,7 +628,6 @@ static int start_charging(struct fan5404x_chg *chip)
 							WD_CONTROL_WD_DIS);
 	if (rc) {
 		dev_err(chip->dev, "start-charge: couldn't disable T32\n");
-		printk("start-charge: couldn't disable T32\n");
 		return rc;
 	}
 
@@ -674,7 +643,6 @@ static int start_charging(struct fan5404x_chg *chip)
 		if (rc) {
 			dev_err(chip->dev,
 				"start-charge: Failed to set TE/CE_N\n");
-			printk("start-charge: Failed to set TE/CE_N\n");
 			return rc;
 		}
 
@@ -696,7 +664,6 @@ static int stop_charging(struct fan5404x_chg *chip)
 				CONTROL1_TE | CONTROL1_CE_N, CONTROL1_CE_N);
 	if (rc) {
 		dev_err(chip->dev, "stop-charge: Failed to set TE/CE_N\n");
-		printk("stop-charge: Failed to set TE/CE_N\n");
 		return rc;
 	}
 
@@ -741,7 +708,6 @@ static irqreturn_t fan5404x_chg_stat_handler(int irq, void *dev_id)
 		rc = fan5404x_read(chip, REG_VBUS_CONTROL, &ctrl);
 		if (rc < 0) {
 			pr_err("Unable to read VBUS_CONTROL rc = %d\n", rc);
-			printk("Unable to read VBUS_CONTROL rc = %d\n", rc);
 		}else if (chip->usb_psy && !(ctrl & VBUS_VBUS_CON)){
 			power_supply_changed(chip->usb_psy);
 		}
@@ -752,8 +718,6 @@ static irqreturn_t fan5404x_chg_stat_handler(int irq, void *dev_id)
 	boost = fan5404x_boost_read(chip);
 
 	pr_debug("CONTROL0.STAT: %X CONTROL0.FAULT: %X CONTROL0.BOOST: %X\n",
-							stat, fault, boost);
-	printk("CONTROL0.STAT: %X CONTROL0.FAULT: %X CONTROL0.BOOST: %X\n",
 							stat, fault, boost);
 	if (chip->charging && stat == STAT_PWM_ENABLED)
 		start_charging(chip);
@@ -780,15 +744,12 @@ static void fan5404x_external_power_changed(struct power_supply *psy)
 					(char *)chip->bms_psy_name);
 
 	if (!chip->usb_psy) {
-		printk("fan5404x_external_power_changed\n");
-		printk("USB present detection will be used to start/stop charging\n");
 		chip->usb_present = false; // ??????? how do we detect if there is a cable connected ??????
 	}
 	else{
 		rc = chip->usb_psy->get_property(chip->usb_psy,
 				POWER_SUPPLY_PROP_PRESENT, &prop);
 		pr_debug("External Power Changed: usb=%d\n", prop.intval);
-		printk("External Power Changed: usb=%d\n", prop.intval);
 
 		chip->usb_present = prop.intval;
 	}
@@ -801,21 +762,14 @@ static void fan5404x_external_power_changed(struct power_supply *psy)
 		&& !chip->factory_present)
 		chip->factory_present = true;
 
-	if (!chip->usb_psy) {
-			printk("FAN54040 no idea kernel_power_off()\n");
-	}
-	else {
-		if (chip->factory_mode && chip->usb_psy && chip->factory_present
-							&& !factory_kill_disable) {
-			rc = chip->usb_psy->get_property(chip->usb_psy,
-				POWER_SUPPLY_PROP_ONLINE, &prop);
-			if (!rc && (prop.intval == 0) && !chip->usb_present /*&& !reboot_in_progress()*/) {
-				pr_err("External Power Changed: UsbOnline=%d\n",
-								prop.intval);
-				printk("External Power Changed: UsbOnline=%d\n",
-								prop.intval);
-				kernel_power_off();
-			}
+	if (chip->factory_mode && chip->usb_psy && chip->factory_present
+						&& !factory_kill_disable) {
+		rc = chip->usb_psy->get_property(chip->usb_psy,
+			POWER_SUPPLY_PROP_ONLINE, &prop);
+		if (!rc && (prop.intval == 0) && !chip->usb_present /*&& !reboot_in_progress()*/) {
+			pr_err("External Power Changed: UsbOnline=%d\n",
+							prop.intval);
+			kernel_power_off();
 		}
 	}
 }
@@ -855,10 +809,8 @@ static int fan5404x_reset_vbat_monitoring(struct fan5404x_chg *chip)
 	rc = qpnp_adc_tm_channel_measure(chip->adc_tm_dev,
 					 &chip->vbat_monitor_params);
 
-	printk(KERN_INFO "fan5404x_reset_vbat_monitoring\n");
 	if (rc) {
 		dev_err(chip->dev, "tm disable failed: %d\n", rc);
-		printk("tm disable failed: %d\n", rc);
 	}
 	return rc;
 }
@@ -872,7 +824,6 @@ static int fan5404x_get_prop_batt_status(struct fan5404x_chg *chip)
 	stat_reg = fan5404x_stat_read(chip);
 	if (stat_reg < 0) {
 		dev_err(chip->dev, "Fail read STAT bits, rc = %d\n", stat_reg);
-		printk("Fail read STAT bits, rc = %d\n", stat_reg);
 		return POWER_SUPPLY_STATUS_UNKNOWN;
 	}
 
@@ -882,7 +833,6 @@ static int fan5404x_get_prop_batt_status(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_CONTROL1, &ctrl1);
 	if (rc < 0) {
 		dev_err(chip->dev, "Unable to read REG_CONTROL1 rc = %d\n", rc);
-		printk("Unable to read REG_CONTROL1 rc = %d\n", rc);
 		return POWER_SUPPLY_STATUS_UNKNOWN;
 	}
 
@@ -903,7 +853,6 @@ static int fan5404x_get_prop_batt_present(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_MONITOR1, &reg);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't read monitor1 rc = %d\n", rc);
-		printk("Couldn't read monitor1 rc = %d\n", rc);
 		return 0;
 	}
 
@@ -929,14 +878,12 @@ static int fan5404x_get_prop_charge_type(struct fan5404x_chg *chip)
 	stat_reg = fan5404x_stat_read(chip);
 	if (stat_reg < 0) {
 		dev_err(chip->dev, "Fail read STAT bits, rc = %d\n", stat_reg);
-		printk("Fail read STAT bits, rc = %d\n", stat_reg);
 		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 	}
 
 	rc = fan5404x_read(chip, REG_MONITOR0, &mon0);
 	if (rc < 0) {
 		dev_err(chip->dev, "Unable to read REG_MONITOR0 rc = %d\n", rc);
-		printk("Unable to read REG_MONITOR0 rc = %d\n", rc);
 		return POWER_SUPPLY_CHARGE_TYPE_TRICKLE;
 	}
 
@@ -946,7 +893,6 @@ static int fan5404x_get_prop_charge_type(struct fan5404x_chg *chip)
 	rc = fan5404x_read(chip, REG_CONTROL1, &ctrl1);
 	if (rc < 0) {
 		dev_err(chip->dev, "Unable to read REG_CONTROL1 rc = %d\n", rc);
-		printk("Unable to read REG_CONTROL1 rc = %d\n", rc);
 		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 	}
 
@@ -984,7 +930,6 @@ static int fan5404x_get_prop_batt_capacity(struct fan5404x_chg *chip)
 				POWER_SUPPLY_PROP_CAPACITY, &ret);
 		if (rc) {
 			dev_err(chip->dev, "Couldn't get batt capacity\n");
-			printk("Couldn't get batt capacity\n");
 		}else {
 			if (!ret.intval	&& !chip->factory_mode) {
 				chip->shutdown_voltage_tripped = true;
@@ -1020,7 +965,6 @@ static int fan5404x_get_prop_batt_voltage_now(struct fan5404x_chg *chip,
 				POWER_SUPPLY_PROP_VOLTAGE_NOW, &ret);
 		if (rc < 0) {
 			dev_err(chip->dev, "Couldn't get batt voltage\n");
-			printk("Couldn't get batt voltage\n");
 			*volt_mv = DEFAULT_BATT_VOLT_MV;
 			return rc;
 		}
@@ -1048,8 +992,6 @@ static bool fan5404x_get_prop_taper_reached(struct fan5404x_chg *chip)
 			dev_err(chip->dev,
 				"couldn't read Taper Reached property, rc=%d\n",
 				rc);
-			printk("couldn't read Taper Reached property, rc=%d\n",
-				rc);
 			return false;
 		}
 
@@ -1068,25 +1010,20 @@ static void fan5404x_notify_vbat(enum qpnp_tm_state state, void *ctx)
 	int adc_volt = 0;
 
 	pr_err("shutdown voltage tripped\n");
-	printk("shutdown voltage tripped\n");
 
 	if (chip->vadc_dev) {
 		rc = qpnp_vadc_read(chip->vadc_dev, VBAT_SNS, &result);
 		adc_volt = (int)(result.physical)/1000;
 		pr_info("vbat = %d, raw = 0x%x\n", adc_volt,
 							result.adc_code);
-		printk("vbat = %d, raw = 0x%x\n", adc_volt,
-							result.adc_code);
 	}
 
 	fan5404x_get_prop_batt_voltage_now(chip, &batt_volt);
 	pr_info("vbat is at %d, state is at %d\n", batt_volt, state);
-	printk("vbat is at %d, state is at %d\n", batt_volt, state);
 
 	if (state == ADC_TM_LOW_STATE)
 		if (adc_volt <= (chip->low_voltage_uv/1000)) {
 			pr_info("shutdown now\n");
-			printk("shutdown now\n");
 			chip->shutdown_voltage_tripped = 1;
 		} else {
 			qpnp_adc_tm_channel_measure(chip->adc_tm_dev,
@@ -1122,13 +1059,9 @@ static int fan5404x_setup_vbat_monitoring(struct fan5404x_chg *chip)
 	pr_debug("set low thr to %d and high to %d\n",
 		chip->vbat_monitor_params.low_thr,
 			chip->vbat_monitor_params.high_thr);
-	printk("set low thr to %d and high to %d\n",
-		chip->vbat_monitor_params.low_thr,
-			chip->vbat_monitor_params.high_thr);
 
 	if (!fan5404x_get_prop_batt_present(chip)) {
 		pr_info("no battery inserted,vbat monitoring disabled\n");
-		printk("no battery inserted,vbat monitoring disabled\n");
 		chip->vbat_monitor_params.state_request =
 						ADC_TM_HIGH_LOW_THR_DISABLE;
 	} else {
@@ -1136,13 +1069,11 @@ static int fan5404x_setup_vbat_monitoring(struct fan5404x_chg *chip)
 			&chip->vbat_monitor_params);
 		if (rc) {
 			pr_err("tm setup failed: %d\n", rc);
-			printk("tm setup failed: %d\n", rc);
 			return rc;
 		}
 	}
 
 	pr_debug("vbat monitoring setup complete\n");
-	printk("vbat monitoring setup complete\n");
 	return 0;
 }
 
@@ -1151,13 +1082,10 @@ static int fan5404x_temp_charging(struct fan5404x_chg *chip, int enable)
 	int rc = 0;
 
 	pr_debug("%s: charging enable = %d\n", __func__, enable);
-	printk("%s: charging enable = %d\n", __func__, enable);
 
 	if (enable && (!chip->chg_enabled)) {
 		dev_dbg(chip->dev,
 			"%s: chg_enabled is %d, not to enable charging\n",
-					__func__, chip->chg_enabled);
-		printk("%s: chg_enabled is %d, not to enable charging\n",
 					__func__, chip->chg_enabled);
 		return 0;
 	}
@@ -1166,7 +1094,6 @@ static int fan5404x_temp_charging(struct fan5404x_chg *chip, int enable)
 				enable ? 0 : CONTROL1_CE_N);
 	if (rc) {
 		dev_err(chip->dev, "start-charge: Failed to set CE_N\n");
-		printk("start-charge: Failed to set CE_N\n");
 		return rc;
 	}
 
@@ -1202,8 +1129,6 @@ static void fan5404x_usb_suspend(struct fan5404x_chg *chip, bool enable)
 	if (rc < 0) {
 		dev_err(chip->dev,
 			"Failed to set USB suspend rc = %d, enable = %d\n",
-			rc, (int)enable);
-		printk("Failed to set USB suspend rc = %d, enable = %d\n",
 			rc, (int)enable);
 	}else
 		chip->usb_suspended = enable;
@@ -1249,8 +1174,6 @@ static int fan5404x_check_temp_range(struct fan5404x_chg *chip)
 		chip->ext_high_temp = ext_high_temp;
 
 		dev_warn(chip->dev, "Ext High = %s\n",
-			chip->ext_high_temp ? "High" : "Low");
-		printk("Ext High = %s\n",
 			chip->ext_high_temp ? "High" : "Low");
 
 		return 1;
@@ -1532,7 +1455,6 @@ static void heartbeat_work(struct work_struct *work)
 
 static int fan5404x_of_init(struct fan5404x_chg *chip) // OF : Open Firmware
 {
-	printk(KERN_INFO "FAN5404x fan5404x_of_init\n");
 	int rc;
 	struct device_node *node = chip->dev->of_node;
 
@@ -1567,7 +1489,6 @@ static int fan5404x_hw_init(struct fan5404x_chg *chip)
 							WD_CONTROL_WD_DIS);
 	if (rc) {
 		dev_err(chip->dev, "couldn't disable T32 rc = %d\n", rc);
-		printk("couldn't disable T32 rc = %d\n", rc);
 		return rc;
 	}
 
@@ -1584,7 +1505,6 @@ static int fan5404x_read_chip_id(struct fan5404x_chg *chip, uint8_t *val)
 
 	if ((*val & IC_INFO_VENDOR_CODE) != VENDOR_FAIRCHILD_VAL) {
 		dev_err(chip->dev, "Unknown vendor IC_INFO: %.2X\n", *val);
-		printk("Unknown vendor IC_INFO: %.2X\n", *val);
 		return -EINVAL;
 	}
 
@@ -1641,8 +1561,6 @@ static int fan5404x_charger_probe(struct i2c_client *client,
 
 static int fan5404x_charger_remove(struct i2c_client *client)
 {
-	printk(KERN_INFO "fan5404x_charger_remove\n");
-
 	struct fan5404x_chg *chip = i2c_get_clientdata(client);
 	cancel_delayed_work(&chip->heartbeat_work);
 	devm_kfree(chip->dev, chip);
@@ -1714,7 +1632,6 @@ static int __init fan5404x_charger_init(void)
 	adapter = i2c_get_adapter(4);
 
 	if (adapter == NULL) {
-		printk(KERN_INFO "fan5404x error getting i2c-4 adapter \n");
 		err = -ENXIO;
 		goto error;
 	}

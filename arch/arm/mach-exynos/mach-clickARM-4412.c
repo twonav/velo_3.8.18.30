@@ -363,7 +363,7 @@ static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
 
 static struct platform_pwm_backlight_data clickarm4412_bl_data = {
 	.pwm_id = 1,
-	.pwm_period_ns  = 100,
+	.pwm_period_ns  = 1000,
 };
 
 static struct pwm_lookup clickarm4412_pwm_lookup[] = {
@@ -401,7 +401,7 @@ static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
 	gpio_free(EXYNOS4X12_GPM1(5));
-	
+
 }
 
 static struct plat_lcd_data clickarm4412_lcd_t55149gd030j_data = {
@@ -651,9 +651,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4X12_GPM1(5));
-	gpio_request_one(EXYNOS4X12_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
-	gpio_free(EXYNOS4X12_GPM1(5));
+	gpio_free(EXYNOS4_GPD0(2));
+	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
+	gpio_free(EXYNOS4_GPD0(2));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
@@ -972,21 +972,21 @@ static void __init clickarm4412_gpio_init(void)
 /*********************************************************************/
 /*				GPRS CONFIGURATION									 */
 /*********************************************************************/
-	/* GPRS PWRKEY*/
-	gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
-		s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
-		s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
-		gpio_free(EXYNOS4X12_GPM0(4));
-	/* GPRS PowerON/OFF */
-	gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
-		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
-		s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
-		gpio_free(EXYNOS4X12_GPM1(1));
-	/* GPRS STATUS*/
-	gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
-		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
-		s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
-		gpio_free(EXYNOS4X12_GPM1(6));
+//	/* GPRS PWRKEY*/
+//	gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM0(4));
+//	/* GPRS PowerON/OFF */
+//	gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM1(1));
+//	/* GPRS STATUS*/
+//	gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM1(6));
 
 }
 
