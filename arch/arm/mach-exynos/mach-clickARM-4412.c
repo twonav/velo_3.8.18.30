@@ -930,6 +930,7 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(4), S3C_GPIO_OUTPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ1(4), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPJ1(4));
+
 	/* BT_EN */	
 	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_LOW, "BT_EN");
         s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
@@ -938,8 +939,8 @@ static void __init clickarm4412_gpio_init(void)
 
 	/* WLAN_IRQ */	
 	gpio_request_one(EXYNOS4_GPX0(1), GPIOF_IN, "WLAN_IRQ");
-    s3c_gpio_cfgpin(EXYNOS4_GPX0(1), S3C_GPIO_INPUT );
-    s3c_gpio_setpull(EXYNOS4_GPX0(1), S3C_GPIO_PULL_DOWN);
+    	s3c_gpio_cfgpin(EXYNOS4_GPX0(1), S3C_GPIO_INPUT );
+    	s3c_gpio_setpull(EXYNOS4_GPX0(1), S3C_GPIO_PULL_DOWN);
 	
 /*********************************************************************/
 /*				GPS CONFIGURATION									 */
@@ -1075,10 +1076,13 @@ static void __init clickarm4412_machine_init(void)
 
 	register_reboot_notifier(&clickarm4412_reboot_notifier_nb);
 
-	/*WIFI PLATFORM DATA*/
-	clickarm4412_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
-	printk("clickarm4412_wl12xx_wlan_data.irq: %d\n",clickarm4412_wl12xx_wlan_data.irq);
-	wl12xx_set_platform_data(&clickarm4412_wl12xx_wlan_data);
+	/* WIFI PLATFORM DATA
+	 * FIXME: when using backports compability, the platformdata is not set properly
+	 * and all the configuration is directly set in the driver. Should be changed 
+	 * so that the platform data is configured in this file	*/
+	//clickarm4412_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
+	//printk("clickarm4412_wl12xx_wlan_data.irq: %d\n",clickarm4412_wl12xx_wlan_data.irq);
+	//wl12xx_set_platform_data(&clickarm4412_wl12xx_wlan_data);
 
 }
 
