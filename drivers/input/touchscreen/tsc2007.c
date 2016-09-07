@@ -72,6 +72,7 @@ struct tsc2007 {
 
 	u16			model;
 	u16			x_plate_ohms;
+	u16			y_plate_ohms;
 	u16			max_rt;
 	unsigned long		poll_delay;
 	unsigned long		poll_period;
@@ -131,13 +132,25 @@ static u32 tsc2007_calculate_pressure(struct tsc2007 *tsc, struct ts_event *tc)
 	if (tc->x == MAX_12BIT)
 		tc->x = 0;
 
+	/* tsc2007.pdf, pg13
 	if (likely(tc->x && tc->z1)) {
-		/* compute touch pressure resistance using equation #1 */
+		// compute touch pressure resistance using equation #1
 		rt = tc->z2 - tc->z1;
 		rt *= tc->x;
 		rt *= tsc->x_plate_ohms;
 		rt /= tc->z1;
 		rt = (rt + 2047) >> 12;
+	}
+	*/
+
+	// tsc2007.pdf, pg14
+	if (likely(tc->x && tc->z1)) {
+		// compute touch pressure resistance using equation #2
+		rt = tsc->x_plate_ohms * tc->x;
+		rt*= ( 4096 - tc->z1 ) / tc->z1;
+		rt = rt >> 12;
+
+		rt -= tsc->y_plate_ohms * ((4096 - tc->y) >> 12);
 	}
 
 	return rt;
@@ -197,7 +210,6 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 				"DOWN point(%4d,%4d), pressure (%4u)\n",
 				tc.x, tc.y, rt);
 
-			
 			input_report_key(input, BTN_TOUCH, 1);
 			input_report_abs(input, ABS_X, tc.x);
 			input_report_abs(input, ABS_Y, tc.y);
@@ -309,6 +321,7 @@ static int tsc2007_probe(struct i2c_client *client,
 
 	ts->model             = pdata->model;
 	ts->x_plate_ohms      = pdata->x_plate_ohms;
+	ts->y_plate_ohms      = pdata->y_plate_ohms;
 	ts->max_rt            = pdata->max_rt ? : MAX_12BIT;
 	ts->poll_delay        = pdata->poll_delay ? : 1;
 	ts->poll_period       = pdata->poll_period ? : 1;

@@ -226,7 +226,8 @@ static void tsc2007_clear_penirq(void)
 struct tsc2007_platform_data tsc2007_info = {
 	.model 		= 2007,	/* 2007. */
 
-	.x_plate_ohms	= 300, /* must be non-zero value */
+	.x_plate_ohms	= 260, /* must be non-zero value */
+	.y_plate_ohms	= 680, /* must be non-zero value */
 	/* max. resistance above which samples are ignored */
 	.max_rt		= 1<<12, // [#1] antes 1<<12
 
