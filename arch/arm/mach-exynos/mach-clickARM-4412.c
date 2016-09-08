@@ -385,6 +385,8 @@ static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 			.xres 		= 240,
 			.yres 		= 400,
 		},
+		.width_mm = 39,
+		.height_mm = 65,
 	},
 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
 	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | 
