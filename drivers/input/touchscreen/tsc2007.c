@@ -153,9 +153,9 @@ static u32 tsc2007_calculate_pressure(struct tsc2007 *tsc, struct ts_event *tc)
 	if (likely(tc->x && tc->z1)) {
 		// compute touch pressure resistance using equation #2
 		rt = tsc->x_plate_ohms * tc->x;
-		rt*= ( 4096 - tc->z1 ) / tc->z1;
+		rt *= ( 4096 - tc->z1 );
+		rt /= tc->z1;
 		rt = rt >> 12;
-
 		rt -= tsc->y_plate_ohms * ((4096 - tc->y) >> 12);
 	}
 
