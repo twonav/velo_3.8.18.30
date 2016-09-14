@@ -70,6 +70,8 @@
 #include "common.h"
 #include "pmic-77686.h"
 
+extern int velo_version;
+
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
 
@@ -259,6 +261,23 @@ static struct max98090_pdata max98090 = {
 #endif
 
 /*END OF Audio Codec MAX98090 Configuration*/
+
+/*Ambient light sensor MAX44005 Configuration*/
+// static struct max44005_platform_data max44005_driver = {
+// 	.class	= I2C_CLASS_HWMON,
+// 	.driver  = {
+// 		.name = "max44005",
+// 		.owner = THIS_MODULE,
+// 		.of_match_table = of_match_ptr(max44005_of_match),
+// 		.pm = MAX44005_PM_OPS,
+// 	},
+// 	.probe	 = max44005_probe,
+// 	.shutdown = max44005_shutdown,
+// 	.remove  = max44005_remove,
+// 	.id_table = max44005_id,
+// };
+/*END OF Ambient light sensor MAX44005 Configuration*/
+
 /*Devices Conected on I2C BUS 0 LISTED ABOVE*/
 static struct i2c_board_info clickarm4412_i2c_devs0[] __initdata = {
 	{
@@ -307,10 +326,11 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 //	},
 //#endif
 	/*UNCOMMENT WHEN READY*/
-#if defined(CONFIG_MAX44005)
+#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
 	{
-		I2C_BOARD_INFO("max44005", 0x44), /*CONFIG DIRECCTION SET DEFAULT*/
-		.platform_data  = &????????, /*CONFIG PDATA*/
+		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
+		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
+
 	},
 #endif
 };
@@ -425,52 +445,70 @@ static struct platform_device clickarm4412_lcd_t55149gd030j = {
 /* GPIO KEYS KEYBOARD*/
 static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 	{
-		.code				= BTN_A,
-		.gpio				= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
-		.desc				= "KEY_POWER",
-		.type				= EV_SW,
-		.active_low			= 1,
-		.debounce_interval	= 5,
+		.code			= KEY_F1,
+		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
+		.desc			= "KEY_POWER",
+		.type			= EV_KEY,
+		.active_low		= 0,
 	},
 	{
-		.code			= BTN_B,
+		.code			= KEY_F2,
 		.gpio			= EXYNOS4_GPF2(5), /* VELO SIDE BUTTON TL */
 		.desc			= "TL_BUTTON",
-		.type			= EV_SW,
+		.type			= EV_KEY,
 		.active_low		= 1,
-		.debounce_interval	= 5,
 	},
 	{
-		.code			= BTN_C,
-		.gpio			= EXYNOS4_GPJ0(1), /* VELO FRONT BUTTON BR */
+		.code			= KEY_F3,
+		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
 		.desc			= "BR_BUTTON",
-		.type			= EV_SW,
-		.active_low		= 1,
-		.debounce_interval	= 5,
+		.type			= EV_KEY,
+		.active_low		= 0,
 	},
 	{
-		.code			= BTN_X,
-		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BL */
+		.code			= KEY_F4,
+		.gpio			= EXYNOS4_GPJ0(1), /* VELO FRONT BUTTON BL */
 		.desc			= "BL_BUTTON",
-		.type			= EV_SW,
+		.type			= EV_KEY,
 		.active_low		= 1,
-		.debounce_interval	= 5,
 	},
 };
 
 static struct gpio_keys_platform_data clickarm4412_gpio_keys_data = {
 	.buttons	= clickarm4412_gpio_keys_tables,
-	.nbuttons	= ARRAY_SIZE(clickarm4412_gpio_keys_tables),
-    .poll_interval  = 20
+	.nbuttons	= 4 //ARRAY_SIZE(clickarm4412_gpio_keys_tables),
 };
 
 static struct platform_device clickarm4412_gpio_keys = {
-	.name	= "gpio-keys-polled",
+	.name	= "gpio-keys",
 	.dev	= {
 		.platform_data	= &clickarm4412_gpio_keys_data,
 	},
 };
-/*END OF GPIO KEYS KEYBOARD*/
+
+void init_button_irqs(void)
+	{
+		/*	
+			Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
+			Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
+		*/
+
+		int numero_de_irq=-1;
+
+
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
+		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
+		
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
+		
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
+		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
+		
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
+		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
+	}
+/*END OF GPIO KEYS KEYBOARD*/ 		
 
 #if defined(CONFIG_SND_SOC_HKDK_MAX98090)
 static struct platform_device hardkernel_audio_device = {
@@ -654,9 +692,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-//	gpio_free(EXYNOS4_GPD0(2));
-//	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
-//	gpio_free(EXYNOS4_GPD0(2));
+	gpio_free(EXYNOS4_GPD0(2));
+	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
+	gpio_free(EXYNOS4_GPD0(2));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
@@ -911,26 +949,26 @@ static void __init clickarm4412_gpio_init(void)
 
 	/* Power on/off button */
 	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT);	/* VELO SIDE BUTTON TR POWERON */
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-	gpio_free(EXYNOS4X12_GPM3(7));
-	
-//	/* TR/TL (Lo muevo a setup-fimd0.c)*/
-//	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-//	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
-//	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
-//	gpio_free(EXYNOS4_GPF2(5));
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
+		s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+		gpio_free(EXYNOS4X12_GPM3(7));
+
+	/* TR/TL (Lo muevo a setup-fimd0.c)*/
+	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
+		s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_SFN(0xF));
+		s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+		gpio_free(EXYNOS4_GPF2(5));
 
 	/* BR/BL */
 	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
-	s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
-	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
-	gpio_free(EXYNOS4_GPJ0(1));
+		s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_SFN(0xF));
+		s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+		gpio_free(EXYNOS4_GPJ0(1));
 
-	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  //modificado
-	s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
-	gpio_free(EXYNOS4_GPJ1(1));
+	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_SFN(0xF));
+        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4_GPJ1(1));
 
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
@@ -991,6 +1029,13 @@ static void __init clickarm4412_gpio_init(void)
 //		s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
 //		gpio_free(EXYNOS4X12_GPM1(6));
 
+/*********************************************************************/
+/*				MAX44005 CONFIGURATION								 */
+/*********************************************************************/
+    gpio_request_one(EXYNOS4_GPX2(7), GPIOF_IN, "MAX44005_IRQ");
+        s3c_gpio_cfgpin(EXYNOS4_GPX2(7), S3C_GPIO_SFN(0xF));
+        s3c_gpio_setpull(EXYNOS4_GPX2(7), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPX2(7));
 }
 
 static void clickarm4412_power_off(void)
@@ -1026,6 +1071,7 @@ static struct notifier_block clickarm4412_reboot_notifier_nb = {
 
 static void __init clickarm4412_machine_init(void)
 {
+	printk(KERN_INFO "EBM velo version: %s\n", velo_version);
 
 	clickarm4412_gpio_init();
 
@@ -1081,6 +1127,8 @@ static void __init clickarm4412_machine_init(void)
 	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
 	exynos4_fimd0_gpio_setup_24bpp();
 #endif
+	init_button_irqs();
+
 	platform_add_devices(clickarm4412_devices, ARRAY_SIZE(clickarm4412_devices));
 
 	register_reboot_notifier(&clickarm4412_reboot_notifier_nb);

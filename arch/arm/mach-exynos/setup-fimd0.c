@@ -77,7 +77,7 @@ void exynos4_fimd0_gpio_setup_24bpp(void)
 
 	/*TL Button*/
 	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_SFN(0xF));
 	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
 
