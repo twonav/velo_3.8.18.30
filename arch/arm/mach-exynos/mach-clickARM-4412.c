@@ -32,6 +32,7 @@
 #include <linux/platform_data/usb-ehci-s5p.h>
 #include <linux/platform_data/usb-exynos.h>
 #include <linux/platform_data/usb3503.h>
+#include <linux/platform_data/tps611xx_bl.h>
 #include <linux/delay.h>
 #include <linux/lcd.h>
 #include <linux/clk.h>
@@ -247,6 +248,19 @@ struct tsc2007_platform_data tsc2007_info = {
 };
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
+
+static struct tps611xx_platform_data tps611xx_data = {
+	.rfa_en = 1,
+	.en_gpio_num = EXYNOS4_GPD0(2),
+};
+
+static struct platform_device tps611xx = {
+	.name	= "tps61165_bl",
+	.dev	= {
+		.platform_data	= &tps611xx_data,
+	},
+};
+
 /*Audio Codec MAX98090 Configuration*/
 #if defined(CONFIG_SND_SOC_MAX98090)
 #include <sound/max98090.h>
@@ -812,6 +826,7 @@ static struct platform_device clickarm_lcd_spi = {
 #endif
 
 static struct platform_device *clickarm4412_devices[] __initdata = {
+	&tps611xx,
 	&s3c_device_hsmmc2,
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,

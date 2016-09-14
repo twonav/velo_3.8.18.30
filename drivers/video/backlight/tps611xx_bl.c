@@ -115,7 +115,7 @@ static struct tps611xx_esdata tps611xx_info[] = {
 			.seq = CMD_FORWARD,
 			.size = 16,
 			.brt_max = 31,
-			.brt_bmask = 0x1f,
+			.brt_bmask = 0x1f, // D0-D4 bits FB Voltage Table 3
 			.rfa_bmask = 0x80
 		},
 		.time = {
