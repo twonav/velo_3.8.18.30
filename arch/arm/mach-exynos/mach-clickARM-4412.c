@@ -128,9 +128,9 @@ static struct s3c2410_uartcfg clickarm4412_uartcfgs[] __initdata = {
 };
 
 /*DS2782 BATTERY FUEL GAUGE*/
-#if defined(CONFIG_BATTERY_DS2782) || defined(CONFIG_BATTERY_DS2782_MODULE)
+#if defined(CONFIG_BATTERY_DS2782)
 #include <linux/ds2782_battery.h>
-#define DS2786_RSNS    18 /* Constant sense resistor value */
+#define DS2786_RSNS    20 /* Constant sense resistor value */
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
@@ -368,7 +368,7 @@ static struct 	platform_device 	gpio_device_i2c4 = {
 	.dev.platform_data = &i2c4_gpio_platdata,
 };
 static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
-#if defined(CONFIG_DS2782)
+#if defined(CONFIG_BATTERY_DS2782)
 	{
 		I2C_BOARD_INFO("ds2782", 0x34),
 		.platform_data  = &ds278x_pdata,

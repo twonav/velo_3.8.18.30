@@ -27,6 +27,8 @@
 #define DS2782_REG_RARC		0x06	/* Remaining active relative capacity */
 
 #define DS278x_REG_VOLT_MSB	0x0c
+#define DS278x_REG_VOLT_LSB 0x0d
+
 #define DS278x_REG_TEMP_MSB	0x0a
 #define DS278x_REG_CURRENT_MSB	0x0e
 
@@ -37,6 +39,42 @@
 #define DS2782_CURRENT_UNITS	1563
 
 #define DS2786_REG_RARC		0x02	/* Remaining active relative capacity */
+
+#define DS2782_ACR_MSB 0x10
+#define DS2782_ACR_LSB 0x11
+#define DS2782_AS 0x14
+
+//DS2782 EEPROM registers
+#define DS2782_EEPROM_CONTROL 0x60
+#define DS2782_EEPROM_AB 0x61
+#define DS2782_EEPROM_AC_MSB 0x62
+#define DS2782_EEPROM_AC_LSB 0x63
+#define DS2782_EEPROM_VCHG 0x64
+#define DS2782_EEPROM_IMIN 0x65
+#define DS2782_EEPROM_VAE 0x66
+#define DS2782_EEPROM_IAE 0x67
+#define DS2782_EEPROM_ActiveEmpty 0x68
+#define DS2782_EEPROM_Full40_MSB 0x6A
+#define DS2782_EEPROM_Full40_LSB 0x6B
+#define DS2782_EEPROM_Full3040Slope 0x6C
+#define DS2782_EEPROM_Full2030Slope 0x6D
+#define DS2782_EEPROM_Full1020Slope 0x6E
+#define DS2782_EEPROM_Full0010Slope 0x6F
+
+#define DS2782_EEPROM_AE3040Slope 0x70
+#define DS2782_EEPROM_AE2030Slope 0x71
+#define DS2782_EEPROM_AE1020Slope 0x72
+#define DS2782_EEPROM_AE0010Slope 0x73
+#define DS2782_EEPROM_SE3040Slope 0x74
+#define DS2782_EEPROM_SE2030Slope 0x75
+#define DS2782_EEPROM_SE1020Slope 0x76
+#define DS2782_EEPROM_SE0010Slope 0x77
+#define DS2782_EEPROM_RSGAIN_MSB 0x78
+#define DS2782_EEPROM_RSGAIN_LSB 0x79
+#define DS2782_EEPROM_RSTC 0x7A
+#define DS2782_EEPROM_FRSGAIN_MSB 0x7B
+#define DS2782_EEPROM_FRSGAIN_LSB 0x7C
+#define DS2782_EEPROM_SlaveAddressConfig 0x7E
 
 #define DS2786_CURRENT_UNITS	25
 
@@ -317,6 +355,134 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 	}
 };
 
+static int ds2782_detect_new_battery(struct i2c_client *client)
+{
+	int value, r;
+	value = i2c_smbus_read_byte_data(client, DS2782_REG_RARC); // capacity %
+	r = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
+	if (value && r > 0){
+		printk(KERN_INFO "ds278x OLD battery capacity:%d\n",value);
+		return 0;
+	}
+	printk(KERN_INFO "ds278x NEW battery\n");
+	return 1;
+}
+
+static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *client)
+{
+	// We need to set the following registers - battery initial estimate  fixed 10%
+	u8 value;
+	// 1. ACR (LSB MSB)
+	value = 0x02;
+	i2c_smbus_write_byte_data(client, DS2782_ACR_MSB, value); // MSB must be first
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_ACR_LSB, value);
+	// 4. AS
+	value = 0x80;
+	i2c_smbus_write_byte_data(client, DS2782_AS, value);
+
+	return 0;
+}
+
+static int ds2782_battery_init(struct i2c_client *client)
+{
+	/* Values extracted from the DS2782K Test kit
+
+	Charge voltage	4V
+	Term current	50
+	AEV				3V
+	AEC				200
+	SR				20
+	RSGain			1
+	RCC				1550
+	AB				0
+	Full-0			1497
+	Full-10			1497
+	Full-20			1532
+	Full-30			1544
+	Full-40			1550
+	AE-0			112
+	AE-10			101
+	AE-20			39
+	AE-30			10
+	AE-40			0
+	SBE-0			59
+	SBE-10			42
+	SBE-20			9
+	SBE-30			2
+	SBE-40			0
+	*/
+	u8 new_battery;
+	u8 value;
+
+	new_battery = ds2782_detect_new_battery(client);
+	if (!new_battery) return 0;
+
+	// Configure the IC only if new battery detected;
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, value); // 0x60
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, value); // 0x61
+	value = 0x13;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, value); // 0x62
+	value = 0x60;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, value); // 0x63
+	value = 0xcd;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, value); // 0x64
+	value = 0x14;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, value); // 0x65
+	value = 0x9a;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, value); // 0x66
+	value = 0x14;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, value); // 0x67
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, value); // 0x68
+	value = 0x14; // RSNS duplicated value ...
+	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, value); // 0x69
+	value = 0x13;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, value); // 0x6A
+	value = 0x60;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, value); // 0x6B
+	value = 0x06;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, value); // 0x6C
+	value = 0x0d;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, value); // 0x6D
+	value = 0x25;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, value); // 0x6E
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, value); // 0x6F
+
+	value = 0x0b;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, value); // 0x70
+	value = 0x1f;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, value); // 0x71
+	value = 0x42;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, value); // 0x72
+	value = 0x0c;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, value); // 0x73
+	value = 0x02;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, value); // 0x74
+	value = 0x07;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, value); // 0x75
+	value = 0x23;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, value); // 0x76
+	value = 0x12;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE0010Slope, value); // 0x77
+	value = 0x04;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_MSB, value); // 0x78
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_LSB, value); // 0x79
+	value = 0x00;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSTC, value); // 0x7A
+	value = 0x68;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SlaveAddressConfig, value); // 0x7E
+
+	// make an initial estimate of the capacity from voltage
+	ds278x_battery_estimate_capacity_from_voltage(client);
+
+	return 0;
+}
+
 static int ds278x_battery_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
@@ -324,6 +490,12 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	struct ds278x_info *info;
 	int ret;
 	int num;
+
+	/* Initialize battery registers if not set */
+	ret = ds2782_battery_init(client);
+	if (ret) {
+		goto fail_register;
+	}
 
 	/*
 	 * ds2786 should have the sense resistor value set
