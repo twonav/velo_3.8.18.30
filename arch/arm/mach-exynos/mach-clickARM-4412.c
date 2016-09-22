@@ -392,7 +392,7 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 };
 
 static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
-	.no = EXYNOS4_GPD0(2),
+	.no = EXYNOS4X12_GPM1(5),
 	.func = S3C_GPIO_SFN(2),
 };
 
@@ -433,11 +433,11 @@ static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
 	if (power) {
-		gpio_set_value(EXYNOS4_GPD0(2),1);
+		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
-		gpio_set_value(EXYNOS4_GPD0(2),0);
+		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
-	gpio_free(EXYNOS4_GPD0(2));
+	gpio_free(EXYNOS4X12_GPM1(5));
 
 }
 
@@ -691,9 +691,9 @@ static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
 	
 	if (enable) {
-		gpio_set_value(EXYNOS4_GPD0(2),1);
+		gpio_set_value(EXYNOS4X12_GPM1(5),1);
 	} else {
-		gpio_set_value(EXYNOS4_GPD0(2),0);
+		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
 
 	return 1;
