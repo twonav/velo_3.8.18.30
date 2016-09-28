@@ -75,12 +75,6 @@ void exynos4_fimd0_gpio_setup_24bpp(void)
 	s3c_gpio_cfgrange_nopull(EXYNOS4_GPF2(0), 8, S3C_GPIO_SFN(2));
 	s3c_gpio_cfgrange_nopull(EXYNOS4_GPF3(0), 4, S3C_GPIO_SFN(2));
 
-	/*TL Button*/
-	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_SFN(0xF));
-	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
-	gpio_free(EXYNOS4_GPF2(5));
-
 	/*
 	 * Set DISPLAY_CONTROL register for Display path selection.
 	 *

@@ -502,7 +502,7 @@ static struct platform_device clickarm4412_gpio_keys = {
 
 void init_button_irqs(void)
 	{
-		/*	
+		/*
 			Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
 			Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
 		*/
@@ -512,13 +512,13 @@ void init_button_irqs(void)
 
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
-		
+
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
-		
+
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
-		
+
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
 	}
@@ -959,32 +959,6 @@ static struct i2c_board_info hdmiphy_info = {
 
 static void __init clickarm4412_gpio_init(void)
 {
-	/* Peripheral power enable (P3V3) */
-	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
-
-	/* Power on/off button */
-	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
-		s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
-		s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-		gpio_free(EXYNOS4X12_GPM3(7));
-
-	/* TR/TL (Lo muevo a setup-fimd0.c)*/
-	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-		s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_SFN(0xF));
-		s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
-		gpio_free(EXYNOS4_GPF2(5));
-
-	/* BR/BL */
-	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
-		s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_SFN(0xF));
-		s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
-		gpio_free(EXYNOS4_GPJ0(1));
-
-	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  
-        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_SFN(0xF));
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4_GPJ1(1));
-
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
 /*********************************************************************/
