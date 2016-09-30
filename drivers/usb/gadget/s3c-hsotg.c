@@ -34,6 +34,16 @@
 #include <linux/usb/gadget.h>
 #include <linux/platform_data/s3c-hsotg.h>
 
+#include <linux/netlink.h>
+#include <net/netlink.h>
+#include <net/net_namespace.h>
+/* Protocol family, consistent in both kernel prog and user prog. */
+#define MYPROTO NETLINK_USERSOCK
+/* Multicast group, consistent in both kernel prog and user prog. */
+#define MYGRP 21
+struct sock *nl_sk = NULL;
+
+
 #include <mach/map.h>
 
 #include "s3c-hsotg.h"
@@ -194,6 +204,39 @@ struct s3c_hsotg_req {
 	unsigned char		in_progress;
 	unsigned char		mapped;
 };
+
+int netlink_sendmsg(const char* msg)
+{
+	struct sk_buff *skb;
+	struct nlmsghdr *nlh;
+	int msg_size = strlen(msg) + 1;
+	int res;
+
+	nl_sk = netlink_kernel_create(&init_net, MYPROTO, NULL);
+	if (!nl_sk) {
+		//Error creating socket
+		return -1;
+	}
+
+	skb = nlmsg_new(NLMSG_ALIGN(msg_size), GFP_KERNEL);
+	if (!skb) {
+		//Allocation failure
+		netlink_kernel_release(nl_sk);
+		return -2;
+	}
+
+	nlh = nlmsg_put(skb, 0, 1, NLMSG_DONE, msg_size, 0);
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+
+	res = nlmsg_multicast(nl_sk, skb, 0, MYGRP, GFP_KERNEL);
+	netlink_kernel_release(nl_sk);
+	if (res < 0) {
+		//"nlmsg_multicast() error: %d", res);
+		return -3;
+	}
+
+	return 0;
+}
 
 /* conversion functions */
 static inline struct s3c_hsotg_req *our_req(struct usb_request *req)
@@ -2030,6 +2073,13 @@ static void s3c_hsotg_irq_enumdone(struct s3c_hsotg *hsotg)
 	u32 dsts = readl(hsotg->regs + DSTS);
 	int ep0_mps = 0, ep_mps;
 
+//
+	dev_info(hsotg->dev, "TwoNav umount\n");
+	if(netlink_sendmsg("TwoNav umount") < 0){
+		dev_info(hsotg->dev, "TwoNav: Error notifying umount\n");
+	}
+//
+
 	/*
 	 * This should signal the finish of the enumeration phase
 	 * of the USB handshaking, so we should now know what rate
@@ -2687,6 +2737,13 @@ static int s3c_hsotg_ep_disable(struct usb_ep *ep)
 	u32 ctrl;
 
 	dev_info(hsotg->dev, "%s(ep %p)\n", __func__, ep);
+
+//
+	dev_info(hsotg->dev, "TwoNav remount\n");
+	if(netlink_sendmsg("TwoNav remount") < 0){
+		dev_info(hsotg->dev, "TwoNav: Error notifying remount\n");
+	}
+//
 
 	if (ep == &hsotg->eps[0].ep) {
 		dev_err(hsotg->dev, "%s: called for ep0\n", __func__);
