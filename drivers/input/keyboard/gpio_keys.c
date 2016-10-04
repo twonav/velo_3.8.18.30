@@ -473,7 +473,6 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 				button->gpio, error);
 			return error;
 		}
-		printk("GPIO Changed!");
 
 		INIT_WORK(&bdata->work, gpio_keys_gpio_work_func);
 		setup_timer(&bdata->timer,

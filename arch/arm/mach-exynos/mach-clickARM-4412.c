@@ -1085,8 +1085,8 @@ static void __init clickarm4412_machine_init(void)
 	samsung_bl_set(&clickarm4412_bl_gpio_info, &clickarm4412_bl_data);
 	pwm_add_table(clickarm4412_pwm_lookup, ARRAY_SIZE(clickarm4412_pwm_lookup));
 /*SDIO_HCI CONFIGURATION ARRAY*/
-	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
-	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
+//	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
+//	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
 
 	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
 	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
