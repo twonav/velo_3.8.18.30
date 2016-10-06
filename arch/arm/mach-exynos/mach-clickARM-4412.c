@@ -509,7 +509,6 @@ void init_button_irqs(void)
 
 		int numero_de_irq=-1;
 
-
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
 
@@ -1025,6 +1024,15 @@ static void __init clickarm4412_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4_GPX2(7), S3C_GPIO_SFN(0xF));
         s3c_gpio_setpull(EXYNOS4_GPX2(7), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPX2(7));
+
+
+/*********************************************************************/
+/*				BUTTONS CONFIGURATION								 */
+/*********************************************************************/
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 }
 
 static void clickarm4412_power_off(void)
