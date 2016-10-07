@@ -465,13 +465,15 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 0,
 	},
+	/* 2016-10-07 DNP Desactivamos el TL, no funciona bien
 	{
 		.code			= KEY_F2,
-		.gpio			= EXYNOS4_GPF2(5), /* VELO SIDE BUTTON TL */
+		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
 		.desc			= "TL_BUTTON",
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
+	*/
 	{
 		.code			= KEY_F3,
 		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
@@ -490,7 +492,7 @@ static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
 
 static struct gpio_keys_platform_data clickarm4412_gpio_keys_data = {
 	.buttons	= clickarm4412_gpio_keys_tables,
-	.nbuttons	= 4 //ARRAY_SIZE(clickarm4412_gpio_keys_tables),
+	.nbuttons	= ARRAY_SIZE(clickarm4412_gpio_keys_tables),
 };
 
 static struct platform_device clickarm4412_gpio_keys = {
@@ -512,8 +514,9 @@ void init_button_irqs(void)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
-		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
+		// 2016-10-07 DNP Desactivamos el TL, no funciona bien
+		//numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+		//printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
 
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
 		printk("clickarm4412_gpio_keys_tables: irq %d\n",numero_de_irq);
@@ -1029,10 +1032,10 @@ static void __init clickarm4412_gpio_init(void)
 /*********************************************************************/
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	//s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+	//s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
-	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+	//s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 }
 
 static void clickarm4412_power_off(void)
