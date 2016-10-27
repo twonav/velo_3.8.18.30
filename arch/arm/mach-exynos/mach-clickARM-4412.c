@@ -391,19 +391,6 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 #endif
 };
 
-static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
-	.no = EXYNOS4X12_GPM1(5),
-	.func = S3C_GPIO_SFN(2),
-};
-
-static struct platform_pwm_backlight_data clickarm4412_bl_data = {
-	.pwm_id = 1,
-	.pwm_period_ns  = 1000,
-};
-
-static struct pwm_lookup clickarm4412_pwm_lookup[] = {
-	PWM_LOOKUP("s3c24xx-pwm.1", 0, "pwm-backlight.0", NULL),
-};
 /* END OF LCD Backlight data tps611xx PWM_platform_data*/
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
@@ -882,11 +869,6 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 #ifdef CONFIG_SND_SAMSUNG_I2S
 	&exynos4_device_i2s0,
 #endif
-	&s5p_device_fimc0,
-	&s5p_device_fimc1,
-	&s5p_device_fimc2,
-	&s5p_device_fimc3,
-	&s5p_device_fimc_md,
 	&s5p_device_fimd0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
@@ -1090,11 +1072,6 @@ static void __init clickarm4412_machine_init(void)
 	i2c_register_board_info(4, clickarm4412_i2c_devs4,
 				ARRAY_SIZE(clickarm4412_i2c_devs4));
 	
-	gpio_set_value(EXYNOS4_GPJ1(4), 0);
-	gpio_set_value(EXYNOS4_GPJ0(6), 0);
-
-	samsung_bl_set(&clickarm4412_bl_gpio_info, &clickarm4412_bl_data);
-	pwm_add_table(clickarm4412_pwm_lookup, ARRAY_SIZE(clickarm4412_pwm_lookup));
 /*SDIO_HCI CONFIGURATION ARRAY*/
 //	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
 //	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
@@ -1112,16 +1089,6 @@ static void __init clickarm4412_machine_init(void)
 
 	//s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
-
-#if defined(CONFIG_S5P_DEV_TV)
-	s5p_i2c_hdmiphy_set_platdata(NULL);
-	s5p_hdmi_set_platdata(&hdmiphy_info, NULL, 0, EXYNOS4_GPX3(7));
-	s5p_hdmi_cec_set_platdata(&hdmi_cec_data);
-	/* FIXME: hdmiphy i2c adapter has dynamic ID, and setting it to 8 causes
-	 * a failure to initialize (can't find clock?). so for now we are relying
-	 * on the hdmiphy i2c adapter being dynamically assigned address 8. */
-	i2c_register_board_info(8, &hdmiphy_info, 1);
-#endif
 
 #if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_CLICKARM_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;

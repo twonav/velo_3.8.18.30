@@ -88,11 +88,11 @@ static struct regulator_init_data max77686_buck4_data = {
 		.name		= "BUCK4 vdd_g3d",
 		.min_uV 	= 850000,
 		.max_uV 	= 1200000,
-		.boot_on 	= 1,
+		.boot_on 	= 0,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem = {
-			.enabled = 1,
+			.enabled = 0,
 			.uV	= 1000000,
 		},
 	},

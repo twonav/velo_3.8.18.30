@@ -529,30 +529,30 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO6]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO7]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO9]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO11]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO13]);
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO14]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO15]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO15]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO16]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO16]);
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO17]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO18]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO18]);
 
-//  regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]);
+  regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO20]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO22]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]);
@@ -566,10 +566,13 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO5]);
 	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO4]);
 
-	printk("Disabling BUCK8");
+	printk("Disabling BUCK4\n");
+	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK4]);
+	mdelay(1);
+	printk("Disabling BUCK8\n");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK8]);
 	mdelay(1);
-	printk("Disabling BUCK9");
+	printk("Disabling BUCK9\n");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK9]);
 	mdelay(1);
 
