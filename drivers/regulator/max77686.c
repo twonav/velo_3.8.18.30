@@ -529,11 +529,11 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO6]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO7]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO8]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO9]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO10]);
 
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO11]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO12]);
@@ -551,8 +551,8 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 
 //  regulator_disable_regmap(max77686->rdev[REGULATOR_LDO19]);
 
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO20]);
-//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO20]);
+	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO21]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO22]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]);
