@@ -423,9 +423,9 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, value); // 0x60
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, value); // 0x61
-	value = 0x13;
+	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, value); // 0x62
-	value = 0x60;
+	value = 0xA0;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, value); // 0x63
 	value = 0xcd;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, value); // 0x64
@@ -437,36 +437,38 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, value); // 0x67
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, value); // 0x68
-	value = 0x14; // RSNS duplicated value ...
+	// RSNS duplicated value at mach-clickARM-4412.c:
+	//		#define DS2786_RSNS    20 // Constant sense resistor value
+	value = 0x32;
 	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, value); // 0x69
-	value = 0x13;
+	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, value); // 0x6A
-	value = 0x60;
+	value = 0xA0;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, value); // 0x6B
-	value = 0x06;
+	value = 0x0F;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, value); // 0x6C
-	value = 0x0d;
+	value = 0x1c;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, value); // 0x6D
-	value = 0x25;
+	value = 0x26;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, value); // 0x6E
-	value = 0x00;
+	value = 0x28;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, value); // 0x6F
 
-	value = 0x0b;
+	value = 0x06;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, value); // 0x70
-	value = 0x1f;
+	value = 0x11;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, value); // 0x71
-	value = 0x42;
+	value = 0x1E;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, value); // 0x72
-	value = 0x0c;
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, value); // 0x73
-	value = 0x02;
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, value); // 0x74
-	value = 0x07;
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, value); // 0x75
-	value = 0x23;
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, value); // 0x76
 	value = 0x12;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, value); // 0x73
+	value = 0x01;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, value); // 0x74
+	value = 0x05;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, value); // 0x75
+	value = 0x05;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, value); // 0x76
+	value = 0x0A;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE0010Slope, value); // 0x77
 	value = 0x04;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_MSB, value); // 0x78
