@@ -439,7 +439,7 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, value); // 0x68
 	// RSNS duplicated value at mach-clickARM-4412.c:
 	//		#define DS2786_RSNS    20 // Constant sense resistor value
-	value = 0x32;
+	value = 0x20;
 	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, value); // 0x69
 	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, value); // 0x6A
@@ -476,6 +476,10 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_LSB, value); // 0x79
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSTC, value); // 0x7A
+	value = 0x04;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_MSB, value); // 0x7B
+	value = 0x1A;
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_LSB, value); // 0x7C
 	value = 0x68;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SlaveAddressConfig, value); // 0x7E
 
