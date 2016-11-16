@@ -378,7 +378,7 @@ static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *clie
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_ACR_LSB, value);
 	// 4. AS
-	value = 0x80;
+	value = 0x79;
 	i2c_smbus_write_byte_data(client, DS2782_AS, value);
 
 	return 0;
@@ -437,9 +437,10 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, value); // 0x67
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, value); // 0x68
+	// TWON-14084
 	// RSNS duplicated value at mach-clickARM-4412.c:
-	//		#define DS2786_RSNS    20 // Constant sense resistor value
-	value = 0x20;
+	//		#define DS2786_RSNS    20 // Constant sense resistor value, 20 mOhms = 50 siemens = 0x32
+	value = 0x32;
 	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, value); // 0x69
 	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, value); // 0x6A
