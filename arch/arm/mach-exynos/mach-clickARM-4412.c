@@ -130,7 +130,7 @@ static struct s3c2410_uartcfg clickarm4412_uartcfgs[] __initdata = {
 /*DS2782 BATTERY FUEL GAUGE*/
 #if defined(CONFIG_BATTERY_DS2782)
 #include <linux/ds2782_battery.h>
-#define DS2786_RSNS    20 /* Constant sense resistor value */
+#define DS2786_RSNS    20 /* Constant sense resistor value, mOhms */
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
