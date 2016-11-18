@@ -88,11 +88,11 @@ static struct regulator_init_data max77686_buck4_data = {
 		.name		= "BUCK4 vdd_g3d",
 		.min_uV 	= 850000,
 		.max_uV 	= 1200000,
-		.boot_on 	= 0,
+		.boot_on 	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
 		.state_mem = {
-			.enabled = 0,
+			.enabled = 1,
 			.uV	= 1000000,
 		},
 	},
@@ -300,6 +300,7 @@ static struct regulator_init_data max77686_ldo5_data = {
 		.min_uV		= 1800000,
 		.max_uV		= 1800000,
 		.apply_uV	= 1,
+		.boot_on	= 1,
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
@@ -496,6 +497,7 @@ static struct regulator_init_data max77686_ldo14_data = {
 		.name		= "LDO14 VDD18_ADC_1V8",
 		.min_uV		= 1800000,
 		.max_uV		= 1800000,
+		.boot_on	= 1,
 		.apply_uV	= 1,
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
