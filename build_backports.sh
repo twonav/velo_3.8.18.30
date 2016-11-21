@@ -13,8 +13,8 @@ export KLIB=/home/ebosch/Velo_images/kernel_modules/
 
 cd $KERNEL_SRC
 make mrproper
-#make twonav_velo_defconfig
-make wireless_backports_defconfig
+make twonav_velo_defconfig
+#make wireless_backports_defconfig
 make oldconfig
 make -j4
 
