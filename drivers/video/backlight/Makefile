@@ -15,6 +15,7 @@ obj-$(CONFIG_LCD_S6E63M0)	+= s6e63m0.o
 obj-$(CONFIG_LCD_LD9040)	+= ld9040.o
 obj-$(CONFIG_LCD_AMS369FG06)	+= ams369fg06.o
 obj-$(CONFIG_LCD_T55149GD030J)	   += t55149gd030j.o
+obj-$(CONFIG_LCD_HX8357)	   += hx8357.o
 
 
 obj-$(CONFIG_BACKLIGHT_CLASS_DEVICE) += backlight.o

@@ -127,6 +127,19 @@ config LCD_T55149GD030J
 	  If you have an T55149GD030J Panel, say Y to enable its
 	  LCD control driver.
 
+config LCD_HX8357
+	tristate "hx8357 LCD Driver"
+	depends on SPI_GPIO && BACKLIGHT_CLASS_DEVICE
+	default y
+	help
+	  For LCDs based on Himax hx8357 LCD Driver
+
+config LCD_TM037WDHT01
+	tristate "TM037WDHT01 LCD Driver"
+	depends on BACKLIGHT_CLASS_DEVICE
+	default y
+	help
+	  Tianma 18 bits RGB 640x480 LCD, based on hx8379c.
 	  
 config LCD_AMS369FG06
 	tristate "AMS369FG06 AMOLED LCD Driver"
@@ -136,7 +149,6 @@ config LCD_AMS369FG06
 	  If you have an AMS369FG06 AMOLED Panel, say Y to enable its
 	  LCD control driver.
 	  
-
 config LCD_LP101WH1
     bool "LG Display LP101WH1 LCD Driver"
     depends on BACKLIGHT_CLASS_DEVICE

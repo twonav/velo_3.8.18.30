@@ -394,28 +394,49 @@ static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
 /* END OF LCD Backlight data tps611xx PWM_platform_data*/
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+#if defined(CONFIG_LCD_TM037WDHT01)
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 	.panel = {
 		.timing = {
-			.left_margin 	= 9,
-			.right_margin 	= 9,
-			.upper_margin 	= 5,
+			.left_margin 	= 40,
+			.right_margin 	= 24,
+			.upper_margin 	= 7,
 			.lower_margin 	= 5,
-			.hsync_len 	= 1,
-			.vsync_len 	= 1,
-			.xres 		= 240,
-			.yres 		= 400,
+			.hsync_len 	= 32,
+			.vsync_len 	= 5,
+			.xres 		= 480,
+			.yres 		= 640,
 		},
-		.width_mm = 39,
-		.height_mm = 65,
 	},
 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | 
-				  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
 	.default_win 	= 0,
-	.bpp 		= 24,
-};
-	
+	.bpp 		= 32,
+	};
+
+#else
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+		.panel = {
+			.timing = {
+				.left_margin 	= 9,
+				.right_margin 	= 9,
+				.upper_margin 	= 5,
+				.lower_margin 	= 5,
+				.hsync_len 	= 1,
+				.vsync_len 	= 1,
+				.xres 		= 240,
+				.yres 		= 400,
+			},
+			.width_mm = 39,
+			.height_mm = 65,
+		},
+		.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+		.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC |
+					  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+		.default_win 	= 0,
+		.bpp 		= 24,
+	};
+#endif
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
