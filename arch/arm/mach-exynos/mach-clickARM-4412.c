@@ -622,7 +622,8 @@ static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
-	.host_caps		= MMC_CAP_4_BIT_DATA,
+	.host_caps		= MMC_CAP_4_BIT_DATA |
+		MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
 
@@ -635,7 +636,7 @@ static struct wl12xx_platform_data clickarm4412_wl12xx_wlan_data __initdata = {
 /* DWMMC */
 static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
 {
-       return 4;
+       return 8;
 }
 
 static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
@@ -646,7 +647,7 @@ static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *dat
 static struct dw_mci_board clickarm4412_dwmci_pdata = {
 	.num_slots			= 1,
 	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
-	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23,
+	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_8_BIT_DATA | MMC_CAP_CMD23,
 	.fifo_depth			= 0x80,
 	.bus_hz				= 104 * 1000 * 1000,
 	.detect_delay_ms	= 200,
@@ -890,6 +891,11 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 #ifdef CONFIG_SND_SAMSUNG_I2S
 	&exynos4_device_i2s0,
 #endif
+	&s5p_device_fimc0,
+	&s5p_device_fimc1,
+	&s5p_device_fimc2,
+	&s5p_device_fimc3,
+	&s5p_device_fimc_md,
 	&s5p_device_fimd0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
@@ -964,6 +970,30 @@ static struct i2c_board_info hdmiphy_info = {
 
 static void __init clickarm4412_gpio_init(void)
 {
+	/* Peripheral power enable (P3V3) */
+	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
+
+	/* Power on/off button */
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+	
+	/* TR/TL */
+	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
+        s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPF2(5));
+
+	/* BR/BL */
+        gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4_GPJ0(1));
+
+	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  //modificado
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+        gpio_free(EXYNOS4_GPJ1(1));
+
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
 /*********************************************************************/
@@ -1094,8 +1124,8 @@ static void __init clickarm4412_machine_init(void)
 				ARRAY_SIZE(clickarm4412_i2c_devs4));
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
-//	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
-//	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
+	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
+	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
 
 	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
 	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
@@ -1121,7 +1151,10 @@ static void __init clickarm4412_machine_init(void)
 
 	register_reboot_notifier(&clickarm4412_reboot_notifier_nb);
 
-	/*WIFI PLATFORM DATA*/
+	/* WIFI PLATFORM DATA
+	 * FIXME: when using backports compability, the platformdata is not set properly
+	 * and all the configuration is directly set in the driver. Should be changed 
+	 * so that the platform data is configured in this file	*/
 	clickarm4412_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
 	printk("clickarm4412_wl12xx_wlan_data.irq: %d\n",clickarm4412_wl12xx_wlan_data.irq);
 	wl12xx_set_platform_data(&clickarm4412_wl12xx_wlan_data);
