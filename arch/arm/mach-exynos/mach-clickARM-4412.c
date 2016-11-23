@@ -949,8 +949,8 @@ static struct i2c_board_info hdmiphy_info = {
 
 static void __init clickarm4412_gpio_init(void)
 {
-	/* Peripheral power enable (P3V3) */
-	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
+//	/* Peripheral power enable (P3V3) */
+//	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
