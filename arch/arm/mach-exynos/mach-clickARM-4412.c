@@ -655,25 +655,6 @@ static struct platform_device clickarm4412_tmu = {
 	.resource = tmu_resource,
 };
 
-#if defined(CONFIG_CLICKARM_OTHERS_FAN)
-#include	<linux/platform_data/clickarm_others_fan.h>
-struct clickarm_fan_platform_data clickarm_fan_pdata = {
-        .pwm_gpio = EXYNOS4_GPD0(0),
-        .pwm_func = S3C_GPIO_SFN(2),
-
-        .pwm_id = 0,
-        .pwm_periode_ns = 20972,        // Freq 22KHz,
-        .pwm_duty = 255,                // max=255,
-        .pwm_start_temp = 50,           // default 50,
-};
-
-static struct platform_device clickarm_fan = {
-        .name   = "clickarm-fan",
-        .id     = -1,  
-        .dev.platform_data = &clickarm_fan_pdata,
-};
-#endif
-
 
 #if defined(CONFIG_LCD_T55149GD030J)
 
