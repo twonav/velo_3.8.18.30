@@ -57,8 +57,8 @@ make modules_install INSTALL_MOD_PATH=/media/ebosch/trusty && sync
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
 DEB_HOST_ARCH=armhf make-kpkg -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
-cp extras/zImage debian/linux-image-3.8.13.30-twonav-g8f5256c-dirty/etc/kernel/postinst.d/update_zImage
-cp extras/uInitrd debian/linux-image-3.8.13.30-twonav-g8f5256c-dirty/etc/kernel/postinst.d/update_uInitrd
-cp -r /home/ebosch/Velo_images/kernel_modules/lib/modules/3.8.13.30-twonav-g8f5256c-dirty/updates debian/linux-image-3.8.13.30-twonav-g8f5256c-dirty/lib/modules/3.8.13.30-twonav-g8f5256c-dirty/wireless_backports
-dpkg --build /home/ebosch/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-3.8.13.30-twonav-g8f5256c-dirty ..
-dpkg --build /home/ebosch/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-3.8.13.30-twonav-g8f5256c-dirty ..
+cp extras/zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
+cp extras/uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
+cp -r /home/ebosch/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
+dpkg --build /home/ebosch/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..
+dpkg --build /home/ebosch/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
