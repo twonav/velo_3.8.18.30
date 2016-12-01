@@ -79,6 +79,8 @@ static ssize_t pwm_show(struct device *dev, struct device_attribute *attr, char 
       status = sprintf(buf, "%d usec\n", desc->pulses);
     }else if(strcmp(attr->attr.name, "counter")==0){
       status = sprintf(buf, "%lu\n", desc->counter);
+    }else if(strcmp(attr->attr.name, "value")==0){
+      status = sprintf(buf, "%d\n", desc->value);
     }else{
       status = -EIO;
     }
@@ -102,6 +104,14 @@ static ssize_t pwm_store(
     if(status==0){
       if(strcmp(attr->attr.name, "pulse")==0){
         if(value<=desc->period){ desc->pulse = (unsigned int)value; }
+      }else if(strcmp(attr->attr.name, "value")==0){
+        if(value==0){
+          desc->value = 0;
+          __gpio_set_value(37,0);
+        }else {
+          desc->value = 1;
+          __gpio_set_value(37,1);
+        }
       }else if(strcmp(attr->attr.name, "period")==0){
         desc->period = (unsigned int)value;
       }else if(strcmp(attr->attr.name, "pulses")==0){
@@ -123,11 +133,13 @@ static ssize_t pwm_store(
 static DEVICE_ATTR(pulse,   0644, pwm_show, pwm_store);
 static DEVICE_ATTR(period,  0644, pwm_show, pwm_store);
 static DEVICE_ATTR(pulses,  0644, pwm_show, pwm_store);
+static DEVICE_ATTR(value,  0644, pwm_show, pwm_store);
 static DEVICE_ATTR(counter, 0444, pwm_show, NULL);
 static const struct attribute *soft_pwm_dev_attrs[] = {
   &dev_attr_pulse.attr,
   &dev_attr_period.attr,
   &dev_attr_pulses.attr,
+  &dev_attr_value.attr,
   &dev_attr_counter.attr,
   NULL,
 };
