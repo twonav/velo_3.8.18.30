@@ -56,7 +56,7 @@ make modules_install INSTALL_MOD_PATH=/media/ebosch/trusty && sync
 
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
-DEB_HOST_ARCH=armhf make-kpkg -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
 cp extras/zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
 cp -r /home/ebosch/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
