@@ -1,7 +1,7 @@
 # http://confluence.compegps.com/display/TV/Cross+Compiling+Wireless+Backports
 
 # Requirements:
-# arm-linux-gnueabihf-gcc
+# apt-get install kernel-package
 
 if [[ ! $(whoami) =~ "root" ]]; then
 echo ""
