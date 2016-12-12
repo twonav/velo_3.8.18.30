@@ -161,20 +161,20 @@ struct s3c_hsotg_ep {
  * @eps: The endpoints being supplied to the gadget framework
  */
 struct s3c_hsotg {
-	struct device		 *dev;
-	struct usb_gadget_driver *driver;
-	struct s3c_hsotg_plat	 *plat;
+	struct device				*dev;
+	struct usb_gadget_driver	*driver;
+	struct s3c_hsotg_plat		*plat;
 
-	spinlock_t              lock;
+	spinlock_t			lock;
 
 	void __iomem		*regs;
-	int			irq;
-	struct clk		*clk;
+	int					irq;
+	struct clk			*clk;
 
-	struct regulator_bulk_data supplies[ARRAY_SIZE(s3c_hsotg_supply_names)];
+	struct regulator_bulk_data	supplies[ARRAY_SIZE(s3c_hsotg_supply_names)];
 
 	unsigned int		dedicated_fifos:1;
-	unsigned char           num_of_eps;
+	unsigned char		num_of_eps;
 
 	struct dentry		*debug_root;
 	struct dentry		*debug_file;
@@ -182,12 +182,12 @@ struct s3c_hsotg {
 
 	struct usb_request	*ep0_reply;
 	struct usb_request	*ctrl_req;
-	u8			ep0_buff[8];
-	u8			ctrl_buff[8];
+	u8					ep0_buff[8];
+	u8					ctrl_buff[8];
 
 	struct usb_gadget	gadget;
 	unsigned int		setup;
-	unsigned long           last_rst;
+	unsigned long		last_rst;
 	struct s3c_hsotg_ep	*eps;
 };
 
@@ -1266,7 +1266,12 @@ static void s3c_hsotg_process_control(struct s3c_hsotg *hsotg,
 			dcfg |= ctrl->wValue << DCFG_DevAddr_SHIFT;
 			writel(dcfg, hsotg->regs + DCFG);
 
-			dev_info(hsotg->dev, "new address %d\n", ctrl->wValue);
+//
+			dev_info(hsotg->dev, "new address %d - TwoNav UMOUNT\n", ctrl->wValue);
+			if(netlink_sendmsg("TwoNav umount") < 0) {
+				dev_info(hsotg->dev, "TwoNav: Error notifying umount\n");
+			}
+//
 
 			ret = s3c_hsotg_send_reply(hsotg, ep0, NULL, 0);
 			return;
@@ -2073,13 +2078,6 @@ static void s3c_hsotg_irq_enumdone(struct s3c_hsotg *hsotg)
 	u32 dsts = readl(hsotg->regs + DSTS);
 	int ep0_mps = 0, ep_mps;
 
-//
-	dev_info(hsotg->dev, "TwoNav umount\n");
-	if(netlink_sendmsg("TwoNav umount") < 0){
-		dev_info(hsotg->dev, "TwoNav: Error notifying umount\n");
-	}
-//
-
 	/*
 	 * This should signal the finish of the enumeration phase
 	 * of the USB handshaking, so we should now know what rate
@@ -2739,8 +2737,8 @@ static int s3c_hsotg_ep_disable(struct usb_ep *ep)
 	dev_info(hsotg->dev, "%s(ep %p)\n", __func__, ep);
 
 //
-	dev_info(hsotg->dev, "TwoNav remount\n");
-	if(netlink_sendmsg("TwoNav remount") < 0){
+	dev_info(hsotg->dev, "TwoNav REMOUNT\n");
+	if(netlink_sendmsg("TwoNav remount") < 0) {
 		dev_info(hsotg->dev, "TwoNav: Error notifying remount\n");
 	}
 //
