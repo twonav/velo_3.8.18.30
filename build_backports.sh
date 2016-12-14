@@ -91,8 +91,8 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
 DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
-cp extras/zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
-cp extras/uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
+cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
+cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
 cp -r /home/$HOMEUSERFOLDER/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
 dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..
 dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
