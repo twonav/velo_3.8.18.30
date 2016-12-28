@@ -548,6 +548,8 @@ int exynos4x12_cpufreq_init(struct exynos_dvfs_info *info)
 	int i;
 	unsigned int tmp;
 	unsigned long rate;
+	unsigned int apll_con0;
+	unsigned int mpll_con0;
 
 	set_volt_table();
 
@@ -634,6 +636,30 @@ int exynos4x12_cpufreq_init(struct exynos_dvfs_info *info)
 	info->freq_table = exynos4x12_freq_table;
 	info->set_freq = exynos4x12_set_frequency;
 	info->need_apll_change = exynos4x12_pms_change;
+
+/*
+	// BASETIS: código de debug
+	apll_con0 = __raw_readl(EXYNOS4_APLL_CON0);
+	printk(KERN_INFO "BASETIS: apll_con0 = %x\n", apll_con0);
+	mpll_con0 = __raw_readl(EXYNOS4_MPLL_CON0);
+	printk(KERN_INFO "BASETIS: mpll_con0 = %x\n", mpll_con0);
+
+	// BASETIS: código para reconfigurar el MPLL.
+	__raw_writel(0x0 << 31, EXYNOS4_MPLL_CON0);		// Paramos MPLL
+	mpll_con0 &= 0xFFF4FFFF;
+	__raw_writel(mpll_con0, EXYNOS4_MPLL_CON0);		// Corrección a 800MHz
+	__raw_writel(0x1 << 31, EXYNOS4_MPLL_CON0);		// Arrancamos MPLL
+	do
+	{
+		mpll_con0 = __raw_readl(EXYNOS4_MPLL_CON0);
+	} while (!(mpll_con0 & 0x1 << 29));	// Esperamos al lock del MPLL
+
+
+	printk(KERN_INFO "BASETIS: mpll_freq_khz = %lu\n", rate);
+	printk(KERN_INFO "BASETIS: max_support_idx = %u\n", max_support_idx);
+	printk(KERN_INFO "BASETIS: min_support_idx = %u\n", min_support_idx);
+	//printk(KERN_INFO "BASETIS: cpu_clk : %u\n", cpu_clk);
+*/
 
 	return 0;
 
