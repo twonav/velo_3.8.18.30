@@ -217,8 +217,6 @@ static __init int exynos_pm_drvinit(void)
 	struct clk *pll_base;
 	unsigned int tmp;
 
-	printk("s3c_pm_init....YES!!");
-
 	s3c_pm_init();
 
 	/* All wakeup disable */

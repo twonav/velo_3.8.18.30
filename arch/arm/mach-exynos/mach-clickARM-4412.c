@@ -592,17 +592,17 @@ static void __init clickarm4412_usbswitch_init(void)
 #endif
 
 /* SDCARD */
-static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
-	.max_width	= 4,
-	.host_caps	= MMC_CAP_4_BIT_DATA |
-			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-	.cd_type	= S3C_SDHCI_CD_NONE,
-};
+//static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
+//	.max_width	= 4,
+//	.host_caps	= MMC_CAP_4_BIT_DATA |
+//			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+//	.cd_type	= S3C_SDHCI_CD_NONE,
+//};
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
-	.host_caps		= MMC_CAP_4_BIT_DATA |
-		MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.host_caps		= MMC_CAP_4_BIT_DATA
+	| MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
 
@@ -836,7 +836,7 @@ static struct platform_device clickarm_lcd_spi = {
 
 static struct platform_device *clickarm4412_devices[] __initdata = {
 	&tps611xx,
-	&s3c_device_hsmmc2,
+//	&s3c_device_hsmmc2,
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
@@ -1084,7 +1084,7 @@ static void __init clickarm4412_machine_init(void)
 				ARRAY_SIZE(clickarm4412_i2c_devs4));
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
-	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
+//	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
 	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
 
 	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
@@ -1135,3 +1135,4 @@ MACHINE_START(CLICKARM4412, "ClickArm4412")
 	.restart	= exynos4_restart,
 	.reserve	= &clickarm4412_reserve,
 MACHINE_END
+

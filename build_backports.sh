@@ -12,20 +12,22 @@ echo ""
 exit
 fi
 
-if [[ -z $1 ]]; then
-echo "Usage: ./build_backports.sh <USER>"
-echo " <USER> is the name of home subfolder (ebosch, dnieto, etc)"
-exit
-fi
-
-HOMEUSERFOLDER=$1
+HOMEUSERFOLDER=$(logname)
 
 #1.EXPORT REQUIRED VARIABLES
 
-export CCPREFIX=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
+if [ $HOMEUSERFOLDER == 'ebosch' ]; then
+	export CCPREFIX=arm-linux-gnueabihf-
+else
+	export CCPREFIX=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
+fi
 export KERNEL_SRC=/home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8
 export ARCH=arm
-export CROSS_COMPILE=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
+if [ $HOMEUSERFOLDER == 'ebosch' ]; then
+	export CROSS_COMPILE=arm-linux-gnueabihf-
+else
+	export CROSS_COMPILE=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
+fi
 export BACK_PORTS=/home/$HOMEUSERFOLDER/Kernels_IMASD/backports-3.17.1-1
 export KLIB_BUILD=/home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8
 export KLIB=/home/$HOMEUSERFOLDER/Velo_images/kernel_modules
@@ -90,7 +92,11 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
-DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+if [ $HOMEUSERFOLDER == 'ebosch' ]; then
+	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
+else
+	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
 cp -r /home/$HOMEUSERFOLDER/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
@@ -98,5 +104,6 @@ dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linu
 dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
 
 echo "**** STEP 7 END ****"
+
 
 
