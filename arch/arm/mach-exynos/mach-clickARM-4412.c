@@ -77,7 +77,7 @@
 #define VELO_FAN_INT    EXYNOS4212_GPM3(0) /*IRQ XEINT8*/
 
 
-extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
+//extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
 
 /* Following are default values for UCON, ULCON and UFCON UART registers */
 #define CLICKARM4412_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
@@ -563,27 +563,27 @@ static struct wl12xx_platform_data clickarm4412_wl12xx_wlan_data __initdata = {
 };
 
 /* DWMMC */
-static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
-{
-       return 8;
-}
+//static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
+//{
+//       return 8;
+//}
+//
+//static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
+//{
+//       return 0;
+//}
 
-static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
-{
-       return 0;
-}
-
-static struct dw_mci_board clickarm4412_dwmci_pdata = {
-	.num_slots			= 1,
-	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
-	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_8_BIT_DATA | MMC_CAP_CMD23,
-	.fifo_depth			= 0x80,
-	.bus_hz				= 104 * 1000 * 1000,
-	.detect_delay_ms	= 200,
-	.init				= clickarm4412_dwmci_init,
-	.get_bus_wd			= clickarm4412_dwmci_get_bus_wd,
-	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
-};
+//static struct dw_mci_board clickarm4412_dwmci_pdata = {
+//	.num_slots			= 1,
+//	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
+//	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_8_BIT_DATA | MMC_CAP_CMD23,
+//	.fifo_depth			= 0x80,
+//	.bus_hz				= 104 * 1000 * 1000,
+//	.detect_delay_ms	= 200,
+//	.init				= clickarm4412_dwmci_init,
+//	.get_bus_wd			= clickarm4412_dwmci_get_bus_wd,
+//	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
+//};
 
 static struct resource tmu_resource[] = {
 	[0] = {
@@ -839,7 +839,7 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 	&hdmi_fixed_voltage,
 #endif
 	&exynos4_device_ohci,
-	&exynos_device_dwmci,
+//	&exynos_device_dwmci,
 //	&clickarm4412_leds_gpio,
 #if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_CLICKARM_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	&clickarm4412_lcd_t55149gd030j,
@@ -1044,8 +1044,8 @@ static void __init clickarm4412_machine_init(void)
 	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
 	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
 
-	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
-	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
+//	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
+//	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
 
 	clickarm4412_ehci_init();
 	clickarm4412_ohci_init();
