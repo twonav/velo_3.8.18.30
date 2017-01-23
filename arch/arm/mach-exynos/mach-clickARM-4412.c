@@ -71,7 +71,7 @@
 #include "common.h"
 #include "pmic-77686.h"
 
-extern int velo_version;
+extern char *velo_version;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -837,7 +837,7 @@ static struct platform_device clickarm_lcd_spi = {
 static struct platform_device *clickarm4412_devices[] __initdata = {
 	&tps611xx,
 //	&s3c_device_hsmmc2,
-	&s3c_device_hsmmc3,
+//	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
 	&gpio_device_i2c4,

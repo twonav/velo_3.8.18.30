@@ -24,6 +24,7 @@
 static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
+extern char *device;
 
 /* logo's are marked __initdata. Use __init_refok to tell
  * modpost that it is intended that this function uses data
@@ -67,6 +68,28 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		/* Generic Linux logo */
 		logo = &logo_linux_clut224;
 #endif
+
+		if(strcmp(device, "aventura")==0)
+		{
+			/* Aventura board logo */
+			logo = &logo_aventura_clut224;
+			printk(KERN_INFO "Logo: %s\n", device);
+		}
+
+		if(strcmp(device, "horizon")==0)
+		{
+			/* Horizon board logo */
+			logo = &logo_horizon_clut224;
+			printk(KERN_INFO "Logo: %s\n", device);
+		}
+
+		if(strcmp(device, "velo")==0)
+		{
+			/* Velo board logo */
+			logo = &logo_velo_clut224;
+			printk(KERN_INFO "Logo: %s\n", device);
+		}
+
 #ifdef CONFIG_LOGO_BLACKFIN_CLUT224
 		/* Blackfin Linux logo */
 		logo = &logo_blackfin_clut224;
