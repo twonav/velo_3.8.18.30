@@ -34,6 +34,8 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 {
 	const struct linux_logo *logo = NULL;
 
+	printk(KERN_INFO "Logo: %s\n", device);
+
 	if (nologo)
 		return NULL;
 
@@ -69,26 +71,25 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_linux_clut224;
 #endif
 
-		if(strcmp(device, "aventura")==0)
-		{
-			/* Aventura board logo */
-			logo = &logo_aventura_clut224;
-			printk(KERN_INFO "Logo: %s\n", device);
-		}
+#ifdef CONFIG_LOGO_TWONAV_BIG_CLUT224
+		/* TwoNav logo for big screens (Aventura, trail) */
+		logo = &logo_twonav_big_clut224;
+#endif
 
-		if(strcmp(device, "horizon")==0)
-		{
-			/* Horizon board logo */
-			logo = &logo_horizon_clut224;
-			printk(KERN_INFO "Logo: %s\n", device);
-		}
+#ifdef CONFIG_LOGO_TWONAV_SMALL_CLUT224
+		/* TwoNav logo for small screens (Velo, Horizon) */
+		logo = &logo_twonav_small_clut224;
+#endif
 
-		if(strcmp(device, "velo")==0)
-		{
-			/* Velo board logo */
-			logo = &logo_velo_clut224;
-			printk(KERN_INFO "Logo: %s\n", device);
-		}
+#ifdef CONFIG_LOGO_OS_BIG_CLUT224
+		/* OS logo for big screens (Aventura, trail) */
+		logo = &logo_os_big_clut224;
+#endif
+
+#ifdef CONFIG_LOGO_OS_SMALL_CLUT224
+		/* OS logo for small screens (Velo, Horizon) */
+		logo = &logo_os_small_clut224;
+#endif
 
 #ifdef CONFIG_LOGO_BLACKFIN_CLUT224
 		/* Blackfin Linux logo */

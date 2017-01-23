@@ -27,18 +27,23 @@ config LOGO_LINUX_CLUT224
 	bool "Standard 224-color Linux logo"
 	default y
 	
-config LOGO_VELO_CLUT224
-	bool "Velo Board logo"
+config LOGO_TWONAV_BIG_CLUT224
+	bool "TwoNav logo for big screens (Aventura, trail)"
 	depends on SOC_EXYNOS4412
 	default y
-
-config LOGO_AVENTURA_CLUT224
-	bool "Aventura Board logo"
+	
+config LOGO_TWONAV_SMALL_CLUT224
+	bool "TwoNav logo for small screens (Velo, Horizon)"
 	depends on SOC_EXYNOS4412
 	default y
-
-config LOGO_HORIZON_CLUT224
-	bool "Horizon Board logo"
+	
+config LOGO_OS_BIG_CLUT224
+	bool "OS logo for big screens (Aventura, trail)"
+	depends on SOC_EXYNOS4412
+	default y
+	
+config LOGO_OS_SMALL_CLUT224
+	bool "OS logo for small screens (Velo, Horizon)"
 	depends on SOC_EXYNOS4412
 	default y
 

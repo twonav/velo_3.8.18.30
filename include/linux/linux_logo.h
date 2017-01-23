@@ -35,9 +35,12 @@ struct linux_logo {
 extern const struct linux_logo logo_linux_mono;
 extern const struct linux_logo logo_linux_vga16;
 extern const struct linux_logo logo_linux_clut224;
-extern const struct linux_logo logo_aventura_clut224;
-extern const struct linux_logo logo_horizon_clut224;
-extern const struct linux_logo logo_velo_clut224;
+
+extern const struct linux_logo logo_twonav_small_clut224;
+extern const struct linux_logo logo_twonav_big_clut224;
+extern const struct linux_logo logo_os_small_clut224;
+extern const struct linux_logo logo_os_big_clut224;
+
 extern const struct linux_logo logo_blackfin_vga16;
 extern const struct linux_logo logo_blackfin_clut224;
 extern const struct linux_logo logo_dec_clut224;

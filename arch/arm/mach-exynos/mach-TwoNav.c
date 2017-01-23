@@ -71,7 +71,7 @@
 #include "common.h"
 #include "pmic-77686.h"
 
-extern char *velo_version;
+extern char *device_version;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -394,27 +394,49 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 /* END OF LCD Backlight data tps611xx PWM_platform_data*/
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 	.panel = {
 		.timing = {
-			.left_margin 	= 9,
-			.right_margin 	= 9,
-			.upper_margin 	= 5,
+			.left_margin 	= 40,
+			.right_margin 	= 24,
+			.upper_margin 	= 7,
 			.lower_margin 	= 5,
-			.hsync_len 	= 1,
-			.vsync_len 	= 1,
-			.xres 		= 240,
-			.yres 		= 400,
+			.hsync_len 	= 32,
+			.vsync_len 	= 5,
+			.xres 		= 480,
+			.yres 		= 640,
 		},
-		.width_mm = 39,
-		.height_mm = 65,
 	},
 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | 
-				  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
 	.default_win 	= 0,
-	.bpp 		= 24,
-};
+	.bpp 		= 32,
+	};
+
+#else
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+		.panel = {
+			.timing = {
+				.left_margin 	= 9,
+				.right_margin 	= 9,
+				.upper_margin 	= 5,
+				.lower_margin 	= 5,
+				.hsync_len 	= 1,
+				.vsync_len 	= 1,
+				.xres 		= 240,
+				.yres 		= 400,
+			},
+			.width_mm = 39,
+			.height_mm = 65,
+		},
+		.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+		.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC |
+					  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+		.default_win 	= 0,
+		.bpp 		= 24,
+	};
+#endif
 	
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
@@ -452,7 +474,6 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 0,
 	},
-	/* 2016-10-07 DNP Desactivamos el TL, no funciona bien
 	{
 		.code			= KEY_F2,
 		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
@@ -460,7 +481,7 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-	*/
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
 		.code			= KEY_F3,
 		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
@@ -475,6 +496,7 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
+#endif
 };
 
 static struct gpio_keys_platform_data twonav_gpio_keys_data = {
@@ -501,15 +523,16 @@ void init_button_irqs(void)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		// 2016-10-07 DNP Desactivamos el TL, no funciona bien
-		//numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
-		//printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+#endif
 	}
 /*END OF GPIO KEYS KEYBOARD*/ 		
 
@@ -592,12 +615,14 @@ static void __init twonav_usbswitch_init(void)
 #endif
 
 /* SDCARD */
-//static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
-//	.max_width	= 4,
-//	.host_caps	= MMC_CAP_4_BIT_DATA |
-//			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-//	.cd_type	= S3C_SDHCI_CD_NONE,
-//};
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
+	.max_width	= 4,
+	.host_caps	= MMC_CAP_4_BIT_DATA |
+			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.cd_type	= S3C_SDHCI_CD_NONE,
+};
+#endif
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
@@ -836,8 +861,10 @@ static struct platform_device twonav_lcd_spi = {
 
 static struct platform_device *twonav_devices[] __initdata = {
 	&tps611xx,
-//	&s3c_device_hsmmc2,
-//	&s3c_device_hsmmc3,
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+	&s3c_device_hsmmc2,
+#endif
+	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
 	&gpio_device_i2c4,
@@ -873,7 +900,7 @@ static struct platform_device *twonav_devices[] __initdata = {
 	&exynos4_device_ohci,
 	&exynos_device_dwmci,
 //	&twonav_leds_gpio,
-#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
+#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	&twonav_lcd_t55149gd030j,
 #endif
 	&twonav_gpio_keys,
@@ -943,6 +970,7 @@ static void __init twonav_gpio_init(void)
         s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
 
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	/* BR/BL */
         gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
         s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
@@ -953,7 +981,7 @@ static void __init twonav_gpio_init(void)
         s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
         s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
         gpio_free(EXYNOS4_GPJ1(1));
-
+#endif
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
 /*********************************************************************/
@@ -1064,7 +1092,7 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 
 static void __init twonav_machine_init(void)
 {
-	printk(KERN_INFO "EBM velo version: %s\n", velo_version);
+	printk(KERN_INFO "device version: %s\n", device_version);
 
 	twonav_gpio_init();
 
