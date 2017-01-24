@@ -12,7 +12,30 @@ echo ""
 exit
 fi
 
+
+if [[ -z $1 ]]; then
+echo "Usage: ./build_backports.sh <DEVICE>"
+echo " <DEVICE> is the name of defconfig (twonav_velo, aventura_os, ...)"
+exit
+fi
+
 HOMEUSERFOLDER=$(logname)
+DEVICE=$1
+
+revision=$(
+    case "$DEVICE" in
+    	("twonav_velo") echo "TwoNavVelo" ;;
+    	("twonav_aventura") echo "TwoNavAventura" ;;
+    	("twonav_horizon") echo "TwoNavHorizon" ;;
+    	("twonav_trail") echo "TwoNavTrail" ;;
+    	("os_velo") echo "OsVelo" ;;
+    	("os_aventura") echo "OsAventura" ;;
+    	("os_horizon") echo "OsHorizon" ;;
+    	("os_trail") echo "OsTrail" ;;
+	(*) echo "$DEVICE" ;;
+    esac)
+
+echo "Compilation: $revision"
 
 #1.EXPORT REQUIRED VARIABLES
 
@@ -44,7 +67,8 @@ echo "**** STEP 2 END CLEAN PREVIOUS COMPILATION ****"
 
 cd $KERNEL_SRC
 make mrproper
-make twonav_velo_defconfig
+#make twonav_velo_defconfig
+make $1_defconfig
 #make wireless_backports_defconfig
 make oldconfig
 make -j4
@@ -93,9 +117,9 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
 if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0$revision -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
 else
-	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0Velo -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0$revision -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
 fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd

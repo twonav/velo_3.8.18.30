@@ -640,7 +640,7 @@ static struct wl12xx_platform_data twonav_wl12xx_wlan_data __initdata = {
 /* DWMMC */
 static int twonav_dwmci_get_bus_wd(u32 slot_id)
 {
-       return 8;
+       return 4;
 }
 
 static int twonav_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
