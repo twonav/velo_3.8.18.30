@@ -640,7 +640,7 @@ static struct wl12xx_platform_data twonav_wl12xx_wlan_data __initdata = {
 /* DWMMC */
 static int twonav_dwmci_get_bus_wd(u32 slot_id)
 {
-       return 4;
+       return 8;
 }
 
 static int twonav_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
@@ -1054,7 +1054,7 @@ static void __init twonav_gpio_init(void)
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
 	//s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-	//s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
 	//s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 }
