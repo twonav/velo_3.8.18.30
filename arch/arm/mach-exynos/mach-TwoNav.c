@@ -80,7 +80,7 @@ extern char *device_version;
 #define VELO_FAN_INT    EXYNOS4212_GPM3(0) /*IRQ XEINT8*/
 
 
-extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
+//extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
 
 /* Following are default values for UCON, ULCON and UFCON UART registers */
 #define TWONAV_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
@@ -614,6 +614,14 @@ static void __init twonav_usbswitch_init(void)
 }
 #endif
 
+/*MMC SDIO*/
+static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
+	.max_width		= 4,
+	.host_caps	= MMC_CAP_4_BIT_DATA |
+			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.cd_type		= S3C_SDHCI_CD_NONE,
+};
+
 /* SDCARD */
 #if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
@@ -638,16 +646,21 @@ static struct wl12xx_platform_data twonav_wl12xx_wlan_data __initdata = {
 };
 
 /* DWMMC */
+/*
 static int twonav_dwmci_get_bus_wd(u32 slot_id)
 {
        return 8;
 }
+*/
 
+/*
 static int twonav_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
 {
        return 0;
 }
+*/
 
+/*
 static struct dw_mci_board twonav_dwmci_pdata = {
 	.num_slots			= 1,
 	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
@@ -659,6 +672,7 @@ static struct dw_mci_board twonav_dwmci_pdata = {
 	.get_bus_wd			= twonav_dwmci_get_bus_wd,
 	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
 };
+*/
 
 static struct resource tmu_resource[] = {
 	[0] = {
@@ -861,6 +875,7 @@ static struct platform_device twonav_lcd_spi = {
 
 static struct platform_device *twonav_devices[] __initdata = {
 	&tps611xx,
+	&s3c_device_hsmmc0,
 #if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 	&s3c_device_hsmmc2,
 #endif
@@ -898,7 +913,7 @@ static struct platform_device *twonav_devices[] __initdata = {
 	&hdmi_fixed_voltage,
 #endif
 	&exynos4_device_ohci,
-	&exynos_device_dwmci,
+//	&exynos_device_dwmci,
 //	&twonav_leds_gpio,
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	&twonav_lcd_t55149gd030j,
@@ -1112,11 +1127,14 @@ static void __init twonav_machine_init(void)
 				ARRAY_SIZE(twonav_i2c_devs4));
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
-//	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+#endif
 	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
-	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
-	exynos_dwmci_set_platdata(&twonav_dwmci_pdata);
+//	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
+//	exynos_dwmci_set_platdata(&twonav_dwmci_pdata);
 
 	twonav_ehci_init();
 	twonav_ohci_init();

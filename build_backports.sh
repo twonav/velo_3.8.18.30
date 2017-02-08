@@ -15,7 +15,7 @@ fi
 
 if [[ -z $1 ]]; then
 echo "Usage: ./build_backports.sh <DEVICE>"
-echo " <DEVICE> is the name of defconfig (twonav_velo, aventura_os, ...)"
+echo " <DEVICE> is the name of defconfig (twonav_velo, os_aventura, ...)"
 exit
 fi
 
@@ -107,9 +107,9 @@ echo "**** STEP 5 END CHECK NEW KERNEL NAME ****"
 
 #6.INSTALL MODULES
 
+cd $KERNEL_SRC
 cp -r $KLIB/lib/modules/$kernel_name/updates /media/$HOMEUSERFOLDER/trusty/lib/modules/$kernel_name/wireless_backports
 cp $KERNEL_SRC/arch/arm/boot/zImage /media/$HOMEUSERFOLDER/BOOT/zImage
-cd $KERNEL_SRC
 make modules_install INSTALL_MOD_PATH=/media/$HOMEUSERFOLDER/trusty && sync
 
 echo "**** STEP 6 END INSTALL MODULES ****"

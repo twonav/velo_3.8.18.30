@@ -1884,7 +1884,7 @@ void __init_or_cpufreq exynos4_setup_clocks(void)
 
 	__raw_writel(0x10001, EXYNOS4_CLKDIV_FSYS1);
 	__raw_writel(0x10001, EXYNOS4_CLKDIV_FSYS2);
-	__raw_writel(0x10001, EXYNOS4_CLKDIV_FSYS3);
+	__raw_writel(0x10000, EXYNOS4_CLKDIV_FSYS3);
 
 }
 
