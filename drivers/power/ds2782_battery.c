@@ -84,6 +84,7 @@ struct ds278x_battery_ops {
 	int (*get_battery_current)(struct ds278x_info *info, int *current_uA);
 	int (*get_battery_voltage)(struct ds278x_info *info, int *voltage_uV);
 	int (*get_battery_capacity)(struct ds278x_info *info, int *capacity);
+	int (*get_battery_acr)(struct ds278x_info *info, int *acr);
 };
 
 #define to_ds278x_info(x) container_of(x, struct ds278x_info, battery)
@@ -203,6 +204,18 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	return 0;
 }
 
+static int ds2782_get_acr(struct ds278x_info *info, int *capacity)
+{
+	int err;
+	s16 raw;
+
+	err = ds278x_read_reg16(info, DS2782_ACR_MSB, &raw);
+	if (err)
+		return err;
+	*capacity = raw;
+	return 0;
+}
+
 static int ds2786_get_current(struct ds278x_info *info, int *current_uA)
 {
 	int err;
@@ -286,6 +299,10 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 		ret = info->ops->get_battery_capacity(info, &val->intval);
 		break;
 
+	case POWER_SUPPLY_PROP_ACR:
+			ret = info->ops->get_battery_acr(info, &val->intval);
+			break;
+
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		ret = info->ops->get_battery_voltage(info, &val->intval);
 		break;
@@ -311,6 +328,7 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_ACR,
 };
 
 static void ds278x_power_supply_init(struct power_supply *battery)
@@ -347,6 +365,7 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_current  = ds2782_get_current,
 		.get_battery_voltage  = ds2782_get_voltage,
 		.get_battery_capacity = ds2782_get_capacity,
+		.get_battery_acr      = ds2782_get_acr,
 	},
 	[DS2786] = {
 		.get_battery_current  = ds2786_get_current,
@@ -370,11 +389,20 @@ static int ds2782_detect_new_battery(struct i2c_client *client)
 
 static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *client)
 {
-	// We need to set the following registers - battery initial estimate  fixed 10%
+	// We need to set registers ACR LSB y MSB. MSB must be set first
+
+	// - battery initial estimate
+	//s16 raw;
+	//int voltage;
+	//i2c_smbus_write_byte_data(client, DS278x_REG_VOLT_MSB, raw);
+	//voltage = (raw / 32) * 4800;
+	//int row = VOLTAGE_LOOKUP_TABLE (voltage);
+
+
 	u8 value;
 	// 1. ACR (LSB MSB)
 	value = 0x02;
-	i2c_smbus_write_byte_data(client, DS2782_ACR_MSB, value); // MSB must be first
+	i2c_smbus_write_byte_data(client, DS2782_ACR_MSB, value);
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_ACR_LSB, value);
 	// 4. AS
@@ -394,7 +422,7 @@ static int ds2782_battery_init(struct i2c_client *client)
 	AEC				200
 	SR				20
 	RSGain			1
-	RCC				1550
+	RCC				1630
 	AB				0
 	Full-0			1497
 	Full-10			1497
@@ -427,7 +455,7 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, value); // 0x62
 	value = 0xA0;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, value); // 0x63
-	value = 0xcd;
+	value = 0xd3; // 4.137
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, value); // 0x64
 	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, value); // 0x65
