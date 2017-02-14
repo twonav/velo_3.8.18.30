@@ -208,7 +208,6 @@ static int ds2782_get_acr(struct ds278x_info *info, int *capacity)
 {
 	int err;
 	s16 raw;
-
 	err = ds278x_read_reg16(info, DS2782_ACR_MSB, &raw);
 	if (err)
 		return err;
@@ -299,7 +298,7 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 		ret = info->ops->get_battery_capacity(info, &val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_ACR:
+	case POWER_SUPPLY_PROP_CAPACITY_ACR:
 			ret = info->ops->get_battery_acr(info, &val->intval);
 			break;
 
@@ -328,7 +327,7 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TEMP,
-	POWER_SUPPLY_PROP_ACR,
+	POWER_SUPPLY_PROP_CAPACITY_ACR,
 };
 
 static void ds278x_power_supply_init(struct power_supply *battery)
@@ -371,42 +370,138 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_current  = ds2786_get_current,
 		.get_battery_voltage  = ds2786_get_voltage,
 		.get_battery_capacity = ds2786_get_capacity,
+		.get_battery_acr      = ds2782_get_acr,
 	}
 };
 
 static int ds2782_detect_new_battery(struct i2c_client *client)
 {
-	int value, r;
-	value = i2c_smbus_read_byte_data(client, DS2782_REG_RARC); // capacity %
+	return 1;
+	int r;
 	r = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
-	if (value && r > 0){
-		printk(KERN_INFO "ds278x OLD battery capacity:%d\n",value);
+	if (r > 0){
 		return 0;
 	}
-	printk(KERN_INFO "ds278x NEW battery\n");
+	printk(KERN_INFO "ds278x detected NEW battery\n");
 	return 1;
+}
+
+static int ipow(int base, int exp)
+{
+    int result = 1;
+    while (exp)
+    {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        base *= base;
+    }
+
+    return result;
+}
+
+static int ds278x_dec_to_hex(int decimalNumber)
+{
+/*	long int quotient;
+    int i=1,j,temp;
+    char hexadecimalNumber[100];
+
+    quotient = decimalNumber;
+
+    while(quotient!=0)
+    {
+    	temp = quotient % 16;
+    	if( temp < 10)
+    		temp =temp + 48;
+    	else
+    		temp = temp + 55;
+
+    	hexadecimalNumber[i++]= temp;
+    	quotient = quotient / 16;
+    }
+
+    printk(KERN_INFO "TEO Equivalent hexadecimal value of decimal number %d: ",decimalNumber);
+    for(j = i -1 ;j> 0;j--)
+    {
+    	printk("%c",hexadecimalNumber[j]);
+    }
+*/
+    return 0;
 }
 
 static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *client)
 {
-	// We need to set registers ACR LSB y MSB. MSB must be set first
-
+	// We need to set registers ACR MSB and LSB. MSB must be set first
 	// - battery initial estimate
-	//s16 raw;
-	//int voltage;
-	//i2c_smbus_write_byte_data(client, DS278x_REG_VOLT_MSB, raw);
-	//voltage = (raw / 32) * 4800;
-	//int row = VOLTAGE_LOOKUP_TABLE (voltage);
-
-
+	// 4000mAh estimation
+	int ret;
 	u8 value;
+	s16 raw_current;
+	s16 raw_voltage;
+	int voltage_uV;
+	int acr;
+	int v2;
+	int v3;
+	int v4;
+
+	ret = i2c_smbus_read_word_data(client, DS278x_REG_CURRENT_MSB);
+	if (ret < 0) {
+		printk(KERN_INFO "TEO error reading\n");
+		//dev_err(client->dev, "ds278x_battery_estimate_capacity_from_voltage no current reading\n");
+		return ret;
+	}
+
+	raw_current = swab16(ret);
+	printk(KERN_INFO "TEO current reading :%d\n",raw_current);
+
+	ret = i2c_smbus_read_word_data(client, DS278x_REG_VOLT_MSB);
+	raw_voltage = swab16(ret);
+	voltage_uV = (raw_voltage / 32) * 4800;
+	printk(KERN_INFO "TEO voltage reading :%d\n",voltage_uV);
+
+	// voltage_uV is in microvolts
+
+	v2 = voltage_uV * voltage_uV;
+	v3 = v2 * voltage_uV;
+	v4 = v3 * voltage_uV;
+	printk(KERN_INFO "TEO ACR estimation :%d\n",v4);
+
+	float a;
+	a = 2.0 * (float)v4;
+	printk(KERN_INFO "TEO ACR estimation :%f\n",a);
+
+	/*
+	if (current > 0 ) {
+		//Charging    y = 54090,572x^4 - 8,293E5x^3+ 4,762E6x^2 -1,213E7x +1,155E7
+		acr = 54090.572 * v4 - 829300 * v3 + 4762000 * v2 - 12130000 * voltage_uV + 11550000;
+	}
+	else {
+		//Discharging y = 9077,448x^4 - 1,4E5x^3 + 8,065E5x^2 - 2,05E6x+ 1,939E6
+		acr = 9077.448 * v4 - 140000 * v3 + 806500 * v2 - 2050000 * voltage_uV + 1939000;
+	}
+
+	printk(KERN_INFO "TEO ACR estimation :%d\n",acr);
+
+	acr = acr * 20;
+	acr = acr / 6.25;
+
+	// Convert decimal to hex
+	int iacr = (int)acr;
+
+	float a = 1.32;
+	a = a * 2 / 6.25;
+	int b = (int)a;
+	printk(KERN_INFO "TEO ACR estimation :%d\n",b);
+	//printk(KERN_INFO "TEO ACR estimation :%f\n",acr);
+	//ds278x_dec_to_hex(iacr);
+*/
 	// 1. ACR (LSB MSB)
 	value = 0x02;
 	i2c_smbus_write_byte_data(client, DS2782_ACR_MSB, value);
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_ACR_LSB, value);
 	// 4. AS
-	value = 0x79;
+	value = 0x80;//0x79;
 	i2c_smbus_write_byte_data(client, DS2782_AS, value);
 
 	return 0;
@@ -451,17 +546,17 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, value); // 0x60
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, value); // 0x61
-	value = 0x14;
+	value = 0x32;//0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, value); // 0x62
-	value = 0xA0;
+	value = 0x00;//0xA0;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, value); // 0x63
-	value = 0xd3; // 4.137
+	value = 0xcd;//0xd3; // 4.137
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, value); // 0x64
 	value = 0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, value); // 0x65
 	value = 0x9a;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, value); // 0x66
-	value = 0x14;
+	value = 0x0F;//0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, value); // 0x67
 	value = 0x00;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, value); // 0x68
@@ -470,9 +565,9 @@ static int ds2782_battery_init(struct i2c_client *client)
 	//		#define DS2786_RSNS    20 // Constant sense resistor value, 20 mOhms = 50 siemens = 0x32
 	value = 0x32;
 	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, value); // 0x69
-	value = 0x14;
+	value = 0x32;//0x14;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, value); // 0x6A
-	value = 0xA0;
+	value = 0x00;//0xA0;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, value); // 0x6B
 	value = 0x0F;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, value); // 0x6C
@@ -480,18 +575,18 @@ static int ds2782_battery_init(struct i2c_client *client)
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, value); // 0x6D
 	value = 0x26;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, value); // 0x6E
-	value = 0x28;
+	value = 0x27;//0x28;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, value); // 0x6F
 
-	value = 0x06;
+	value = 0x07;//0x06;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, value); // 0x70
-	value = 0x11;
+	value = 0x10;//0x11;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, value); // 0x71
-	value = 0x1E;
+	value = 0x1d;//0x1E;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, value); // 0x72
 	value = 0x12;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, value); // 0x73
-	value = 0x01;
+	value = 0x02;//0x01;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, value); // 0x74
 	value = 0x05;
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, value); // 0x75
