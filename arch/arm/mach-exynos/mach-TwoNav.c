@@ -474,6 +474,7 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 0,
 	},
+	/* 2016-10-07 DNP Desactivamos el TL, no funciona bien
 	{
 		.code			= KEY_F2,
 		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
@@ -481,6 +482,7 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
+	*/
 #if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
 		.code			= KEY_F3,
@@ -523,8 +525,9 @@ void init_button_irqs(void)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+		// 2016-10-07 DNP Desactivamos el TL, no funciona bien
+		//numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+		//printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
 #if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
@@ -980,22 +983,24 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
 	
 	/* TR/TL */
+	/* 2016-10-07 DNP Desactivamos el TL, no funciona bien
 	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-        s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
+	*/
 
 #if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	/* BR/BL */
-        gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
-        s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4_GPJ0(1));
+	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
+	s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ0(1));
 
 	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  //modificado
-        s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4_GPJ1(1));
+	s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ1(1));
 #endif
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
@@ -1069,7 +1074,7 @@ static void __init twonav_gpio_init(void)
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
 	//s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	//s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
 	//s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 }
