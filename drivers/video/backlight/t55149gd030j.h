@@ -85,48 +85,48 @@
 #define V_WND_V_2               0x01AF
 
 //GAMMA CONTROL Positive Value
-#define V_GAMM_CONT1        0x0700
+#define V_GAMM_CONT1        0x0707
 
 //POKP0/1
-#define V_GAMM_CONT2        0x0607
+#define V_GAMM_CONT2        0x0007
 
 //POKP2/3
-#define V_GAMM_CONT3        0x0504
+#define V_GAMM_CONT3        0x0000
 
 //POKP4/5
-#define V_GAMM_CONT4        0x0300
+#define V_GAMM_CONT4        0x0303
 
 //POFP0/1
-#define V_GAMM_CONT5        0x0002
+#define V_GAMM_CONT5        0x0000
 
 //POFP2/3
-#define V_GAMM_CONT6        0x0207
+#define V_GAMM_CONT6        0x0007
 
 //PORP0/1
-#define V_GAMM_CONT7        0x1F00
+#define V_GAMM_CONT7        0x001F
 
 //VORP0/1
 
 //GAMMA CONTROL Negative Value
-#define V_GAMM_CONT8        0x0707
+#define V_GAMM_CONT8        0x0706
 
 //POKN0/1
 #define V_GAMM_CONT9        0x0607
 
 //POKN2/3
-#define V_GAMM_CONT10       0x0504
+#define V_GAMM_CONT10       0x0301
 
 //POKN4/5
 #define V_GAMM_CONT11       0x0303
 
 //POFN0/1
-#define V_GAMM_CONT12       0x0002
+#define V_GAMM_CONT12       0x0202
 
 //POFN2/3
 #define V_GAMM_CONT13       0x0207
 
 //PORN0/1
-#define V_GAMM_CONT14       0x1F00
+#define V_GAMM_CONT14       0x1F1F
 
 //VORN0/
 #define V_BASE_IM_DISP_CONT     0x0001
