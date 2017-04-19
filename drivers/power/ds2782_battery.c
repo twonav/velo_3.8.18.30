@@ -545,12 +545,12 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 		i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, 0x00); // 0x6B
 	#endif
 
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, 0x0f); // 0x6C
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, 0x1c); // 0x6D
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, 0x26); // 0x6E
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, 0x00); // 0x6C
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, 0x00); // 0x6D
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, 0x4d); // 0x6E
 
 	#if defined (CONFIG_TWONAV_VELO)
-		i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, 0x28); // 0x6F
+		i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, 0xf8); // 0x6F
 		i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, 0x06); // 0x70
 		i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, 0x11); // 0x71
 		i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, 0x1E); // 0x72
