@@ -77,7 +77,7 @@ extern char *device_version;
 #include <linux/pwm_backlight.h>
 
 #include <linux/w1-gpio.h>
-#define VELO_FAN_INT    EXYNOS4212_GPM3(0) /*IRQ XEINT8*/
+#define VELO_FAN_INT    EXYNOS4X12_GPM3(0) /*IRQ XEINT8*/
 
 
 //extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
@@ -130,10 +130,12 @@ static struct s3c2410_uartcfg twonav_uartcfgs[] __initdata = {
 /*DS2782 BATTERY FUEL GAUGE*/
 #if defined(CONFIG_BATTERY_DS2782)
 #include <linux/ds2782_battery.h>
-#define DS2786_RSNS    20 /* Constant sense resistor value, mOhms */
+#define DS2786_RSNS    	20 /* Constant sense resistor value, mOhms */
+#define MAX8814_EN    	EXYNOS4X12_GPM3(1) /* Enable GPIO */
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
+	.gpio = MAX8814_EN,
 };
 #endif
 /*FAN54040 CONFIGURATION PLATDATA*/

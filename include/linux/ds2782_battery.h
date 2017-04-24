@@ -3,6 +3,7 @@
 
 struct ds278x_platform_data {
 	int rsns;
+	int gpio;
 };
 
 #endif

@@ -24,6 +24,15 @@
 #include <linux/slab.h>
 #include <linux/ds2782_battery.h>
 
+#include <linux/kernel.h>
+#include <linux/kthread.h>
+#include <linux/sched.h>
+
+#include <linux/gpio.h>
+
+struct task_struct *task;
+int charger_enabled = 0;
+
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
 #define DS2782_REG_RSAC		0x04	/* Remaining Standby Absolute Capacity */
 #define DS2782_REG_RARC		0x06	/* Remaining Active Relative Capacity */
@@ -103,6 +112,7 @@ struct ds278x_info {
 	struct ds278x_battery_ops  *ops;
 	int id;
 	int rsns;
+	int gpio;
 	int new_battery;
 };
 
@@ -429,6 +439,8 @@ static int ds278x_battery_remove(struct i2c_client *client)
 {
 	struct ds278x_info *info = i2c_get_clientdata(client);
 
+   kthread_stop(task);
+
 	power_supply_unregister(&info->battery);
 	kfree(info->battery.name);
 
@@ -582,6 +594,72 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	return 0;
 }
 
+int check_if_discharge(struct ds278x_info *info)
+{
+	set_current_state(TASK_INTERRUPTIBLE);
+	schedule_timeout(HZ);
+
+	int err;
+	int status;
+	int current_uA;
+	int capacity;
+	int voltage;
+
+	err = ds278x_get_status(info, &status);
+	if (err)
+		return err;
+
+	err = info->ops->get_battery_current(info, &current_uA);
+	if (err)
+		return err;
+
+	err = info->ops->get_battery_voltage(info, &voltage);
+	if (err)
+		return err;
+
+	err = info->ops->get_battery_capacity(info, &capacity);
+	if (err)
+		return err;
+
+	if(status == POWER_SUPPLY_STATUS_FULL)
+	{
+		if(voltage > 4200000 && current_uA < 20000 && charger_enabled)
+		{
+			printk("gpio discharge\n");
+			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(info->gpio,1);
+			gpio_free(info->gpio);
+			charger_enabled = 0;
+		}
+	}
+	else
+	{
+		if(capacity <= 85 && !charger_enabled)
+		{
+			printk("gpio charge\n");
+			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(info->gpio,0);
+			gpio_free(info->gpio);
+			charger_enabled = 1;
+		}
+	}
+
+	return 0;
+
+}
+
+void check_full_battery(void *info)
+{
+	int cnt = 0;
+	int capacity;
+	int err;
+
+	while (!kthread_should_stop()){
+		if(check_if_discharge(info) != 0)
+			break;
+	}
+}
+
 static int ds278x_battery_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
@@ -631,8 +709,21 @@ static int ds278x_battery_probe(struct i2c_client *client,
 		goto fail_name;
 	}
 
-	if (id->driver_data == DS2786)
-		info->rsns = pdata->rsns;
+	info->rsns = pdata->rsns;
+	info->gpio = pdata->gpio;
+
+	gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+	charger_enabled = !gpio_get_value(info->gpio);
+	gpio_free(info->gpio);
+
+	if(charger_enabled)
+	{
+		printk(KERN_INFO "Charger Enabled\n");
+	}
+	else
+	{
+		printk(KERN_INFO "Charger Disabled\n");
+	}
 
 	info->new_battery = new_battery;
 
@@ -647,6 +738,12 @@ static int ds278x_battery_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to register battery\n");
 		goto fail_register;
 	}
+
+	printk(KERN_INFO"--------------------------------------------\n");
+	task = kthread_run(&check_full_battery,info,"ds2782-battery-holder");
+	if (IS_ERR(task))
+		return -1;
+	printk(KERN_INFO"Kernel Thread : %s\n",task->comm);
 
 	return 0;
 
