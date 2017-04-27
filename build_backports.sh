@@ -39,18 +39,10 @@ echo "Compilation: $revision"
 
 #1.EXPORT REQUIRED VARIABLES
 
-if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	export CCPREFIX=arm-linux-gnueabihf-
-else
-	export CCPREFIX=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
-fi
+export CCPREFIX=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
 export KERNEL_SRC=/home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8
 export ARCH=arm
-if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	export CROSS_COMPILE=arm-linux-gnueabihf-
-else
-	export CROSS_COMPILE=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
-fi
+export CROSS_COMPILE=/opt/toolchains/gcc-linaro-arm-linux-gnueabihf-4.7-2013.04-20130415_linux/bin/arm-linux-gnueabihf-
 export BACK_PORTS=/home/$HOMEUSERFOLDER/Kernels_IMASD/backports-3.17.1-1
 export KLIB_BUILD=/home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8
 export KLIB=/home/$HOMEUSERFOLDER/Velo_images/kernel_modules
