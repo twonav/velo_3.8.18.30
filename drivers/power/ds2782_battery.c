@@ -32,6 +32,8 @@
 
 struct task_struct *task;
 int charger_enabled = 0;
+int learning = 0;
+int learn_complete = 0; // TODO : make learning permanent!!!!
 
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
 #define DS2782_REG_RSAC		0x04	/* Remaining Standby Absolute Capacity */
@@ -95,12 +97,12 @@ int charger_enabled = 0;
 #define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 
 #if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x14 //0x62
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1e //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x12 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x21 //0x67
+	#define DS2782_EEPROM_IAE_VALUE 				0x2d //0x67
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0xXX //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xXX //0x63
@@ -111,9 +113,10 @@ int charger_enabled = 0;
 #endif
 
 #define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
+#define DS2782_EEPROM_RSNS_VALUE 				0x21 //0x69
 
 #if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x14 //0x6A
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1e //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0xXX //0x6A
@@ -160,7 +163,8 @@ int charger_enabled = 0;
 
 #define DS2782_AS_VALUE 						0x80 //0x14
 
-#define DS2782_Register_Command_VALUE 			0x44 //0xFE
+#define DS2782_Register_Command_Write_Copy_VALUE 			0x44 //0xFE
+#define DS2782_Register_Command_Recal_Read_VALUE 			0xb4 //0xFE
 
 #define DS2786_CURRENT_UNITS	25
 
@@ -555,10 +559,11 @@ static int ds2782_detect_new_battery(struct i2c_client *client)
 {
 	int r;
 	r = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
-	if (r > 0){
-		return 0;
+	if (r > 0) {
+		if (learn_complete) {
+			return 0;
+		}
 	}
-
 	return 1;
 }
 
@@ -615,8 +620,8 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 
 	printk(KERN_INFO "I2C Write: DS2782_EEPROM_ActiveEmpty[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_ActiveEmpty, DS2782_EEPROM_ActiveEmpty_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, DS2782_EEPROM_ActiveEmpty_VALUE); // 0x68
-	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", DS2782_REG_RSNSP, 0x32);
-	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, 0x32); // 0x69
+	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", DS2782_REG_RSNSP, DS2782_EEPROM_RSNS_VALUE);
+	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, DS2782_EEPROM_RSNS_VALUE); // 0x69
 
 	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_MSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full40_MSB, DS2782_EEPROM_Full40_MSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, DS2782_EEPROM_Full40_MSB_VALUE); // 0x6A
@@ -666,8 +671,53 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	printk(KERN_INFO "I2C Write: DS2782_AS[0x%04lx] = (0x%04lx)\n", DS2782_AS, DS2782_AS_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_AS, DS2782_AS_VALUE); // 0x14 Aging Scalar
 
-	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_VALUE); // 0xFE
+	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Write_Copy_VALUE);
+	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Write_Copy_VALUE); // 0xFE
+
+	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE);
+	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
+
+	return 0;
+}
+
+int check_learn_complete(struct ds278x_info *info)
+{
+	int learn_flag;
+	int full_charge_flag;
+	int active_empty_flag;
+	int err;
+	s16 raw;
+
+	if (info->new_battery == 0)
+		return 0;
+
+	err = ds278x_read_reg(info, 0x01, &raw);
+	// printk(KERN_INFO "DS2782 0x01: = (0x%04lx)\n", raw);
+	if (err)
+		return err;
+	learn_flag = raw >> 4 & 0x01;
+	full_charge_flag = raw >> 7 & 0x01;
+	active_empty_flag = raw >> 6 & 0x01;
+	/*
+	printk(KERN_INFO "DS2782 learn flag: :%i\n", learn_flag);
+	printk(KERN_INFO "DS2782 full_charge flag: :%i\n", full_charge_flag);
+	printk(KERN_INFO "DS2782 active_empty flag: :%i\n", active_empty_flag);
+	printk(KERN_INFO "DS2782 learning: :%i\n", learning);
+	printk(KERN_INFO "DS2782 learn complete: :%i\n", learn_complete);
+	*/
+
+	if (!learn_flag){
+		learning = 0;
+	}
+
+	if (active_empty_flag && learn_flag) {
+		learning = 1;
+	}
+
+	if (learning && full_charge_flag) {
+		learn_complete = 1;
+		info->new_battery = 0;
+	}
 
 	return 0;
 }
@@ -722,16 +772,15 @@ int check_if_discharge(struct ds278x_info *info)
 		}
 	}
 
+	// CHECK_LEARN_CYCLE_COMPLETE
+	check_learn_complete(info);
+
 	return 0;
 
 }
 
 void check_full_battery(void *info)
 {
-	int cnt = 0;
-	int capacity;
-	int err;
-
 	while (!kthread_should_stop()){
 		if(check_if_discharge(info) != 0)
 			break;
