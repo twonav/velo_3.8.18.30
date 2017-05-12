@@ -113,7 +113,7 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 #endif
 
 #define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-#define DS2782_EEPROM_RSNS_VALUE 				0x21 //0x69
+#define DS2782_EEPROM_RSNS_VALUE 				0x14 //0x69
 
 #if defined (CONFIG_TWONAV_VELO)
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1e //0x6A
@@ -706,17 +706,22 @@ int check_learn_complete(struct ds278x_info *info)
 	printk(KERN_INFO "DS2782 learn complete: :%i\n", learn_complete);
 	*/
 
-	if (!learn_flag){
+	if (!learn_flag)
+	{
 		learning = 0;
 	}
+	else
+	{
+		if (active_empty_flag && learn_flag)
+		{
+			learning = 1;
+		}
 
-	if (active_empty_flag && learn_flag) {
-		learning = 1;
-	}
-
-	if (learning && full_charge_flag) {
-		learn_complete = 1;
-		info->new_battery = 0;
+		if (learning && full_charge_flag)
+		{
+			learn_complete = 1;
+			info->new_battery = 0;
+		}
 	}
 
 	return 0;
@@ -751,7 +756,7 @@ int check_if_discharge(struct ds278x_info *info)
 
 	if(status == POWER_SUPPLY_STATUS_FULL)
 	{
-		if(voltage > 4200000 && current_uA < 20000 && charger_enabled)
+		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
 		{
 			printk("gpio discharge\n");
 			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
