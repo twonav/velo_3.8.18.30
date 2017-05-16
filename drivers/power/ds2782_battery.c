@@ -28,6 +28,8 @@
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
+#include <linux/proc_fs.h>
+
 #include <linux/gpio.h>
 
 struct task_struct *task;
@@ -97,12 +99,12 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 #define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 
 #if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1e //0x62
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x14 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x12 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x2D //0x67
+	#define DS2782_EEPROM_IAE_VALUE 				0x21 //0x67
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0xXX //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xXX //0x63
@@ -120,10 +122,10 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 #endif
 
 #define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-#define DS2782_EEPROM_RSNS_VALUE 				0x14 //0x69
+#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
 
 #if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1E //0x6A
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x14 //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0xXX //0x6A
@@ -214,6 +216,41 @@ struct ds278x_info {
 
 static DEFINE_IDR(battery_id);
 static DEFINE_MUTEX(battery_lock);
+
+#define procfs_name "helloworld"
+struct proc_dir_entry *Our_Proc_File;
+
+int
+procfile_read(char *buffer,
+	      char **buffer_location,
+	      off_t offset, int buffer_length, int *eof, void *data)
+{
+	int ret;
+
+	printk(KERN_INFO "procfile_read (/proc/%s) called\n", procfs_name);
+
+	/*
+	 * We give all of our information in one go, so if the
+	 * user asks us if we have more information the
+	 * answer should always be no.
+	 *
+	 * This is important because the standard read
+	 * function from the library would continue to issue
+	 * the read system call until the kernel replies
+	 * that it has no more information, or until its
+	 * buffer is filled.
+	 */
+	if (offset > 0) {
+		/* we have finished to read, return 0 */
+		ret  = 0;
+	} else {
+		/* fill the buffer, return the buffer size */
+		ret = sprintf(buffer, "HelloWorld!\n");
+	}
+
+	return ret;
+}
+
 
 static inline int ds278x_read_reg(struct ds278x_info *info, int reg, u8 *val)
 {
@@ -545,6 +582,10 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	mutex_unlock(&battery_lock);
 
 	kfree(info);
+
+	remove_proc_entry(procfs_name, NULL);
+	printk(KERN_INFO "/proc/%s removed\n", procfs_name);
+
 	return 0;
 }
 
@@ -692,8 +733,8 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_Register_Command, (long unsigned int)DS2782_Register_Command_Write_Copy_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Write_Copy_VALUE); // 0xFE
 
-	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_Register_Command, (long unsigned int)DS2782_Register_Command_Recal_Read_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
+	//printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE);
+	//i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
 
 	return 0;
 }
@@ -813,6 +854,25 @@ void check_full_battery(void *info)
 static int ds278x_battery_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
+		Our_Proc_File = create_proc_entry(procfs_name, 0644, NULL);
+
+		if (Our_Proc_File == NULL) {
+			remove_proc_entry(procfs_name, NULL);
+			printk(KERN_ALERT "Error: Could not initialize /proc/%s\n",
+			       procfs_name);
+			return -ENOMEM;
+		}
+
+		Our_Proc_File->read_proc = procfile_read;
+		Our_Proc_File->parent 	 = THIS_MODULE;
+		Our_Proc_File->mode 	 = S_IFREG | S_IRUGO;
+		Our_Proc_File->uid 	 = 0;
+		Our_Proc_File->gid 	 = 0;
+		Our_Proc_File->size 	 = 37;
+
+		printk(KERN_INFO "/proc/%s created\n", procfs_name);
+
+
 	struct ds278x_platform_data *pdata = client->dev.platform_data;
 	struct ds278x_info *info;
 	int ret;
