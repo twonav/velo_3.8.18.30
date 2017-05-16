@@ -102,7 +102,7 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
 	#define DS2782_EEPROM_IMIN_VALUE 				0x12 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x2d //0x67
+	#define DS2782_EEPROM_IAE_VALUE 				0x2D //0x67
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0xXX //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xXX //0x63
@@ -110,17 +110,27 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 	#define DS2782_EEPROM_IMIN_VALUE 				0xXX //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0xXX //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0xXX //0x67
+#elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
+	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
+	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x12 //0x65
+	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
+	#define DS2782_EEPROM_IAE_VALUE 				0x2D //0x67
 #endif
 
 #define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
 #define DS2782_EEPROM_RSNS_VALUE 				0x14 //0x69
 
 #if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1e //0x6A
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1E //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0xXX //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xXX //0x6B
+#elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1E //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
 #endif
 
 #define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
@@ -131,6 +141,8 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xF8 //0x6F
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xXX //0x6F
+#elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xF8 //0x6F
 #endif
 
 #if defined (CONFIG_TWONAV_VELO)
@@ -141,6 +153,10 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 	#define DS2782_EEPROM_AE3040Slope_VALUE 		0xXX //0x70
 	#define DS2782_EEPROM_AE2030Slope_VALUE 		0xXX //0x71
 	#define DS2782_EEPROM_AE1020Slope_VALUE 		0xXX //0x72
+#elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
+	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x00 //0x71
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x42 //0x72
 #endif
 
 #define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
@@ -149,6 +165,8 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_SE3040Slope_VALUE 		0xXX //0x74
+#elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
 #endif
 
 #define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
@@ -598,83 +616,83 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	// Values extracted from the DS2782K Test kit
 	// IMPORTANT: First capacity estimation is done outside kernel
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_CONTROL[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_CONTROL, DS2782_EEPROM_CONTROL_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_CONTROL[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_CONTROL, (long unsigned int)DS2782_EEPROM_CONTROL_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, DS2782_EEPROM_CONTROL_VALUE); // 0x60
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AB, DS2782_EEPROM_AB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AB, (long unsigned int)DS2782_EEPROM_AB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, DS2782_EEPROM_AB_VALUE); // 0x61
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_MSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AC_MSB, DS2782_EEPROM_AC_MSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_MSB, (long unsigned int)DS2782_EEPROM_AC_MSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, DS2782_EEPROM_AC_MSB_VALUE); // 0x62
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_LSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AC_LSB, DS2782_EEPROM_AC_LSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_LSB, (long unsigned int)DS2782_EEPROM_AC_LSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, DS2782_EEPROM_AC_LSB_VALUE); // 0x63
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VCHG[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_VCHG, DS2782_EEPROM_VCHG_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VCHG[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VCHG, (long unsigned int)DS2782_EEPROM_VCHG_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, DS2782_EEPROM_VCHG_VALUE); //4.2 charging voltage// 0x64
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_IMIN, DS2782_EEPROM_IMIN_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IMIN, (long unsigned int)DS2782_EEPROM_IMIN_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, DS2782_EEPROM_IMIN_VALUE); //16.5mA minimal charge current// 0x65
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VAE[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_VAE, DS2782_EEPROM_VAE_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VAE, (long unsigned int)DS2782_EEPROM_VAE_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, DS2782_EEPROM_VAE_VALUE); //3.0 minimum voltage// 0x66
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IAE[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_IAE, DS2782_EEPROM_IAE_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IAE, (long unsigned int)DS2782_EEPROM_IAE_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, DS2782_EEPROM_IAE_VALUE); //330mA constant discharge current// 0x67
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_ActiveEmpty[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_ActiveEmpty, DS2782_EEPROM_ActiveEmpty_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_ActiveEmpty[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_ActiveEmpty, (long unsigned int)DS2782_EEPROM_ActiveEmpty_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, DS2782_EEPROM_ActiveEmpty_VALUE); // 0x68
-	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", DS2782_REG_RSNSP, DS2782_EEPROM_RSNS_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_REG_RSNSP, (long unsigned int)DS2782_EEPROM_RSNS_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, DS2782_EEPROM_RSNS_VALUE); // 0x69
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_MSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full40_MSB, DS2782_EEPROM_Full40_MSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_MSB, (long unsigned int)DS2782_EEPROM_Full40_MSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, DS2782_EEPROM_Full40_MSB_VALUE); // 0x6A
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_LSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full40_LSB, DS2782_EEPROM_Full40_LSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_LSB, (long unsigned int)DS2782_EEPROM_Full40_LSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, DS2782_EEPROM_Full40_LSB_VALUE); // 0x6B
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full3040Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full3040Slope, DS2782_EEPROM_Full3040Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full3040Slope, (long unsigned int)DS2782_EEPROM_Full3040Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, DS2782_EEPROM_Full3040Slope_VALUE); // 0x6C
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full2030Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full2030Slope, DS2782_EEPROM_Full2030Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full2030Slope, (long unsigned int)DS2782_EEPROM_Full2030Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, DS2782_EEPROM_Full2030Slope_VALUE); // 0x6D
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full1020Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full1020Slope, DS2782_EEPROM_Full1020Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full1020Slope, (long unsigned int)DS2782_EEPROM_Full1020Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, DS2782_EEPROM_Full1020Slope_VALUE); // 0x6E
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full0010Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_Full0010Slope, DS2782_EEPROM_Full0010Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full0010Slope, (long unsigned int)DS2782_EEPROM_Full0010Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, DS2782_EEPROM_Full0010Slope_VALUE); // 0x6F
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE3040Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AE3040Slope, DS2782_EEPROM_AE3040Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE3040Slope, (long unsigned int)DS2782_EEPROM_AE3040Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, DS2782_EEPROM_AE3040Slope_VALUE); // 0x70
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE2030Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AE2030Slope, DS2782_EEPROM_AE2030Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE2030Slope, (long unsigned int)DS2782_EEPROM_AE2030Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, DS2782_EEPROM_AE2030Slope_VALUE); // 0x71
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE1020Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AE1020Slope, DS2782_EEPROM_AE1020Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE1020Slope, (long unsigned int)DS2782_EEPROM_AE1020Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, DS2782_EEPROM_AE1020Slope_VALUE); // 0x72
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE0010Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_AE0010Slope, DS2782_EEPROM_AE0010Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE0010Slope, (long unsigned int)DS2782_EEPROM_AE0010Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, DS2782_EEPROM_AE0010Slope_VALUE); // 0x73
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE3040Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_SE3040Slope, DS2782_EEPROM_SE3040Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE3040Slope, (long unsigned int)DS2782_EEPROM_SE3040Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, DS2782_EEPROM_SE3040Slope_VALUE); // 0x74
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE2030Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_SE2030Slope, DS2782_EEPROM_SE2030Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE2030Slope, (long unsigned int)DS2782_EEPROM_SE2030Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, DS2782_EEPROM_SE2030Slope_VALUE); // 0x75
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE1020Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_SE1020Slope, DS2782_EEPROM_SE1020Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE1020Slope, (long unsigned int)DS2782_EEPROM_SE1020Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, DS2782_EEPROM_SE1020Slope_VALUE); // 0x76
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE0010Slope[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_SE0010Slope, DS2782_EEPROM_SE0010Slope_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE0010Slope, (long unsigned int)DS2782_EEPROM_SE0010Slope_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE0010Slope, DS2782_EEPROM_SE0010Slope_VALUE); // 0x77
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_MSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_RSGAIN_MSB, DS2782_EEPROM_RSGAIN_MSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_MSB, (long unsigned int)DS2782_EEPROM_RSGAIN_MSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_MSB, DS2782_EEPROM_RSGAIN_MSB_VALUE); // 0x78
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_LSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_RSGAIN_LSB, DS2782_EEPROM_RSGAIN_LSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_LSB, (long unsigned int)DS2782_EEPROM_RSGAIN_LSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_LSB, DS2782_EEPROM_RSGAIN_LSB_VALUE); // 0x79
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSTC[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_RSTC, DS2782_EEPROM_RSTC_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSTC[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSTC, (long unsigned int)DS2782_EEPROM_RSTC_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSTC, DS2782_EEPROM_RSTC_VALUE); // 0x7A
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_MSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_FRSGAIN_MSB, DS2782_EEPROM_FRSGAIN_MSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_MSB, (long unsigned int)DS2782_EEPROM_FRSGAIN_MSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_MSB, DS2782_EEPROM_FRSGAIN_MSB_VALUE); // 0x7B
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_LSB[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_FRSGAIN_LSB, DS2782_EEPROM_FRSGAIN_LSB_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_LSB, (long unsigned int)DS2782_EEPROM_FRSGAIN_LSB_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_LSB, DS2782_EEPROM_FRSGAIN_LSB_VALUE); // 0x7C
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SlaveAddressConfig[0x%04lx] = (0x%04lx)\n", DS2782_EEPROM_SlaveAddressConfig, DS2782_EEPROM_SlaveAddressConfig_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SlaveAddressConfig[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SlaveAddressConfig, (long unsigned int)DS2782_EEPROM_SlaveAddressConfig_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SlaveAddressConfig, DS2782_EEPROM_SlaveAddressConfig_VALUE); // 0x7E
-	printk(KERN_INFO "I2C Write: DS2782_AS[0x%04lx] = (0x%04lx)\n", DS2782_AS, DS2782_AS_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_AS[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_AS, (long unsigned int)DS2782_AS_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_AS, DS2782_AS_VALUE); // 0x14 Aging Scalar
 
-	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Write_Copy_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_Register_Command, (long unsigned int)DS2782_Register_Command_Write_Copy_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Write_Copy_VALUE); // 0xFE
 
-	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE);
+	printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_Register_Command, (long unsigned int)DS2782_Register_Command_Recal_Read_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
 
 	return 0;
