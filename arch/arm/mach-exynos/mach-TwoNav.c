@@ -978,6 +978,13 @@ static void __init twonav_gpio_init(void)
 //	/* Peripheral power enable (P3V3) */
 //	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
 
+	//Aventua/Trail ST
+	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+		gpio_free(EXYNOS4X12_GPM0(3));
+		gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
+		gpio_free(EXYNOS4X12_GPM0(3));
+	#endif
+
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
