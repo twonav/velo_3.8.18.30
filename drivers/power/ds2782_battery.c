@@ -28,15 +28,13 @@
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
-#include <linux/proc_fs.h>
-
 #include <linux/gpio.h>
 
 struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
-int learn_complete = 0; // TODO : make learning permanent!!!!
 
+#define DS2782_REG_Status	0x01
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
 #define DS2782_REG_RSAC		0x04	/* Remaining Standby Absolute Capacity */
 #define DS2782_REG_RARC		0x06	/* Remaining Active Relative Capacity */
@@ -93,93 +91,136 @@ int learn_complete = 0; // TODO : make learning permanent!!!!
 #define DS2782_EEPROM_SlaveAddressConfig 0x7E
 
 #define DS2782_Register_Command 0xFE
+#define DS2782_Register_LearnComplete 0x20
 
 //DS2782 EEPROM values for TwoNav
-#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
-#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 
 #if defined (CONFIG_TWONAV_VELO)
+	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
+	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x14 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
 	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x21 //0x67
+	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
+	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x14 //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
+	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x00 //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x4D //0x6E
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xF8 //0x6F
+	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
+	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x00 //0x71
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x42 //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
+	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x0B //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0A //0x77
+	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
+	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
+	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
+	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
+	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
+	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
 #elif defined (CONFIG_TWONAV_TRAIL)
+	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
+	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0xXX //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xXX //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xXX //0x64
 	#define DS2782_EEPROM_IMIN_VALUE 				0xXX //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0xXX //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0xXX //0x67
-#elif defined (CONFIG_TWONAV_AVENTURA)
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x12 //0x65
-	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x2D //0x67
-#endif
-
-#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
-
-#if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x14 //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
-#elif defined (CONFIG_TWONAV_TRAIL)
+	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
+	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0xXX //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xXX //0x6B
-#elif defined (CONFIG_TWONAV_AVENTURA)
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1E //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
-#endif
-
-#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
-#define DS2782_EEPROM_Full2030Slope_VALUE 		0x00 //0x6D
-#define DS2782_EEPROM_Full1020Slope_VALUE 		0x4D //0x6E
-
-#if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xF8 //0x6F
-#elif defined (CONFIG_TWONAV_TRAIL)
+	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x00 //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x4D //0x6E
 	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xXX //0x6F
-#elif defined (CONFIG_TWONAV_AVENTURA)
-	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xF8 //0x6F
-#endif
-
-#if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
-	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x00 //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x42 //0x72
-#elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_AE3040Slope_VALUE 		0xXX //0x70
 	#define DS2782_EEPROM_AE2030Slope_VALUE 		0xXX //0x71
 	#define DS2782_EEPROM_AE1020Slope_VALUE 		0xXX //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
+	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x0B //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0A //0x77
+	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
+	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
+	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
+	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
+	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
+	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
 #elif defined (CONFIG_TWONAV_AVENTURA)
+	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
+	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x3E //0x62
+	#define DS2782_EEPROM_AC_LSB_VALUE 				0x80 //0x63
+	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x14 //0x65
+	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
+	#define DS2782_EEPROM_IAE_VALUE 				0x0F //0x67
+	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
+	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x3E //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x80 //0x6B
+	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x21 //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x42 //0x6E
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xE5 //0x6F
 	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
 	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x00 //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x42 //0x72
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x0E //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x04 //0x73
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
+	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x02 //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x02 //0x77
+	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
+	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
+	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
+	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
+	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
+	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
+#elif defined (CONFIG_TWONAV_HORIZON)
+	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
+	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x15 //0x62
+	#define DS2782_EEPROM_AC_LSB_VALUE 				0x40 //0x63
+	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
+	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
+	#define DS2782_EEPROM_IAE_VALUE 				0x1E //0x67
+	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
+	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x15 //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x40 //0x6B
+	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x1D //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x87 //0x6E
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xA4 //0x6F
+	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
+	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x0C //0x71
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x0D //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x1B //0x73
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
+	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x05 //0x75
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x05 //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x10 //0x77
+	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
+	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
+	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
+	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
+	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
+	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
 #endif
 
-#define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
-
-#if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
-#elif defined (CONFIG_TWONAV_TRAIL)
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0xXX //0x74
-#elif defined (CONFIG_TWONAV_AVENTURA)
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
-#endif
-
-#define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
-#define DS2782_EEPROM_SE1020Slope_VALUE 		0x0B //0x76
-#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0A //0x77
-#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
-#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
-#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
-#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
-#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
-#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
 
 #define DS2782_AS_VALUE 						0x80 //0x14
 
@@ -216,41 +257,6 @@ struct ds278x_info {
 
 static DEFINE_IDR(battery_id);
 static DEFINE_MUTEX(battery_lock);
-
-#define procfs_name "helloworld"
-struct proc_dir_entry *Our_Proc_File;
-
-int
-procfile_read(char *buffer,
-	      char **buffer_location,
-	      off_t offset, int buffer_length, int *eof, void *data)
-{
-	int ret;
-
-	printk(KERN_INFO "procfile_read (/proc/%s) called\n", procfs_name);
-
-	/*
-	 * We give all of our information in one go, so if the
-	 * user asks us if we have more information the
-	 * answer should always be no.
-	 *
-	 * This is important because the standard read
-	 * function from the library would continue to issue
-	 * the read system call until the kernel replies
-	 * that it has no more information, or until its
-	 * buffer is filled.
-	 */
-	if (offset > 0) {
-		/* we have finished to read, return 0 */
-		ret  = 0;
-	} else {
-		/* fill the buffer, return the buffer size */
-		ret = sprintf(buffer, "HelloWorld!\n");
-	}
-
-	return ret;
-}
-
 
 static inline int ds278x_read_reg(struct ds278x_info *info, int reg, u8 *val)
 {
@@ -583,9 +589,6 @@ static int ds278x_battery_remove(struct i2c_client *client)
 
 	kfree(info);
 
-	remove_proc_entry(procfs_name, NULL);
-	printk(KERN_INFO "/proc/%s removed\n", procfs_name);
-
 	return 0;
 }
 
@@ -619,6 +622,7 @@ static int ds2782_detect_new_battery(struct i2c_client *client)
 	int r;
 	r = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
 	if (r > 0) {
+		int learn_complete = i2c_smbus_read_byte_data(client, DS2782_Register_LearnComplete);
 		if (learn_complete) {
 			return 0;
 		}
@@ -745,13 +749,12 @@ int check_learn_complete(struct ds278x_info *info)
 	int full_charge_flag;
 	int active_empty_flag;
 	int err;
-	s16 raw;
+	u8 raw;
 
 	if (info->new_battery == 0)
 		return 0;
 
-	err = ds278x_read_reg(info, 0x01, &raw);
-	// printk(KERN_INFO "DS2782 0x01: = (0x%04lx)\n", raw);
+	err = ds278x_read_reg(info, DS2782_REG_Status, &raw);
 	if (err)
 		return err;
 	learn_flag = raw >> 4 & 0x01;
@@ -765,22 +768,16 @@ int check_learn_complete(struct ds278x_info *info)
 	printk(KERN_INFO "DS2782 learn complete: :%i\n", learn_complete);
 	*/
 
-	if (!learn_flag)
+	if (learn_flag)
 	{
-		learning = 0;
+		learning = 1;
 	}
-	else
-	{
-		if (active_empty_flag && learn_flag)
-		{
-			learning = 1;
-		}
 
-		if (learning && full_charge_flag)
-		{
-			learn_complete = 1;
-			info->new_battery = 0;
-		}
+	if (learning && full_charge_flag)
+	{
+		printk(KERN_INFO "DS2782 LEARN COMPLETE");
+		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, 0x01); // 0x20
+		info->new_battery = 0;
 	}
 
 	return 0;
@@ -788,14 +785,14 @@ int check_learn_complete(struct ds278x_info *info)
 
 int check_if_discharge(struct ds278x_info *info)
 {
-	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(HZ);
-
 	int err;
 	int status;
 	int current_uA;
 	int capacity;
 	int voltage;
+
+	set_current_state(TASK_INTERRUPTIBLE);
+	schedule_timeout(HZ);
 
 	err = ds278x_get_status(info, &status);
 	if (err)
@@ -843,36 +840,18 @@ int check_if_discharge(struct ds278x_info *info)
 
 }
 
-void check_full_battery(void *info)
+int check_full_battery(void *info)
 {
 	while (!kthread_should_stop()){
 		if(check_if_discharge(info) != 0)
 			break;
 	}
+	return 0;
 }
 
 static int ds278x_battery_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-		Our_Proc_File = create_proc_entry(procfs_name, 0644, NULL);
-
-		if (Our_Proc_File == NULL) {
-			remove_proc_entry(procfs_name, NULL);
-			printk(KERN_ALERT "Error: Could not initialize /proc/%s\n",
-			       procfs_name);
-			return -ENOMEM;
-		}
-
-		Our_Proc_File->read_proc = procfile_read;
-		Our_Proc_File->parent 	 = THIS_MODULE;
-		Our_Proc_File->mode 	 = S_IFREG | S_IRUGO;
-		Our_Proc_File->uid 	 = 0;
-		Our_Proc_File->gid 	 = 0;
-		Our_Proc_File->size 	 = 37;
-
-		printk(KERN_INFO "/proc/%s created\n", procfs_name);
-
-
 	struct ds278x_platform_data *pdata = client->dev.platform_data;
 	struct ds278x_info *info;
 	int ret;
