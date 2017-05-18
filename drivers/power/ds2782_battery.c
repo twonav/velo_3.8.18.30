@@ -241,6 +241,8 @@ struct ds278x_battery_ops {
 	int (*get_battery_rarc)(struct ds278x_info *info, int *rarc);
 	int (*get_battery_rsrc)(struct ds278x_info *info, int *rsrc);
 	int (*get_battery_new)(struct ds278x_info *info, int *new_batt);
+	int (*get_battery_rsns)(struct ds278x_info *info, int *rsns);
+	int (*get_battery_learning)(struct ds278x_info *info, int *learning);
 };
 
 #define to_ds278x_info(x) container_of(x, struct ds278x_info, battery)
@@ -424,6 +426,27 @@ static int ds2782_get_new_battery(struct ds278x_info *info, int *new_batt)
 	return 0;
 }
 
+static int ds2782_get_rsns(struct ds278x_info *info, int *rsns)
+{
+	int err;
+	u8 sense_res_raw;
+	err = ds278x_read_reg(info, DS2782_REG_RSNSP, &sense_res_raw);
+	if (err)
+		return err;
+	if (sense_res_raw == 0) {
+		dev_err(&info->client->dev, "sense resistor value is 0\n");
+		return -ENXIO;
+	}
+	*rsns = 1000 / sense_res_raw;
+	return 0;
+}
+
+static int ds2782_get_learning(struct ds278x_info *info, int *_learning)
+{
+	*_learning = learning;
+	return 0;
+}
+
 static int ds2786_get_current(struct ds278x_info *info, int *current_uA)
 {
 	int err;
@@ -532,6 +555,14 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 		ret = info->ops->get_battery_new(info, &val->intval);
 		break;
 
+	case POWER_SUPPLY_PROP_RSNS:
+			ret = info->ops->get_battery_rsns(info, &val->intval);
+			break;
+
+	case POWER_SUPPLY_PROP_LEARNING:
+			ret = info->ops->get_battery_learning(info, &val->intval);
+			break;
+
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		ret = info->ops->get_battery_voltage(info, &val->intval);
 		break;
@@ -563,6 +594,8 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_CAPACITY_RARC,
 	POWER_SUPPLY_PROP_CAPACITY_RSRC,
 	POWER_SUPPLY_PROP_NEW_BATTERY,
+	POWER_SUPPLY_PROP_RSNS,
+	POWER_SUPPLY_PROP_LEARNING,
 };
 
 static void ds278x_power_supply_init(struct power_supply *battery)
@@ -608,6 +641,8 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_rarc	  = ds2782_get_rarc,
 		.get_battery_rsrc	  = ds2782_get_rsrc,
 		.get_battery_new      = ds2782_get_new_battery,
+		.get_battery_rsns     = ds2782_get_rsns,
+		.get_battery_learning = ds2782_get_learning,
 	},
 	[DS2786] = {
 		.get_battery_current  = ds2786_get_current,

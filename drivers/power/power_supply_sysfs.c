@@ -182,6 +182,8 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(capacity_rarc),
 	POWER_SUPPLY_ATTR(capacity_rsrc),
 	POWER_SUPPLY_ATTR(new_battery),
+	POWER_SUPPLY_ATTR(rsns),
+	POWER_SUPPLY_ATTR(learning),
 	POWER_SUPPLY_ATTR(temp),
 	POWER_SUPPLY_ATTR(temp_alert_min),
 	POWER_SUPPLY_ATTR(temp_alert_max),
