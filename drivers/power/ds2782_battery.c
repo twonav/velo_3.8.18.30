@@ -33,6 +33,7 @@
 struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
+int fully_charged = 0;
 
 #define DS2782_REG_Status	0x01
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
@@ -101,7 +102,7 @@ int learning = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x14 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x0A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x21 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
@@ -129,28 +130,28 @@ int learning = 0;
 #elif defined (CONFIG_TWONAV_TRAIL)
 	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x3E //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x80 //0x63
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x32 //0x62
+	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x14 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x0F //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x0F //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x3E //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x80 //0x6B
+	#define DS2782_EEPROM_RSNS_VALUE 				0x32 //0x69
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x32 //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x00 //0x6B
 	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
-	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x00 //0x6D
-	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x4D //0x6E
-	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xE5 //0x6F
-	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
-	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x00 //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x0E //0x72
-	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x14 //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x29 //0x6E
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0x3D //0x6F
+	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x02 //0x70
+	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x01 //0x71
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x05 //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x0B //0x73
 	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
-	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x00 //0x75
-	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x0B //0x76
-	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0A //0x77
+	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x02 //0x75
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x02 //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x07 //0x77
 	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
 	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
 	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
@@ -163,7 +164,7 @@ int learning = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x3E //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x80 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x14 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x0A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x0F //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
@@ -191,28 +192,28 @@ int learning = 0;
 #elif defined (CONFIG_TWONAV_HORIZON)
 	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x15 //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x40 //0x63
+	#define DS2782_EEPROM_AC_MSB_VALUE 				0x10 //0x62
+	#define DS2782_EEPROM_AC_LSB_VALUE 				0xA0 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
 	#define DS2782_EEPROM_IMIN_VALUE 				0x08 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x1E //0x67
+	#define DS2782_EEPROM_IAE_VALUE 				0x0F //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x15 //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x40 //0x6B
+	#define DS2782_EEPROM_RSNS_VALUE 				0x32 //0x69
+	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x10 //0x6A
+	#define DS2782_EEPROM_Full40_LSB_VALUE 			0xA0 //0x6B
 	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
-	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x1D //0x6D
-	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x87 //0x6E
-	#define DS2782_EEPROM_Full0010Slope_VALUE 		0xA4 //0x6F
-	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x00 //0x70
-	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x0C //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x0D //0x72
-	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x1B //0x73
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x00 //0x74
+	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x25 //0x6D
+	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x24 //0x6E
+	#define DS2782_EEPROM_Full0010Slope_VALUE 		0x79 //0x6F
+	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x06 //0x70
+	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x02 //0x71
+	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x10 //0x72
+	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x21 //0x73
+	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x01 //0x74
 	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x05 //0x75
-	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x05 //0x76
-	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x10 //0x77
+	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x06 //0x76
+	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x15 //0x77
 	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
 	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
 	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
@@ -243,6 +244,7 @@ struct ds278x_battery_ops {
 	int (*get_battery_new)(struct ds278x_info *info, int *new_batt);
 	int (*get_battery_rsns)(struct ds278x_info *info, int *rsns);
 	int (*get_battery_learning)(struct ds278x_info *info, int *learning);
+	int (*get_battery_charge_full)(struct ds278x_info *info, int *full);
 };
 
 #define to_ds278x_info(x) container_of(x, struct ds278x_info, battery)
@@ -447,6 +449,12 @@ static int ds2782_get_learning(struct ds278x_info *info, int *_learning)
 	return 0;
 }
 
+static int ds2782_get_charge_full(struct ds278x_info *info, int *_full)
+{
+	*_full = fully_charged;
+	return 0;
+}
+
 static int ds2786_get_current(struct ds278x_info *info, int *current_uA)
 {
 	int err;
@@ -563,6 +571,10 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 			ret = info->ops->get_battery_learning(info, &val->intval);
 			break;
 
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+				ret = info->ops->get_battery_charge_full(info, &val->intval);
+				break;
+
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		ret = info->ops->get_battery_voltage(info, &val->intval);
 		break;
@@ -596,6 +608,7 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_NEW_BATTERY,
 	POWER_SUPPLY_PROP_RSNS,
 	POWER_SUPPLY_PROP_LEARNING,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
 static void ds278x_power_supply_init(struct power_supply *battery)
@@ -643,6 +656,7 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_new      = ds2782_get_new_battery,
 		.get_battery_rsns     = ds2782_get_rsns,
 		.get_battery_learning = ds2782_get_learning,
+		.get_battery_charge_full 	  = ds2782_get_charge_full,
 	},
 	[DS2786] = {
 		.get_battery_current  = ds2786_get_current,
@@ -807,6 +821,8 @@ int check_learn_complete(struct ds278x_info *info)
 	{
 		learning = 1;
 	}
+
+	fully_charged = full_charge_flag;
 
 	if (learning && full_charge_flag)
 	{
