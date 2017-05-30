@@ -30,6 +30,58 @@
 
 #include <linux/gpio.h>
 
+// signal handling
+#include <linux/init.h>
+#include <asm/siginfo.h>
+#include <linux/rcupdate.h>
+#include <linux/sched.h>
+#include <linux/debugfs.h>
+#include <linux/uaccess.h>
+
+struct dentry *file;
+int pid = 0;
+
+static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, void *ppos)
+{
+    char mybuf[10];
+    int ret;
+    /* read the value from user space */
+    if(count > 10)
+        return -EINVAL;
+    copy_from_user(mybuf, buf, count);
+    sscanf(mybuf, "%d", &pid);
+    return count;
+}
+
+static ssize_t send_sigterm()
+{
+	int ret;
+	struct siginfo info;
+    struct task_struct *task;
+    /****************************** send the signal *****************************/
+    memset(&info, 0, sizeof(struct siginfo));
+    info.si_signo = SIGTERM;
+    info.si_code = SI_USER;
+
+    rcu_read_lock();
+    task = find_task_by_vpid(pid);  //find the task_struct associated with this pid
+    if(task == NULL){
+        printk("DS2782: no such pid\n");
+        rcu_read_unlock();
+        return -ENODEV;
+    }
+    rcu_read_unlock();
+    ret = send_sig_info(SIGTERM, &info, task);    //send the signal
+    if (ret < 0) {
+        printk("DS2782: error sending signal\n");
+    }
+    return ret;
+}
+
+static const struct file_operations my_fops = {
+    .write = write_pid,
+};
+
 struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
@@ -164,11 +216,11 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x3E //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x80 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x0A //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x14 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x0F //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x00 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x20 //0x69
+	#define DS2782_EEPROM_RSNS_VALUE 				0x32 //0x69
 	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x3E //0x6A
 	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x80 //0x6B
 	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x00 //0x6C
@@ -634,6 +686,7 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	mutex_unlock(&battery_lock);
 
 	kfree(info);
+	debugfs_remove(file);
 
 	return 0;
 }
@@ -887,6 +940,10 @@ int check_if_discharge(struct ds278x_info *info)
 	// CHECK_LEARN_CYCLE_COMPLETE
 	check_learn_complete(info);
 
+	// Send sigterm signal to registered app when battery too low
+	if (voltage < 2950000)
+		send_sigterm();
+
 	return 0;
 
 }
@@ -984,6 +1041,9 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	if (IS_ERR(task))
 		return -1;
 	printk(KERN_INFO"Kernel Thread : %s\n",task->comm);
+
+	// Userspace interface to register pid for signal
+	file = debugfs_create_file("signal_low_battery", 0200, NULL, NULL, &my_fops);
 
 	return 0;
 
