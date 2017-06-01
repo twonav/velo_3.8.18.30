@@ -853,14 +853,17 @@ int check_learn_complete(struct ds278x_info *info)
 	int err;
 	u8 raw;
 
-	if (info->new_battery == 0)
-		return 0;
-
 	err = ds278x_read_reg(info, DS2782_REG_Status, &raw);
 	if (err)
 		return err;
-	learn_flag = raw >> 4 & 0x01;
+
 	full_charge_flag = raw >> 7 & 0x01;
+	fully_charged = full_charge_flag;
+
+	if (info->new_battery == 0)
+		return 0;
+
+	learn_flag = raw >> 4 & 0x01;
 	active_empty_flag = raw >> 6 & 0x01;
 	/*
 	printk(KERN_INFO "DS2782 learn flag: :%i\n", learn_flag);
@@ -874,8 +877,6 @@ int check_learn_complete(struct ds278x_info *info)
 	{
 		learning = 1;
 	}
-
-	fully_charged = full_charge_flag;
 
 	if (learning && full_charge_flag)
 	{
@@ -902,11 +903,15 @@ int check_if_discharge(struct ds278x_info *info)
 	if (err)
 		return err;
 
-	err = info->ops->get_battery_current(info, &current_uA);
+	err = info->ops->get_battery_voltage(info, &voltage);
 	if (err)
 		return err;
 
-	err = info->ops->get_battery_voltage(info, &voltage);
+	// Send sigterm signal to registered app when battery too low
+	if (voltage < 2950000)
+		send_sigterm();
+
+	err = info->ops->get_battery_current(info, &current_uA);
 	if (err)
 		return err;
 
@@ -939,10 +944,6 @@ int check_if_discharge(struct ds278x_info *info)
 
 	// CHECK_LEARN_CYCLE_COMPLETE
 	check_learn_complete(info);
-
-	// Send sigterm signal to registered app when battery too low
-	if (voltage < 2950000)
-		send_sigterm();
 
 	return 0;
 
