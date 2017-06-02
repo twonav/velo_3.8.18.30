@@ -40,6 +40,7 @@
 
 struct dentry *file;
 int pid = 0;
+int signal_counter = 0;
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, void *ppos)
 {
@@ -58,6 +59,11 @@ static ssize_t send_sigterm()
 	int ret;
 	struct siginfo info;
     struct task_struct *task;
+
+    if (signal_counter%10 != 0) // send SIGTERM every 10*HZ jiffies
+    	return 0;
+    signal_counter++;
+
     /****************************** send the signal *****************************/
     memset(&info, 0, sizeof(struct siginfo));
     info.si_signo = SIGTERM;
