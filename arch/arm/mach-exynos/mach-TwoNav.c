@@ -1,5 +1,5 @@
 /*
- * linux/arch/arm/mach-exynos4/mach-clickARM-4412.c
+ * linux/arch/arm/mach-exynos4/mach-TwoNav.c
  *
  *
  * Based on mach-hkdh4412.c
@@ -32,6 +32,7 @@
 #include <linux/platform_data/usb-ehci-s5p.h>
 #include <linux/platform_data/usb-exynos.h>
 #include <linux/platform_data/usb3503.h>
+#include <linux/platform_data/tps611xx_bl.h>
 #include <linux/delay.h>
 #include <linux/lcd.h>
 #include <linux/clk.h>
@@ -39,6 +40,7 @@
 #include <linux/spi/spi_gpio.h>
 #include <linux/reboot.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/wl12xx.h>
 
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
@@ -69,67 +71,71 @@
 #include "common.h"
 #include "pmic-77686.h"
 
+extern char *device_version;
+
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
 
 #include <linux/w1-gpio.h>
-#define VELO_FAN_INT    EXYNOS4212_GPM3(0) /*IRQ XEINT8*/
+#define VELO_FAN_INT    EXYNOS4X12_GPM3(0) /*IRQ XEINT8*/
 
 
-extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
+//extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
 
 /* Following are default values for UCON, ULCON and UFCON UART registers */
-#define CLICKARM4412_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
+#define TWONAV_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
 				 S3C2410_UCON_RXILEVEL |	\
 				 S3C2410_UCON_TXIRQMODE |	\
 				 S3C2410_UCON_RXIRQMODE |	\
 				 S3C2410_UCON_RXFIFO_TOI |	\
 				 S3C2443_UCON_RXERR_IRQEN)
 
-#define CLICKARM4412_ULCON_DEFAULT	S3C2410_LCON_CS8
+#define TWONAV_ULCON_DEFAULT	S3C2410_LCON_CS8
 
-#define CLICKARM4412_UFCON_DEFAULT	(S3C2410_UFCON_FIFOMODE |	\
+#define TWONAV_UFCON_DEFAULT	(S3C2410_UFCON_FIFOMODE |	\
 				 S5PV210_UFCON_TXTRIG4 |	\
 				 S5PV210_UFCON_RXTRIG4)
 
-static struct s3c2410_uartcfg clickarm4412_uartcfgs[] __initdata = {
+static struct s3c2410_uartcfg twonav_uartcfgs[] __initdata = {
 	[0] = {
 		.hwport		= 0,
 		.flags		= 0,
-		.ucon		= CLICKARM4412_UCON_DEFAULT,
-		.ulcon		= CLICKARM4412_ULCON_DEFAULT,
-		.ufcon		= CLICKARM4412_UFCON_DEFAULT,
+		.ucon		= TWONAV_UCON_DEFAULT,
+		.ulcon		= TWONAV_ULCON_DEFAULT,
+		.ufcon		= TWONAV_UFCON_DEFAULT,
 	},
 	[1] = {
 		.hwport		= 1,
 		.flags		= 0,
-		.ucon		= CLICKARM4412_UCON_DEFAULT,
-		.ulcon		= CLICKARM4412_ULCON_DEFAULT,
-		.ufcon		= CLICKARM4412_UFCON_DEFAULT,
+		.ucon		= TWONAV_UCON_DEFAULT,
+		.ulcon		= TWONAV_ULCON_DEFAULT,
+		.ufcon		= TWONAV_UFCON_DEFAULT,
 	},
 	[2] = {
 		.hwport		= 2,
 		.flags		= 0,
-		.ucon		= CLICKARM4412_UCON_DEFAULT,
-		.ulcon		= CLICKARM4412_ULCON_DEFAULT,
-		.ufcon		= CLICKARM4412_UFCON_DEFAULT,
+		.ucon		= TWONAV_UCON_DEFAULT,
+		.ulcon		= TWONAV_ULCON_DEFAULT,
+		.ufcon		= TWONAV_UFCON_DEFAULT,
 	},
 	[3] = {
 		.hwport		= 3,
 		.flags		= 0,
-		.ucon		= CLICKARM4412_UCON_DEFAULT,
-		.ulcon		= CLICKARM4412_ULCON_DEFAULT,
-		.ufcon		= CLICKARM4412_UFCON_DEFAULT,
+		.ucon		= TWONAV_UCON_DEFAULT,
+		.ulcon		= TWONAV_ULCON_DEFAULT,
+		.ufcon		= TWONAV_UFCON_DEFAULT,
 	},
 };
 
 /*DS2782 BATTERY FUEL GAUGE*/
-#if defined(CONFIG_BATTERY_DS2782) || defined(CONFIG_BATTERY_DS2782_MODULE)
+#if defined(CONFIG_BATTERY_DS2782)
 #include <linux/ds2782_battery.h>
-#define DS2786_RSNS    18 /* Constant sense resistor value */
+#define DS2786_RSNS    	20 /* Constant sense resistor value, mOhms */
+#define MAX8814_EN    	EXYNOS4X12_GPM3(1) /* Enable GPIO */
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
+	.gpio = MAX8814_EN,
 };
 #endif
 /*FAN54040 CONFIGURATION PLATDATA*/
@@ -192,35 +198,73 @@ static struct usb3503_platform_data usb3503_pdata = {
 /*touchscreen config tsc2007 XE_INT22*/
 #if defined(CONFIG_TOUCHSCREEN_TSC2007) || defined(CONFIG_TOUCHSCREEN_TSC2007_MODULE)
 #include <linux/i2c/tsc2007.h>
-#define VELO_TS_INT      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
-static int TSC2007_get_pendown_state(void)
+#define tsc2007_penirq_pin      EXYNOS4_GPX2(6) /*IRQ_EINT22*/
+static int tsc2007_get_pendown_state(void)
 {
-	return !gpio_get_value(VELO_TS_INT);
+	return !gpio_get_value(tsc2007_penirq_pin);
 }
 /*TOUCHSCREEN INTERRUPT INIT TOUCH_INT:XEINT22*/
-static int TSC2007_tsp_init(void)
+static int tsc2007_init_platform_hw(void)
 {
 	/* TOUCH_INT: XEINT_22 */
-	gpio_request(VELO_TS_INT, "TOUCH_INT");
-	s3c_gpio_cfgpin(VELO_TS_INT, S3C_GPIO_INPUT);
-	s3c_gpio_setpull(VELO_TS_INT, S3C_GPIO_PULL_UP);
+	gpio_request(tsc2007_penirq_pin, "TOUCH_INT");
+	s3c_gpio_cfgpin(tsc2007_penirq_pin, S3C_GPIO_SFN(0xf));
+	s3c_gpio_setpull(tsc2007_penirq_pin, S3C_GPIO_PULL_UP);
+
+	return 0;
 }
 
+static void tsc2007_exit_platform_hw(void)
+{
+	gpio_free(tsc2007_penirq_pin);
+}
+
+static void tsc2007_clear_penirq(void)
+{
+	gpio_set_value(tsc2007_penirq_pin, 1);
+}
+
+// 2016-08-08 DNP TWON-13812: [#1] Ajustar umbral de resistencia a un valor mas bajo (max_rt)
+//				=> Cuando se pulsa flojo, los valores X, Y tienen mucho error
+//                            [#2] Aumentar control fuzz de los valores X, Y (fuzzx, fuzzy)
+//				=> Para evitar baile de X, Y debido a variaciones electricas en el touch
 struct tsc2007_platform_data tsc2007_info = {
-	.get_pendown_state	= TSC2007_get_pendown_state,
-	.init_platform_hw	= TSC2007_tsp_init,
 	.model 		= 2007,	/* 2007. */
-	.x_plate_ohms	= 300, /* must be non-zero value */
-	.max_rt		= 1<<12, /* max. resistance above which samples are ignored */
-	.poll_delay	= 5, /* delay (in ms) after pen-down event
-				     before polling starts */
-	.poll_period 	= 5,/* time (in ms) between samples */
-	.fuzzx		= 64, 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzy		= 64,
+
+	.x_plate_ohms	= 265, /* must be non-zero value */
+	.y_plate_ohms	= 680, /* must be non-zero value */
+	/* max. resistance above which samples are ignored */
+	.max_rt		= 1200, // [#1] antes 1<<12
+
+	.poll_delay	= 30, /* delay (in ms) after pen-down event
+					     before polling starts */
+	.poll_period = 25,/* time (in ms) between samples */
+
+	/* fuzz factor for X, Y and pressure axes */
+	.fuzzx		= 256, // [#2] antes 64
+	.fuzzy		= 256, // [#2] antes 64
 	.fuzzz		= 64,
+
+	.get_pendown_state	= tsc2007_get_pendown_state,
+	.clear_penirq 		= tsc2007_clear_penirq,
+	.init_platform_hw	= tsc2007_init_platform_hw,
+	.exit_platform_hw	= tsc2007_exit_platform_hw
 };
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
+
+static struct tps611xx_platform_data tps611xx_data = {
+	.rfa_en = 1,
+	.en_gpio_num = EXYNOS4_GPD0(2),
+};
+
+static struct platform_device tps611xx = {
+	.name	= "tps61165_bl",
+	.dev	= {
+		.platform_data	= &tps611xx_data,
+	},
+};
+
 /*Audio Codec MAX98090 Configuration*/
 #if defined(CONFIG_SND_SOC_MAX98090)
 #include <sound/max98090.h>
@@ -233,8 +277,25 @@ static struct max98090_pdata max98090 = {
 #endif
 
 /*END OF Audio Codec MAX98090 Configuration*/
+
+/*Ambient light sensor MAX44005 Configuration*/
+// static struct max44005_platform_data max44005_driver = {
+// 	.class	= I2C_CLASS_HWMON,
+// 	.driver  = {
+// 		.name = "max44005",
+// 		.owner = THIS_MODULE,
+// 		.of_match_table = of_match_ptr(max44005_of_match),
+// 		.pm = MAX44005_PM_OPS,
+// 	},
+// 	.probe	 = max44005_probe,
+// 	.shutdown = max44005_shutdown,
+// 	.remove  = max44005_remove,
+// 	.id_table = max44005_id,
+// };
+/*END OF Ambient light sensor MAX44005 Configuration*/
+
 /*Devices Conected on I2C BUS 0 LISTED ABOVE*/
-static struct i2c_board_info clickarm4412_i2c_devs0[] __initdata = {
+static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 	{
 		I2C_BOARD_INFO("max77686", (0x12 >> 1)),
 		.platform_data	= &exynos4_max77686_info,
@@ -248,7 +309,15 @@ static struct i2c_board_info clickarm4412_i2c_devs0[] __initdata = {
 };
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
 
-static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
+static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
+#if defined(CONFIG_TOUCHSCREEN_TSC2007)
+        {
+                I2C_BOARD_INFO("tsc2007", 0x48),
+                .platform_data  = &tsc2007_info,
+                .irq            = IRQ_EINT(22),
+        },
+#endif
+
 #if defined(CONFIG_SND_SOC_MAX98090)
 	{
 		I2C_BOARD_INFO("max98090", (0x20>>1)),
@@ -257,13 +326,6 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 	},
 #endif
 
-#if defined(CONFIG_TOUCHSCREEN_TSC2007)
-	{
-		I2C_BOARD_INFO("tsc2007", 0x48),
-		.platform_data  = &tsc2007_info,
-		.irq		= VELO_TS_INT,
-	},
-#endif
 	/*UNCOMMENT WHEN READY*/
 //#if defined(CONFIG_TMP103_SENSOR)
 //	{
@@ -280,45 +342,35 @@ static struct i2c_board_info clickarm4412_i2c_devs1[] __initdata = {
 //	},
 //#endif
 	/*UNCOMMENT WHEN READY*/
-#if defined(CONFIG_MAX44005)
+#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
 	{
-		I2C_BOARD_INFO("max44005", 0x44), /*CONFIG DIRECCTION SET DEFAULT*/
-		.platform_data  = &????????, /*CONFIG PDATA*/
+		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
+		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
 
 	},
 #endif
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
-/* I2C2 bus GPIO-Bitbanging */
-#define		GPIO_I2C2_SDA	EXYNOS4_GPA0(6)
-#define		GPIO_I2C2_SCL	EXYNOS4_GPA0(7)
-static struct 	i2c_gpio_platform_data 	i2c2_gpio_platdata = {
-	.sda_pin = GPIO_I2C2_SDA,
-	.scl_pin = GPIO_I2C2_SCL,
+/* I2C4 bus GPIO-Bitbanging */
+#define		GPIO_I2C4_SDA	EXYNOS4_GPB(0)
+#define		GPIO_I2C4_SCL	EXYNOS4_GPB(1)
+static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
+	.sda_pin = GPIO_I2C4_SDA,
+	.scl_pin = GPIO_I2C4_SCL,
 	.udelay  = 5,
 	.sda_is_open_drain = 0,
 	.scl_is_open_drain = 0,
 	.scl_is_output_only = 0
 };
 
-static struct 	platform_device 	gpio_device_i2c2 = {
+static struct 	platform_device 	gpio_device_i2c4 = {
 	.name 	= "i2c-gpio",
-	.id  	= 2,    // adepter number
-	.dev.platform_data = &i2c2_gpio_platdata,
+	.id  	= 4,    // adepter number
+	.dev.platform_data = &i2c4_gpio_platdata,
 };
-
-/* Odroid-O2 schematics show the DDC of the remote HDMI device connected to
- * I2C2. HDMI specs state that DDC always sits at bus address 0x50. */
-static struct i2c_board_info clickarm4412_i2c_devs2[] __initdata = {
-	{
-			/* nothing here yet */
-		//I2C_BOARD_INFO("s5p_ddc", 0x50),
-	},
-};
-
-static struct i2c_board_info clickarm4412_i2c_devs3[] __initdata = {
-#if defined(CONFIG_DS2782)
+static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
+#if defined(CONFIG_BATTERY_DS2782)
 	{
 		I2C_BOARD_INFO("ds2782", 0x34),
 		.platform_data  = &ds278x_pdata,
@@ -341,163 +393,52 @@ static struct i2c_board_info clickarm4412_i2c_devs3[] __initdata = {
 #endif
 };
 
-static struct i2c_board_info clickarm4412_i2c_devs7[] __initdata = {
-		{
-	/* nothing here yet */
-		}
-};
-
-#if defined(CONFIG_CLICKARM_OTHERS)
-/* for u3 I/O shield board */
-#define		GPIO_I2C4_SDA	EXYNOS4_GPX1(1) /* GPIO-PIN 200 */
-#define		GPIO_I2C4_SCL	EXYNOS4_GPX1(0) /* GPIO-PIN 199 */
-
-static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
-	.sda_pin = GPIO_I2C4_SDA,
-	.scl_pin = GPIO_I2C4_SCL,
-	.udelay  = 0,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c4 = {
-	.name 	= "i2c-gpio",
-	.id  	= 4,    // adepter number
-	.dev.platform_data = &i2c4_gpio_platdata,
-};
-
-#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
-/* Enables W1 on Pin 6 of the I/-Header of U3 */
-/* Breaks support for I/O shield board */
-#define               GPIO_W1         EXYNOS4_GPX1(5) /* GPIO-PIN 204 */
-
-static struct w1_gpio_platform_data w1_gpio_pdata = {
-       .pin = GPIO_W1,
-       .is_open_drain = 0,
-};
-
-static struct platform_device clickarm_w1_device = {
-   .name  = "w1-gpio",
-   .id    = -1,
-   .dev.platform_data      = &w1_gpio_pdata,
-};
-#endif
-
-#if defined(CONFIG_GPIO_PCA953X)
-static struct pca953x_platform_data clickarm_gpio_expander_pdata = {
-	.gpio_base	= EXYNOS4_GPIO_END,
-};
-#endif
-
-static struct i2c_board_info clickarm4412_i2c_devs4[] __initdata = {
-#if defined(CONFIG_SENSORS_BH1780)
-	{
-		I2C_BOARD_INFO("bh1780", 0x29),
-	},
-#endif
-#if defined(CONFIG_GPIO_PCA953X)
-	{
-		I2C_BOARD_INFO("tca6416", 0x20),
-		.platform_data 	= &clickarm_gpio_expander_pdata,
-	},
-#endif
-};
-#endif
-
-//#if defined(CONFIG_CLICKARM_OTHERS)
-//static struct gpio_led clickarm4412_gpio_config[] = {
-//        {
-//                .name			= "led1",
-//                .default_trigger	= "heartbeat",
-//                .gpio			= EXYNOS4_GPC1(0),
-//                .active_low		= 1,
-//        },
-//};
-//#else
-//static struct gpio_config clickarm4412_gpio_config[] = {
-//	{
-//		/* TL_VELO button */
-//		gpio_request_one(EXYNOS4_GPF2(5), GPIOF_INIT_HIGH	, "GPX1");
-//		gpio_free(EXYNOS4_GPF2(5));
-//
-//		/* BR_VELO button */
-//		gpio_free(EXYNOS4_GPJ0(1));
-//		gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/* BL_VELO button */
-//		gpio_free(EXYNOS4_GPJ1(1));
-//		gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/* GPS PowerON/OFF */
-//		gpio_free(EXYNOS4212_GPM4(2));
-//		gpio_request_one(EXYNOS4212_GPM4(2), GPIOF_OUT_INIT_LOW	, "GPX1");
-//		/*GPS_ON*/
-//		gpio_free(EXYNOS4212_GPM4(2));
-//		gpio_set_value(EXYNOS4212_GPM4(2), 1);
-//		mdelay(100);
-//		gpio_set_value(EXYNOS4212_GPM4(2), 0);
-//		/* GPRS POWER */
-//		gpio_free(EXYNOS4212_GPM1(1));
-//		gpio_request_one(EXYNOS4212_GPM1(1), GPIOF_INIT_HIGH	, "GPX1");
-//		/*GPRS_ON*/
-//		gpio_free(EXYNOS4212_GPM0(4));
-//		gpio_request_one(EXYNOS4212_GPM0(4), GPIOF_OUT_INIT_LOW	, "GPX1");
-//		/* to poweron gprs need to drive EXYNOS4212_GPM0(4) to HIG (1) over 1500ms*/
-//
-//	},
-//
-//};
-//#endif
-//
-//static struct gpio_led_platform_data clickarm4412_gpio_config_info = {
-//	.leds		= clickarm4412_gpio_config,
-//	.num_leds	= ARRAY_SIZE(clickarm4412_gpio_config),
-//};
-//
-//static struct platform_device clickarm4412_config_gpio = {
-//	.name	= "config-gpio",
-//	.id	= -1,
-//	.dev	= {
-//		.platform_data	= &clickarm4412_gpio_config_info,
-//	},
-//};
-/* LCD Backlight data tps611xx PWM_platform_data*/
-/*BACKLIGTH INIT*/
-
-static struct samsung_bl_gpio_info clickarm4412_bl_gpio_info = {
-	.no = EXYNOS4X12_GPM1(5),
-	.func = S3C_GPIO_SFN(2),
-};
-
-static struct platform_pwm_backlight_data clickarm4412_bl_data = {
-	.pwm_id = 1,
-	.pwm_period_ns  = 1000,
-};
-
-static struct pwm_lookup clickarm4412_pwm_lookup[] = {
-	PWM_LOOKUP("s3c24xx-pwm.1", 0, "pwm-backlight.0", NULL),
-};
 /* END OF LCD Backlight data tps611xx PWM_platform_data*/
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
 	.panel = {
 		.timing = {
-			.left_margin 	= 9,
-			.right_margin 	= 9,
-			.upper_margin 	= 5,
+			.left_margin 	= 40,
+			.right_margin 	= 24,
+			.upper_margin 	= 7,
 			.lower_margin 	= 5,
-			.hsync_len 	= 2,
-			.vsync_len 	= 2,
-			.xres 		= 240,
-			.yres 		= 400,
+			.hsync_len 	= 32,
+			.vsync_len 	= 5,
+			.xres 		= 480,
+			.yres 		= 640,
 		},
 	},
 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | 
-				  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
 	.default_win 	= 0,
 	.bpp 		= 32,
-};
+	};
+
+#else
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+		.panel = {
+			.timing = {
+				.left_margin 	= 9,
+				.right_margin 	= 9,
+				.upper_margin 	= 5,
+				.lower_margin 	= 5,
+				.hsync_len 	= 1,
+				.vsync_len 	= 1,
+				.xres 		= 240,
+				.yres 		= 400,
+			},
+			.width_mm = 39,
+			.height_mm = 65,
+		},
+		.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+		.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC |
+					  VIDCON1_INV_VCLK | VIDCON1_INV_VDEN,
+		.default_win 	= 0,
+		.bpp 		= 24,
+	};
+#endif
 	
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
@@ -507,73 +448,96 @@ static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 	} else {
 		gpio_set_value(EXYNOS4X12_GPM1(5),0);
 	}
-		gpio_free(EXYNOS4X12_GPM1(5));
-	
+	gpio_free(EXYNOS4X12_GPM1(5));
+
 }
 
-static struct plat_lcd_data clickarm4412_lcd_t55149gd030j_data = {
+static struct plat_lcd_data twonav_lcd_t55149gd030j_data = {
 	.set_power	= lcd_t55149gd030j_set_power,
 	
 };
 
-static struct platform_device clickarm4412_lcd_t55149gd030j = {
+static struct platform_device twonav_lcd_t55149gd030j = {
 	.name	= "platform-lcd",
 	.dev	= {
 		.parent		= &s5p_device_fimd0.dev,
-		.platform_data	= &clickarm4412_lcd_t55149gd030j_data,
+		.platform_data	= &twonav_lcd_t55149gd030j_data,
 	},
 };
 #endif
 /*END OF Define VELO display with DRM */
 
 /* GPIO KEYS KEYBOARD*/
-static struct gpio_keys_button clickarm4412_gpio_keys_tables[] = {
+static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 	{
-		.code			= BTN_A,
+		.code			= KEY_F1,
 		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
 		.desc			= "KEY_POWER",
-		.type			= EV_SW,
-		.active_low		= 1,
-		.wakeup			= 1,
+		.type			= EV_KEY,
+		.active_low		= 0,
 	},
 	{
-		.code			= BTN_B,
-		.gpio			= EXYNOS4_GPF2(5), /* VELO SIDE BUTTON TL */
+		.code			= KEY_F2,
+		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
 		.desc			= "TL_BUTTON",
-		.type			= EV_SW,
+		.type			= EV_KEY,
 		.active_low		= 1,
-		.wakeup			= 1,
 	},
+
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
-		.code			= BTN_C,
-		.gpio			= EXYNOS4_GPJ0(1), /* VELO FRONT BUTTON BR */
+		.code			= KEY_F3,
+		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
 		.desc			= "BR_BUTTON",
-		.type			= EV_SW,
-		.active_low		= 1,
-		.wakeup			= 1,
+		.type			= EV_KEY,
+		.active_low		= 0,
 	},
 	{
-		.code			= BTN_X,
-		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BL */
+		.code			= KEY_F4,
+		.gpio			= EXYNOS4_GPJ0(1), /* VELO FRONT BUTTON BL */
 		.desc			= "BL_BUTTON",
-		.type			= EV_SW,
+		.type			= EV_KEY,
 		.active_low		= 1,
-		.wakeup			= 1,
 	},
+#endif
 };
 
-static struct gpio_keys_platform_data clickarm4412_gpio_keys_data = {
-	.buttons	= clickarm4412_gpio_keys_tables,
-	.nbuttons	= ARRAY_SIZE(clickarm4412_gpio_keys_tables),
+static struct gpio_keys_platform_data twonav_gpio_keys_data = {
+	.buttons	= twonav_gpio_keys_tables,
+	.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables),
 };
 
-static struct platform_device clickarm4412_gpio_keys = {
+static struct platform_device twonav_gpio_keys = {
 	.name	= "gpio-keys",
 	.dev	= {
-		.platform_data	= &clickarm4412_gpio_keys_data,
+		.platform_data	= &twonav_gpio_keys_data,
 	},
 };
-/*END OF GPIO KEYS KEYBOARD*/
+
+void init_button_irqs(void)
+	{
+		/*
+			Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
+			Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
+		*/
+
+		int numero_de_irq=-1;
+
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
+		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
+		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
+		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+#endif
+	}
+/*END OF GPIO KEYS KEYBOARD*/ 		
 
 #if defined(CONFIG_SND_SOC_HKDK_MAX98090)
 static struct platform_device hardkernel_audio_device = {
@@ -583,34 +547,34 @@ static struct platform_device hardkernel_audio_device = {
 #endif
 
 /* USB EHCI */
-static struct s5p_ehci_platdata clickarm4412_ehci_pdata;
+static struct s5p_ehci_platdata twonav_ehci_pdata;
 
-static void __init clickarm4412_ehci_init(void)
+static void __init twonav_ehci_init(void)
 {
-	struct s5p_ehci_platdata *pdata = &clickarm4412_ehci_pdata;
+	struct s5p_ehci_platdata *pdata = &twonav_ehci_pdata;
 
 	s5p_ehci_set_platdata(pdata);
 }
 
 /* USB OHCI */
-static struct exynos4_ohci_platdata clickarm4412_ohci_pdata;
+static struct exynos4_ohci_platdata twonav_ohci_pdata;
 
-static void __init clickarm4412_ohci_init(void)
+static void __init twonav_ohci_init(void)
 {
-	struct exynos4_ohci_platdata *pdata = &clickarm4412_ohci_pdata;
+	struct exynos4_ohci_platdata *pdata = &twonav_ohci_pdata;
 
 	exynos4_ohci_set_platdata(pdata);
 }
 
 /* USB OTG */
-static struct s3c_hsotg_plat clickarm4412_hsotg_pdata;
+static struct s3c_hsotg_plat twonav_hsotg_pdata;
 
 #ifdef CONFIG_USB_EXYNOS_SWITCH
-static struct s5p_usbswitch_platdata clickarm4412_usbswitch_pdata;
+static struct s5p_usbswitch_platdata twonav_usbswitch_pdata;
 
-static void __init clickarm4412_usbswitch_init(void)
+static void __init twonav_usbswitch_init(void)
 {
-	struct s5p_usbswitch_platdata *pdata = &clickarm4412_usbswitch_pdata;
+	struct s5p_usbswitch_platdata *pdata = &twonav_usbswitch_pdata;
 	int err;
 
 	pdata->gpio_host_detect = EXYNOS4_GPX3(1); /* low active */
@@ -653,42 +617,66 @@ static void __init clickarm4412_usbswitch_init(void)
 }
 #endif
 
-/* SDCARD */
-static struct s3c_sdhci_platdata clickarm4412_hsmmc2_pdata __initdata = {
-	.max_width	= 4,
+/*MMC SDIO*/
+static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
+	.max_width		= 4,
 	.host_caps	= MMC_CAP_4_BIT_DATA |
 			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-	.cd_type	= S3C_SDHCI_CD_NONE,
+	.cd_type		= S3C_SDHCI_CD_NONE,
 };
+
+/* SDCARD */
+//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+//static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
+//	.max_width	= 4,
+//	.host_caps	= MMC_CAP_4_BIT_DATA |
+//			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+//	.cd_type	= S3C_SDHCI_CD_NONE,
+//};
+//#endif
+
 /* WIFI SDIO */
-static struct s3c_sdhci_platdata clickarm4412_hsmmc3_pdata __initdata = {
-		.max_width		= 4,
-		.host_caps		= MMC_CAP_4_BIT_DATA |
-					MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-		.cd_type		= S3C_SDHCI_CD_EXTERNAL,
-		};
+static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
+	.max_width		= 4,
+	.host_caps		= MMC_CAP_4_BIT_DATA
+	| MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.cd_type		= S3C_SDHCI_CD_NONE,
+};
+
+static struct wl12xx_platform_data twonav_wl12xx_wlan_data __initdata = {
+	.irq			= -1,
+	.board_ref_clock	= WL12XX_REFCLOCK_26,
+	.platform_quirks	= WL12XX_PLATFORM_QUIRK_EDGE_IRQ,
+};
+
 /* DWMMC */
-static int clickarm4412_dwmci_get_bus_wd(u32 slot_id)
+/*
+static int twonav_dwmci_get_bus_wd(u32 slot_id)
 {
        return 8;
 }
+*/
 
-static int clickarm4412_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
+/*
+static int twonav_dwmci_init(u32 slot_id, irq_handler_t handler, void *data)
 {
        return 0;
 }
+*/
 
-static struct dw_mci_board clickarm4412_dwmci_pdata = {
+/*
+static struct dw_mci_board twonav_dwmci_pdata = {
 	.num_slots			= 1,
 	.quirks				= DW_MCI_QUIRK_BROKEN_CARD_DETECTION | DW_MCI_QUIRK_HIGHSPEED,
 	.caps				= MMC_CAP_UHS_DDR50 | MMC_CAP_1_8V_DDR | MMC_CAP_8_BIT_DATA | MMC_CAP_CMD23,
 	.fifo_depth			= 0x80,
 	.bus_hz				= 104 * 1000 * 1000,
 	.detect_delay_ms	= 200,
-	.init				= clickarm4412_dwmci_init,
-	.get_bus_wd			= clickarm4412_dwmci_get_bus_wd,
-//	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
+	.init				= twonav_dwmci_init,
+	.get_bus_wd			= twonav_dwmci_get_bus_wd,
+	.cfg_gpio			= exynos4_setup_dwmci_cfg_gpio,
 };
+*/
 
 static struct resource tmu_resource[] = {
 	[0] = {
@@ -703,35 +691,15 @@ static struct resource tmu_resource[] = {
 	},
 };
 
-static struct platform_device clickarm4412_tmu = {
+static struct platform_device twonav_tmu = {
 	.id = -1,
 	.name = "exynos5250-tmu",
 	.num_resources = ARRAY_SIZE(tmu_resource),
 	.resource = tmu_resource,
 };
 
-#if defined(CONFIG_CLICKARM_OTHERS_FAN)
-#include	<linux/platform_data/clickarm_others_fan.h>
-struct clickarm_fan_platform_data clickarm_fan_pdata = {
-        .pwm_gpio = EXYNOS4_GPD0(0),
-        .pwm_func = S3C_GPIO_SFN(2),
-
-        .pwm_id = 0,
-        .pwm_periode_ns = 20972,        // Freq 22KHz,
-        .pwm_duty = 255,                // max=255,
-        .pwm_start_temp = 50,           // default 50,
-};
-
-static struct platform_device clickarm_fan = {
-        .name   = "clickarm-fan",
-        .id     = -1,  
-        .dev.platform_data = &clickarm_fan_pdata,
-};
-#endif
-
 
 #if defined(CONFIG_LCD_T55149GD030J)
-
 
 static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
@@ -752,9 +720,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4X12_GPM1(5));
-	gpio_request_one(EXYNOS4X12_GPM1(5), GPIOF_OUT_INIT_HIGH, "GPM1");
-	gpio_free(EXYNOS4X12_GPM1(5));
+	gpio_free(EXYNOS4_GPD0(2));
+	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
+	gpio_free(EXYNOS4_GPD0(2));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
@@ -873,10 +841,12 @@ static struct lcd_platform_data t55149gd030j_platform_data = {
 #define		DISPLAY_SI	EXYNOS4_GPB(7)
 
 // SPI1
+#if 0
 static struct s3c64xx_spi_csinfo spi1_csi = {
 		.fb_delay = 0x2,
 		.line = EXYNOS4_GPB(5),
 };
+#endif
 
 static struct spi_board_info spi1_board_info[] __initdata = {
 	{
@@ -897,7 +867,7 @@ static struct spi_gpio_platform_data t55149gd030j_spi_gpio_data = {
 	.num_chipselect = 1,
 };
 
-static struct platform_device clickarm_lcd_spi = {
+static struct platform_device twonav_lcd_spi = {
 	.name			= "spi_gpio",
 	.id 			= LCD_BUS_NUM,
 	.dev	= {
@@ -907,17 +877,19 @@ static struct platform_device clickarm_lcd_spi = {
 };
 #endif
 
-static struct platform_device *clickarm4412_devices[] __initdata = {
-	&s3c_device_hsmmc2,
+static struct platform_device *twonav_devices[] __initdata = {
+	&tps611xx,
+	&s3c_device_hsmmc0,
+//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+//	&s3c_device_hsmmc2,
+//#endif
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&gpio_device_i2c2,
-	&s3c_device_i2c3,
+	&gpio_device_i2c4,
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
-        &clickarm_w1_device,
+        &twonav_w1_device,
 #endif
-	&s3c_device_i2c7,
 	&s3c_device_rtc,
 	&s3c_device_usb_hsotg,
 	&s3c_device_wdt,
@@ -945,26 +917,26 @@ static struct platform_device *clickarm4412_devices[] __initdata = {
 	&hdmi_fixed_voltage,
 #endif
 	&exynos4_device_ohci,
-	&exynos_device_dwmci,
-//	&clickarm4412_leds_gpio,
-#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_CLICKARM_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	&clickarm4412_lcd_t55149gd030j,
+//	&exynos_device_dwmci,
+//	&twonav_leds_gpio,
+#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
+	&twonav_lcd_t55149gd030j,
 #endif
-	&clickarm4412_gpio_keys,
+	&twonav_gpio_keys,
 	&samsung_asoc_idma,
 #if defined(CONFIG_SND_SOC_HKDK_MAX98090)
 	&hardkernel_audio_device,
 #endif
 #if defined(CONFIG_EXYNOS_THERMAL)
-	&clickarm4412_tmu,
+	&twonav_tmu,
 #endif
-#if defined(CONFIG_CLICKARM_OTHERS_PWM_BL)
+#if defined(CONFIG_TWONAV_OTHERS_PWM_BL)
 	&s3c_device_timer[1],
-	&clickarm_pwm_bl,
+	&twonav_pwm_bl,
 #endif
 
 #if defined(CONFIG_LCD_T55149GD030J)
-	&clickarm_lcd_spi,
+	&twonav_lcd_spi,
 #else
 	&s3c64xx_device_spi1,
 #endif
@@ -979,16 +951,16 @@ static struct s5p_platform_cec hdmi_cec_data __initdata = {
 };
 #endif
 
-static void __init clickarm4412_map_io(void)
+static void __init twonav_map_io(void)
 {
 	clk_xusbxti.rate = 24000000;
 
 	exynos_init_io(NULL, 0);
 	s3c24xx_init_clocks(clk_xusbxti.rate);
-	s3c24xx_init_uarts(clickarm4412_uartcfgs, ARRAY_SIZE(clickarm4412_uartcfgs));
+	s3c24xx_init_uarts(twonav_uartcfgs, ARRAY_SIZE(twonav_uartcfgs));
 }
 
-static void __init clickarm4412_reserve(void)
+static void __init twonav_reserve(void)
 {
 	s5p_mfc_reserve_mem(0x43000000, 64 << 20, 0x51000000, 64 << 20);
 }
@@ -1002,29 +974,119 @@ static struct i2c_board_info hdmiphy_info = {
 
 
 
-static void __init clickarm4412_gpio_init(void)
+static void __init twonav_gpio_init(void)
 {
-	/* Peripheral power enable (P3V3) */
-	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
+//	/* Peripheral power enable (P3V3) */
+//	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
+
+	//Aventua/Trail ST
+	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+		gpio_free(EXYNOS4X12_GPM0(3));
+		gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
+		gpio_free(EXYNOS4X12_GPM0(3));
+	#endif
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_NONE);
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
 	
 	/* TR/TL */
 	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
-        s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	s3c_gpio_cfgpin(EXYNOS4_GPF2(5), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
 
-	gpio_request_one(EXYNOS4X12_GPM3(7), GPIOF_IN, "TR");
-        s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_INPUT );
-        s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
-        gpio_free(EXYNOS4X12_GPM3(7));
+
+#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
+	/* BR/BL */
+	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
+	s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ0(1));
+
+	gpio_request_one(EXYNOS4_GPJ1(1), GPIOF_IN, "BL");  //modificado
+	s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
+	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+	gpio_free(EXYNOS4_GPJ1(1));
+#endif
+/*********************************************************************/
+/*				WIFI MODULE CONFIGURATION									 */
+/*********************************************************************/
+	/* WLAN_EN */	
+	gpio_request_one(EXYNOS4_GPJ1(4), GPIOF_OUT_INIT_LOW, "WLAN_EN");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ1(4), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ1(4), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPJ1(4));
+	/* BT_EN */	
+	gpio_request_one(EXYNOS4_GPJ0(6), GPIOF_OUT_INIT_LOW, "BT_EN");
+        s3c_gpio_cfgpin(EXYNOS4_GPJ0(6), S3C_GPIO_OUTPUT );
+        s3c_gpio_setpull(EXYNOS4_GPJ0(6), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPJ0(6));
+
+	/* WLAN_IRQ */	
+	gpio_request_one(EXYNOS4_GPX0(1), GPIOF_IN, "WLAN_IRQ");
+    s3c_gpio_cfgpin(EXYNOS4_GPX0(1), S3C_GPIO_INPUT );
+    s3c_gpio_setpull(EXYNOS4_GPX0(1), S3C_GPIO_PULL_DOWN);
 	
+/*********************************************************************/
+/*				GPS CONFIGURATION									 */
+/*********************************************************************/
+	/* GPS PowerON/OFF */
+	gpio_request_one(EXYNOS4X12_GPM4(2), GPIOF_OUT_INIT_LOW, "GPS_ONOFF");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(2), S3C_GPIO_OUTPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(2), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(2));
+
+	/* GPS Reset */
+	gpio_request_one(EXYNOS4X12_GPM1(3), GPIOF_IN, "GPS_RESET");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(3), S3C_GPIO_INPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM1(3), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM1(3));
+
+	/* GPS Status */
+	gpio_request_one(EXYNOS4X12_GPM4(5), GPIOF_IN, "GPS_STATUS");
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(5), S3C_GPIO_INPUT );
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(5), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(5));
+
+/*********************************************************************/
+/*				GPRS CONFIGURATION									 */
+/*********************************************************************/
+//	/* GPRS PWRKEY*/
+//	gpio_request_one(EXYNOS4X12_GPM0(4), GPIOF_OUT_INIT_LOW, "GPRS_PWRKEY");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM0(4), S3C_GPIO_OUTPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM0(4), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM0(4));
+//	/* GPRS PowerON/OFF */
+//	gpio_request_one(EXYNOS4X12_GPM1(1), GPIOF_OUT_INIT_LOW, "GPRS_PON");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(1), S3C_GPIO_OUTPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM1(1), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM1(1));
+//	/* GPRS STATUS*/
+//	gpio_request_one(EXYNOS4X12_GPM1(6), GPIOF_IN, "GPRS_STATUS");
+//		s3c_gpio_cfgpin(EXYNOS4X12_GPM1(6), S3C_GPIO_INPUT );
+//		s3c_gpio_setpull(EXYNOS4X12_GPM1(6), S3C_GPIO_PULL_NONE);
+//		gpio_free(EXYNOS4X12_GPM1(6));
+
+/*********************************************************************/
+/*				MAX44005 CONFIGURATION								 */
+/*********************************************************************/
+    gpio_request_one(EXYNOS4_GPX2(7), GPIOF_IN, "MAX44005_IRQ");
+        s3c_gpio_cfgpin(EXYNOS4_GPX2(7), S3C_GPIO_SFN(0xF));
+        s3c_gpio_setpull(EXYNOS4_GPX2(7), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPX2(7));
+
+
+/*********************************************************************/
+/*				BUTTONS CONFIGURATION								 */
+/*********************************************************************/
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
+	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 }
 
-static void clickarm4412_power_off(void)
+static void twonav_power_off(void)
 {
 	pr_emerg("Bye...\n");
 
@@ -1035,7 +1097,7 @@ static void clickarm4412_power_off(void)
 	}
 }
 
-static int clickarm4412_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
+static int twonav_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
 	pr_emerg("exynos4-reboot: Notifier called\n");
 
 	__raw_writel(0, S5P_INFORM4);
@@ -1051,92 +1113,84 @@ static int clickarm4412_reboot_notifier(struct notifier_block *this, unsigned lo
 }	
 
 
-static struct notifier_block clickarm4412_reboot_notifier_nb = {
-	.notifier_call = clickarm4412_reboot_notifier,
+static struct notifier_block twonav_reboot_notifier_nb = {
+	.notifier_call = twonav_reboot_notifier,
 };
 
-static void __init clickarm4412_machine_init(void)
+static void __init twonav_machine_init(void)
 {
+	printk(KERN_INFO "device version: %s\n", device_version);
 
-	clickarm4412_gpio_init();
+	twonav_gpio_init();
 
 	/* Register power off function */
-	pm_power_off = clickarm4412_power_off;
+	pm_power_off = twonav_power_off;
 
 	s3c_i2c0_set_platdata(NULL);
-	i2c_register_board_info(0, clickarm4412_i2c_devs0,
-				ARRAY_SIZE(clickarm4412_i2c_devs0));
+	i2c_register_board_info(0, twonav_i2c_devs0,
+				ARRAY_SIZE(twonav_i2c_devs0));
 
 	s3c_i2c1_set_platdata(NULL);
-	i2c_register_board_info(1, clickarm4412_i2c_devs1,
-				ARRAY_SIZE(clickarm4412_i2c_devs1));
 
-	i2c_register_board_info(2, clickarm4412_i2c_devs2,
-				ARRAY_SIZE(clickarm4412_i2c_devs2));
+	i2c_register_board_info(1, twonav_i2c_devs1,
+				ARRAY_SIZE(twonav_i2c_devs1));
 
-	s3c_i2c3_set_platdata(NULL);
-	i2c_register_board_info(3, clickarm4412_i2c_devs3,
-				ARRAY_SIZE(clickarm4412_i2c_devs3));
-
-#if defined(CONFIG_CLICKARM_OTHERS)
-//	i2c_register_board_info(4, clickarm4412_i2c_devs4,
-//				ARRAY_SIZE(clickarm4412_i2c_devs4));
-#endif
-
-	s3c_i2c7_set_platdata(NULL);
-//	i2c_register_board_info(7, clickarm4412_i2c_devs7,
-//				ARRAY_SIZE(clickarm4412_i2c_devs7));
-/*BACKLIGTH CONFIGURATION GPIO ARRAY*/
-	samsung_bl_set(&clickarm4412_bl_gpio_info, &clickarm4412_bl_data);
-	pwm_add_table(clickarm4412_pwm_lookup, ARRAY_SIZE(clickarm4412_pwm_lookup));
+	i2c_register_board_info(4, twonav_i2c_devs4,
+				ARRAY_SIZE(twonav_i2c_devs4));
+	
 /*SDIO_HCI CONFIGURATION ARRAY*/
-	s3c_sdhci2_set_platdata(&clickarm4412_hsmmc2_pdata);
-	s3c_sdhci3_set_platdata(&clickarm4412_hsmmc3_pdata);
+	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
+//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+//	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+//#endif
+	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
-	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_8);
-	exynos_dwmci_set_platdata(&clickarm4412_dwmci_pdata);
+//	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
+//	exynos_dwmci_set_platdata(&twonav_dwmci_pdata);
 
-	clickarm4412_ehci_init();
-	clickarm4412_ohci_init();
-	s3c_hsotg_set_platdata(&clickarm4412_hsotg_pdata);
+	twonav_ehci_init();
+	twonav_ohci_init();
+	s3c_hsotg_set_platdata(&twonav_hsotg_pdata);
 
 #ifdef CONFIG_USB_EXYNOS_SWITCH
-	clickarm4412_usbswitch_init();
+	twonav_usbswitch_init();
 #endif
 
 	//s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
 
-#if defined(CONFIG_S5P_DEV_TV)
-	s5p_i2c_hdmiphy_set_platdata(NULL);
-	s5p_hdmi_set_platdata(&hdmiphy_info, NULL, 0, EXYNOS4_GPX3(7));
-	s5p_hdmi_cec_set_platdata(&hdmi_cec_data);
-	/* FIXME: hdmiphy i2c adapter has dynamic ID, and setting it to 8 causes
-	 * a failure to initialize (can't find clock?). so for now we are relying
-	 * on the hdmiphy i2c adapter being dynamically assigned address 8. */
-	i2c_register_board_info(8, &hdmiphy_info, 1);
-#endif
-
-#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_CLICKARM_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
+#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
 	exynos4_fimd0_gpio_setup_24bpp();
 #endif
-	platform_add_devices(clickarm4412_devices, ARRAY_SIZE(clickarm4412_devices));
+	init_button_irqs();
 
-	register_reboot_notifier(&clickarm4412_reboot_notifier_nb);
+	platform_add_devices(twonav_devices, ARRAY_SIZE(twonav_devices));
+
+	register_reboot_notifier(&twonav_reboot_notifier_nb);
+
+	/* WIFI PLATFORM DATA
+	 * FIXME: when using backports compability, the platformdata is not set properly
+	 * and all the configuration is directly set in the driver. Should be changed 
+	 * so that the platform data is configured in this file	*/
+	twonav_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
+	printk("twonav_wl12xx_wlan_data.irq: %d\n",twonav_wl12xx_wlan_data.irq);
+	wl12xx_set_platform_data(&twonav_wl12xx_wlan_data);
+
 }
 
-MACHINE_START(CLICKARM4412, "ClickArm4412")
-	/* Maintainer: Dongjin Kim <dongjin.kim@agreeyamobiity.net> */
+MACHINE_START(TWONAV, "TwoNav")
+	/* Maintainer: Eric Bosch <ebosch@twonav.com> */
 	.atag_offset	= 0x100,
 	.smp		= smp_ops(exynos_smp_ops),
 	.init_irq	= exynos4_init_irq,
 	.init_early	= exynos_firmware_init,
-	.map_io		= clickarm4412_map_io,
+	.map_io		= twonav_map_io,
 	.handle_irq	= gic_handle_irq,
-	.init_machine	= clickarm4412_machine_init,
+	.init_machine	= twonav_machine_init,
 	.init_late	= exynos_init_late,
 	.timer		= &exynos4_timer,
 	.restart	= exynos4_restart,
-	.reserve	= &clickarm4412_reserve,
+	.reserve	= &twonav_reserve,
 MACHINE_END
+

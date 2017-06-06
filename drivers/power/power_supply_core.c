@@ -145,7 +145,6 @@ static int power_supply_match_device_by_name(struct device *dev, void *data)
 {
 	const char *name = data;
 	struct power_supply *psy = dev_get_drvdata(dev);
-
 	return strcmp(psy->name, name) == 0;
 }
 
@@ -153,7 +152,6 @@ struct power_supply *power_supply_get_by_name(char *name)
 {
 	struct device *dev = class_find_device(power_supply_class, NULL, name,
 					power_supply_match_device_by_name);
-
 	return dev ? dev_get_drvdata(dev) : NULL;
 }
 EXPORT_SYMBOL_GPL(power_supply_get_by_name);

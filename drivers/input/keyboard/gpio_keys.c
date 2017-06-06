@@ -29,6 +29,7 @@
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
+#include <plat/gpio-cfg.h>
 
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
@@ -465,6 +466,13 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 			goto fail;
 		}
 		bdata->irq = irq;
+
+		error = s3c_gpio_cfgpin(button->gpio, S3C_GPIO_SFN(0xF));
+		if (error < 0) {
+			dev_err(dev, "Failed to request GPIO as interrupt (0xF) %d, error %d\n",
+				button->gpio, error);
+			return error;
+		}
 
 		INIT_WORK(&bdata->work, gpio_keys_gpio_work_func);
 		setup_timer(&bdata->timer,

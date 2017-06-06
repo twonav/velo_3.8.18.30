@@ -519,7 +519,7 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 	#define REGULATOR_LDO26		25
 
 
-	printk("Shutting down LDO");
+	printk("Shutting down LDO\n");
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO1]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO2]);
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO3]);
@@ -566,11 +566,14 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO5]);
 	regulator_enable_regmap(max77686->rdev[REGULATOR_LDO4]);
 
-	printk("Disabling BUCK8");
+	printk("Disabling BUCK8\n");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK8]);
 	mdelay(1);
-	printk("Disabling BUCK9");
+	printk("Disabling BUCK9\n");
 	regulator_disable_regmap(max77686->rdev[MAX77686_BUCK9]);
+	mdelay(1);
+
+	regmap_update_bits(iodev->regmap, MAX77686_REG_32KHZ, 0x06, 0x06);
 	mdelay(1);
 
 	return 0;

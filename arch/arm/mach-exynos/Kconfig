@@ -384,8 +384,7 @@ config MACH_SMDK4212
 	bool "SMDK4212"
 	select EXYNOS4_SETUP_FIMD0
 	select EXYNOS4_SETUP_I2C1
-	select EXYNOS4_SETUP_I2C3
-	select EXYNOS4_SETUP_I2C7
+	select EXYNOS4_SETUP_I2C4
 	select EXYNOS4_SETUP_KEYPAD
 	select EXYNOS4_SETUP_SDHCI
 	select EXYNOS4_SETUP_USB_PHY
@@ -396,8 +395,7 @@ config MACH_SMDK4212
 	select S3C_DEV_HSMMC2
 	select S3C_DEV_HSMMC3
 	select S3C_DEV_I2C1
-	select S3C_DEV_I2C3
-	select S3C_DEV_I2C7
+	select S3C_DEV_I2C4
 	select S3C_DEV_RTC
 	select S3C_DEV_USB_HSOTG
 	select S3C_DEV_WDT
@@ -476,16 +474,15 @@ endchoice
 config MACH_CLICKARM4412
 	bool "CLICKARM4412"
 	select SOC_EXYNOS4412
-	select MACH_SMDK4212
 	select EXYNOS4_SETUP_FIMC
-        select S5P_DEV_FIMC0
-        select S5P_DEV_FIMC1
-        select S5P_DEV_FIMC2
-        select S5P_DEV_FIMC3
-        select S5P_DEV_MFC   
-        select EXYNOS_DEV_DMA
-        select EXYNOS_DEV_DRM 
-        select EXYNOS_DEV_SYSMMU	
+    select S5P_DEV_FIMC0
+    select S5P_DEV_FIMC1
+    select S5P_DEV_FIMC2
+    select S5P_DEV_FIMC3
+    select S5P_DEV_MFC   
+    select EXYNOS_DEV_DMA
+    select EXYNOS_DEV_DRM 
+    select EXYNOS_DEV_SYSMMU	
 	select S3C_DEV_HSMMC
 	select S3C_DEV_HSMMC1
 	select S3C_DEV_USB_HSOTG
@@ -501,6 +498,7 @@ config MACH_CLICKARM4412
 	select EXYNOS4_SETUP_DWMCI
 	select SAMSUNG_DEV_ADC
 	select EXYNOS_SETUP_SPI
+	select DEBUG_SECTION_MISMATCH
 	help
 	  Machine support for CLICKARMs based on Samsung EXYNOS4412
 
@@ -515,6 +513,59 @@ choice
 
 endchoice
 
+config MACH_TWONAV
+	bool "TWONAV"
+	select SOC_EXYNOS4412
+	select EXYNOS4_SETUP_FIMC
+    select S5P_DEV_FIMC0
+    select S5P_DEV_FIMC1
+    select S5P_DEV_FIMC2
+    select S5P_DEV_FIMC3
+    select S5P_DEV_MFC   
+    select EXYNOS_DEV_DMA
+    select EXYNOS_DEV_DRM 
+    select EXYNOS_DEV_SYSMMU	
+	select S3C_DEV_HSMMC
+	select S3C_DEV_HSMMC1
+	select S3C_DEV_USB_HSOTG
+	select S5P_DEV_CSIS0
+	select S5P_DEV_G2D
+	select S5P_DEV_JPEG
+	select S5P_DEV_USB_EHCI
+	select S5P_DEV_I2C_HDMIPHY
+	select S5P_DEV_TV
+	select S5P_GPIO_INT
+	select EXYNOS4_DEV_USB_OHCI
+	select EXYNOS4_DEV_DWMCI
+	select EXYNOS4_SETUP_DWMCI
+	select SAMSUNG_DEV_ADC
+	select EXYNOS_SETUP_SPI
+	select DEBUG_SECTION_MISMATCH
+	help
+	  Machine support for TwoNav devices based on Samsung EXYNOS4412
+
+choice 
+	depends on MACH_TWONAV
+	prompt "Select your TwoNav Product"
+	default TWONAV_VELO
+
+	config TWONAV_VELO
+		bool "Enable Support for Velo"
+		depends on MACH_TWONAV
+
+	config TWONAV_HORIZON
+		bool "Enable Support for Horizon"
+		depends on MACH_TWONAV
+
+	config TWONAV_AVENTURA
+		bool "Enable Support for Aventura"
+		depends on MACH_TWONAV
+
+	config TWONAV_TRAIL
+		bool "Enable Support for Trail"
+		depends on MACH_TWONAV
+
+endchoice
 
 endif
 

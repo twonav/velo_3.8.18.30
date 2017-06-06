@@ -48,12 +48,15 @@ static void gpio_keys_polled_check_state(struct input_dev *input,
 					 struct gpio_keys_button *button,
 					 struct gpio_keys_button_data *bdata)
 {
+	printk("[gpio-keys-polled][%u] Checking state...\n", button->code);
 	int state;
 
 	if (bdata->can_sleep)
 		state = !!gpio_get_value_cansleep(button->gpio);
 	else
 		state = !!gpio_get_value(button->gpio);
+
+	printk("[gpio-keys-polled][%u] State: %u\n", button->code, state);
 
 	if (state != bdata->last_state) {
 		unsigned int type = button->type ?: EV_KEY;

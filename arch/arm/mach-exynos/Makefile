@@ -49,6 +49,8 @@ obj-$(CONFIG_MACH_SMDK4212)		+= mach-smdk4x12.o
 obj-$(CONFIG_MACH_SMDK4412)		+= mach-smdk4x12.o
 obj-$(CONFIG_MACH_HKDK4412)		+= mach-hkdk4412.o
 
+
+obj-$(CONFIG_MACH_TWONAV)			+= mach-TwoNav.o
 obj-$(CONFIG_MACH_CLICKARM4412)		+= mach-clickARM-4412.o
 
 

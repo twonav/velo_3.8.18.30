@@ -52,3 +52,4 @@ obj-$(CONFIG_CHARGER_BQ2415X)	+= bq2415x_charger.o
 obj-$(CONFIG_POWER_AVS)		+= avs/
 obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_POWER_RESET)	+= reset/
+obj-$(CONFIG_FAN5404X_CHARGER)  += fan5404x-charger.o

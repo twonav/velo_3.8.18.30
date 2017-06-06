@@ -1,0 +1,29 @@
+#! /bin/sh
+
+set -e
+
+version="$1"
+vmlinuz_location="$2"
+
+if [ -n "$DEB_MAINT_PARAMS" ]; then
+    eval set -- "$DEB_MAINT_PARAMS"
+    if [ -z "$1" ] || [ "$1" != "configure" ]; then
+        exit 0;
+    fi
+fi
+
+# passing the kernel version is required
+[ -z "$version" ] && exit 1
+
+
+if [  -n "$vmlinuz_location" ]; then
+    # Where is the image located? We'll place the zImage there.
+    boot=$(dirname "$vmlinuz_location")
+    # Copy the image to zImage
+    if [ `lsb_release -d | awk '{print $2}'` = 'Debian' ]; then
+        cp $vmlinuz_location /boot/zImage
+    elif [ `lsb_release -d | awk '{print $2}'` = 'Ubuntu' ]; then
+	cp $vmlinuz_location /media/boot/zImage
+    fi
+fi
+

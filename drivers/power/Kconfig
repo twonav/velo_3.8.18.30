@@ -346,6 +346,12 @@ config AB8500_BM
 	help
 	  Say Y to include support for AB8500 battery management.
 
+config FAN5404X_CHARGER
+        tristate "Fairchilf FAN5404X charger driver"
+        depends on I2C && REGULATOR
+        help
+          Say Y to enable support for the FAN5404X battery charger.
+
 source "drivers/power/reset/Kconfig"
 
 endif # POWER_SUPPLY

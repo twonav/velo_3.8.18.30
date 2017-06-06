@@ -1,0 +1,23 @@
+#! /bin/sh
+
+set -e
+
+version="$1"
+
+if [ -n "$DEB_MAINT_PARAMS" ]; then
+    eval set -- "$DEB_MAINT_PARAMS"
+    if [ -z "$1" ] || [ "$1" != "configure" ]; then
+        exit 0;
+    fi
+fi
+
+# passing the kernel version is required
+[ -z "$version" ] && exit 1
+
+mkimage -A arm -O linux -T ramdisk -C none -a 0 -e 0 -n uInitrd -d /boot/initrd.img-$version /boot/uInitrd-$version
+
+if [ `lsb_release -d | awk '{print $2}'` = 'Debian' ]; then
+    cp /boot/uInitrd-$version /boot/uInitrd
+elif [ `lsb_release -d | awk '{print $2}'` = 'Ubuntu' ]; then
+    cp /boot/uInitrd-$version /media/boot/uInitrd
+fi
