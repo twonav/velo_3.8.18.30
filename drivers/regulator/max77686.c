@@ -557,7 +557,7 @@ static int max77686_pmic_probe(struct platform_device *pdev)
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO23]);
 
-	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO24]);
+//	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO24]);
 	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO25]);
 
 //	regulator_disable_regmap(max77686->rdev[REGULATOR_LDO26]);
