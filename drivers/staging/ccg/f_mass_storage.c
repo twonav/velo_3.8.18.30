@@ -2931,6 +2931,8 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 	struct usb_ep		*ep;
 
 	fsg->gadget = gadget;
+	
+	printk(KERN_INFO "Mass Storage: fsg_bind()\n");
 
 	/* New interface */
 	i = usb_interface_id(c, f);
