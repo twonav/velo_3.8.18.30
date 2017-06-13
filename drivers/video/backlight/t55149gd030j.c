@@ -514,7 +514,7 @@ static void t55149gd030j_late_resume(struct early_suspend *handler)
 }
 #endif
 
-static int __init t55149gd030j_probe(struct spi_device *spi)
+static int __refdata t55149gd030j_probe(struct spi_device *spi)
 {
 	int ret = 0;
 	struct t55149gd030j *lcd = NULL;

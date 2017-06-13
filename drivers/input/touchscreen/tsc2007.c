@@ -26,6 +26,7 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/delay.h>
 
 #define TSC2007_MEASURE_TEMP0		(0x0 << 4)
 #define TSC2007_MEASURE_AUX		(0x2 << 4)
@@ -71,6 +72,7 @@ struct tsc2007 {
 
 	u16			model;
 	u16			x_plate_ohms;
+	u16			y_plate_ohms;
 	u16			max_rt;
 	unsigned long		poll_delay;
 	unsigned long		poll_period;
@@ -106,15 +108,21 @@ static inline int tsc2007_xfer(struct tsc2007 *tsc, u8 cmd)
 	return val;
 }
 
+// 2016-09-08 DNP TWON-13931: sleep de 10 ms para que se estabilice el valor
 static void tsc2007_read_values(struct tsc2007 *tsc, struct ts_event *tc)
 {
 	/* y- still on; turn on only y+ (and ADC) */
+	tsc2007_xfer(tsc, READ_Y);
+	msleep(10);
 	tc->y = tsc2007_xfer(tsc, READ_Y);
 
 	/* turn y- off, x+ on, then leave in lowpower */
+	tsc2007_xfer(tsc, READ_X);
+	msleep(10);
 	tc->x = tsc2007_xfer(tsc, READ_X);
 
 	/* turn y+ off, x- on; we'll use formula #1 */
+	msleep(10);
 	tc->z1 = tsc2007_xfer(tsc, READ_Z1);
 	tc->z2 = tsc2007_xfer(tsc, READ_Z2);
 
@@ -130,13 +138,25 @@ static u32 tsc2007_calculate_pressure(struct tsc2007 *tsc, struct ts_event *tc)
 	if (tc->x == MAX_12BIT)
 		tc->x = 0;
 
+	/* tsc2007.pdf, pg13
 	if (likely(tc->x && tc->z1)) {
-		/* compute touch pressure resistance using equation #1 */
+		// compute touch pressure resistance using equation #1
 		rt = tc->z2 - tc->z1;
 		rt *= tc->x;
 		rt *= tsc->x_plate_ohms;
 		rt /= tc->z1;
 		rt = (rt + 2047) >> 12;
+	}
+	*/
+
+	// tsc2007.pdf, pg14
+	if (likely(tc->x && tc->z1)) {
+		// compute touch pressure resistance using equation #2
+		rt = tsc->x_plate_ohms * tc->x;
+		rt *= ( 4096 - tc->z1 );
+		rt /= tc->z1;
+		rt = rt >> 12;
+		rt -= tsc->y_plate_ohms * ((4096 - tc->y) >> 12);
 	}
 
 	return rt;
@@ -166,10 +186,14 @@ static bool tsc2007_is_pen_down(struct tsc2007 *ts)
 
 static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 {
+
 	struct tsc2007 *ts = handle;
 	struct input_dev *input = ts->input;
 	struct ts_event tc;
 	u32 rt;
+
+	if (ts->poll_delay > 0)
+		msleep(ts->poll_delay);
 
 	while (!ts->stopped && tsc2007_is_pen_down(ts)) {
 
@@ -196,9 +220,7 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 			input_report_abs(input, ABS_X, tc.x);
 			input_report_abs(input, ABS_Y, tc.y);
 			input_report_abs(input, ABS_PRESSURE, rt);
-
 			input_sync(input);
-
 		} else {
 			/*
 			 * Sample found inconsistent by debouncing or pressure is
@@ -217,6 +239,7 @@ static irqreturn_t tsc2007_soft_irq(int irq, void *handle)
 	input_report_key(input, BTN_TOUCH, 0);
 	input_report_abs(input, ABS_PRESSURE, 0);
 	input_sync(input);
+
 
 	if (ts->clear_penirq)
 		ts->clear_penirq();
@@ -304,6 +327,7 @@ static int tsc2007_probe(struct i2c_client *client,
 
 	ts->model             = pdata->model;
 	ts->x_plate_ohms      = pdata->x_plate_ohms;
+	ts->y_plate_ohms      = pdata->y_plate_ohms;
 	ts->max_rt            = pdata->max_rt ? : MAX_12BIT;
 	ts->poll_delay        = pdata->poll_delay ? : 1;
 	ts->poll_period       = pdata->poll_period ? : 1;
@@ -398,7 +422,6 @@ static struct i2c_driver tsc2007_driver = {
 	.probe		= tsc2007_probe,
 	.remove		= tsc2007_remove,
 };
-
 
 module_i2c_driver(tsc2007_driver);
 

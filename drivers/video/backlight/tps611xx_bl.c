@@ -4,13 +4,13 @@
  *        TPS61163 and TPS61165.
  *
  * Copyright (C) 2014 Texas Instruments
- * Author: Daniel Jeong  <gshark.jeong <at> gmail.com>
- *	       Ldd Mlp <ldd-mlp <at> list.ti.com>
+ * Author: Daniel Jeong  <gshark.jeong@gmail.com>
+ *	       Ldd Mlp <ldd-mlp@list.ti.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
- * b/drivers/video/backlight/tps611xx_bl.c
+ *
  */
 
 #include <linux/backlight.h>
@@ -39,15 +39,15 @@ enum tps611xx_id {
 
 /*
  * easyscale time spec
- *  <at> es_delay : es delay time(ns)
- *  <at> es_det   : es detection time(ns)
- *  <at> start    : start time of data stream(ns)
- *  <at> eos      : end time of data stream(ns)
- *  <at> reset    : ic shutdown time(ms)
- *  <at> logic_1_low : low time high bit(ns)
- *  <at> logic_0_low : low time low bit(ns)
- *  <at> ackn        : duation of ack condistion(ns)
- *  <at> ack_poll    : ack polling duration(ns)
+ * @es_delay : es delay time(ns)
+ * @es_det   : es detection time(ns)
+ * @start    : start time of data stream(ns)
+ * @eos      : end time of data stream(ns)
+ * @reset    : ic shutdown time(ms)
+ * @logic_1_low : low time high bit(ns)
+ * @logic_0_low : low time low bit(ns)
+ * @ackn        : duation of ack condistion(ns)
+ * @ack_poll    : ack polling duration(ns)
  */
 struct tps611xx_time {
 	unsigned int es_delay;
@@ -62,11 +62,11 @@ struct tps611xx_time {
 };
 
 /*
- *  <at> seq : sequence of data transfer
- *  <at> size: size of data
- *  <at> brt_max : max brightness
- *  <at> brt_bmask : bit mask of dimming bits
- *  <at> rfa_bmask : bit mask of RFA(Request for Acknowledge condition)
+ * @seq : sequence of data transfer
+ * @size: size of data
+ * @brt_max : max brightness
+ * @brt_bmask : bit mask of dimming bits
+ * @rfa_bmask : bit mask of RFA(Request for Acknowledge condition)
  */
 struct tps611xx_command {
 	int seq;
@@ -77,11 +77,11 @@ struct tps611xx_command {
 };
 
 /*
- *  <at> id : product id
- *  <at> name : product name
- *  <at> addr : device address
- *  <at> cmd  : es command info
- *  <at> time : es time info
+ * @id : product id
+ * @name : product name
+ * @addr : device address
+ * @cmd  : es command info
+ * @time : es time info
  */
 struct tps611xx_esdata {
 	enum tps611xx_id id;
@@ -97,9 +97,9 @@ struct tps611xx_bl_data {
 	struct tps611xx_platform_data *pdata;
 
 	/*
-	 *  <at> rfa_en : RFA enable (Request for Acknowledge condition)
-	 *  <at> en_gpio: enable pin gpio no.
-	 *  <at> esdata : easyscale data
+	 * @rfa_en : RFA enable (Request for Acknowledge condition)
+	 * @en_gpio: enable pin gpio no.
+	 * @esdata : easyscale data
 	 */
 	int rfa_en;
 	unsigned int en_gpio;
@@ -108,100 +108,100 @@ struct tps611xx_bl_data {
 
 static struct tps611xx_esdata tps611xx_info[] = {
 	[TPS61158_ID] = {
-			 .id = TPS61158_ID,
-			 .name = "tps61158",
-			 .addr = 0x5800,
-			 .cmd = {
-				 .seq = CMD_FORWARD,
-				 .size = 16,
-				 .brt_max = 31,
-				 .brt_bmask = 0x1f,
-				 .rfa_bmask = 0x80
-				},
-			 .time = {
-				  .es_delay = 100000,
-				  .es_det = 450000,
-				  .start = 3500,
-				  .eos = 3500,
-				  .reset = 4,
-				  .logic_1_low = 5000,
-				  .logic_0_low = 15000,
-				  .ackn = 900000,
-				  .ack_poll = 2000
-				},
-			 },
+		.id = TPS61158_ID,
+		.name = "tps61158",
+		.addr = 0x5800,
+		.cmd = {
+			.seq = CMD_FORWARD,
+			.size = 16,
+			.brt_max = 31,
+			.brt_bmask = 0x1f, // D0-D4 bits FB Voltage Table 3
+			.rfa_bmask = 0x80
+		},
+		.time = {
+			.es_delay = 100000,
+			.es_det = 450000,
+			.start = 3500,
+			.eos = 3500,
+			.reset = 4,
+			.logic_1_low = 5000,
+			.logic_0_low = 15000,
+			.ackn = 900000,
+			.ack_poll = 2000
+		},
+	},
 
 	[TPS61161_ID] = {
-			 .id = TPS61161_ID,
-			 .name = "tps61161",
-			 .addr = 0x7200,
-			 .cmd = {
-				 .seq = CMD_FORWARD,
-				 .size = 16,
-				 .brt_max = 31,
-				 .brt_bmask = 0x1f,
-				 .rfa_bmask = 0x80
-				},
-			 .time = {
-				  .es_delay = 120000,
-				  .es_det = 280000,
-				  .start = 2000,
-				  .eos = 2000,
-				  .reset = 3,
-				  .logic_1_low = 3000,
-				  .logic_0_low = 7000,
-				  .ackn = 512000,
-				  .ack_poll = 2000
-				},
-			 },
+		.id = TPS61161_ID,
+		.name = "tps61161",
+		.addr = 0x7200,
+		.cmd = {
+			.seq = CMD_FORWARD,
+			.size = 16,
+			.brt_max = 31,
+			.brt_bmask = 0x1f,
+			.rfa_bmask = 0x80
+		},
+		.time = {
+			.es_delay = 120000,
+			.es_det = 280000,
+			.start = 2000,
+			.eos = 2000,
+			.reset = 3,
+			.logic_1_low = 3000,
+			.logic_0_low = 7000,
+			.ackn = 512000,
+			.ack_poll = 2000
+		},
+	},
 
 	[TPS61163_ID] = {
-			 .id = TPS61163_ID,
-			 .name = "tps61163",
-			 .addr = 0x8F0000,
-			 .cmd = {
-				 .seq = CMD_BACKWARD,
-				 .size = 24,
-				 .brt_max = 511,
-				 .brt_bmask = 0x1ff,
-				 .rfa_bmask = 0x400
-				},
-			 .time = {
-				  .es_delay = 100000,
-				  .es_det = 260000,
-				  .start = 2000,
-				  .eos = 2000,
-				  .reset = 3,
-				  .logic_1_low = 3000,
-				  .logic_0_low = 7000,
-				  .ackn = 512000,
-				  .ack_poll = 2000
-				},
-			 },
+		.id = TPS61163_ID,
+		.name = "tps61163",
+		.addr = 0x8F0000,
+		.cmd = {
+			.seq = CMD_BACKWARD,
+			.size = 24,
+			.brt_max = 511,
+			.brt_bmask = 0x1ff,
+			.rfa_bmask = 0x400
+		},
+		.time = {
+			.es_delay = 100000,
+			.es_det = 260000,
+			.start = 2000,
+			.eos = 2000,
+			.reset = 3,
+			.logic_1_low = 3000,
+			.logic_0_low = 7000,
+			.ackn = 512000,
+			.ack_poll = 2000
+		},
+	},
 
 	[TPS61165_ID] = {
-			 .id = TPS61165_ID,
-			 .name = "tps61165",
-			 .addr = 0x7200,
-			 .cmd = {
-				 .seq = CMD_FORWARD,
-				 .size = 16,
-				 .brt_max = 31,
-				 .brt_bmask = 0x1f,
-				 .rfa_bmask = 0x80
-				},
-			 .time = {
-				  .es_delay = 120000,
-				  .es_det = 280000,
-				  .start = 4000,
-				  .eos = 4000,
-				  .reset = 3,
-				  .logic_1_low = 3000,
-				  .logic_0_low = 7000,
-				  .ackn = 512000,
-				  .ack_poll = 2000
-				},
-			 },
+		.id = TPS61165_ID,
+		.name = "tps61165",
+		.addr = 0x7200,
+		.cmd = {
+			.seq = CMD_FORWARD,
+			.size = 16,
+			.brt_max = 31,
+			.brt_bmask = 0x1f,
+			.rfa_bmask = 0x80
+		},
+		.time = {
+			.es_delay = 120000,
+			.es_det = 280000,
+			.start = 4000,
+			.eos = 4000,
+			.reset = 3,
+			.logic_1_low = 3000,
+			.logic_0_low = 7000,
+			.ackn = 512000,
+			.ack_poll = 2000
+		},
+	},
 };
 
 static int tps611xx_bl_update_status(struct backlight_device *bl)
@@ -216,7 +216,7 @@ static int tps611xx_bl_update_status(struct backlight_device *bl)
 		data_in |= esdata->cmd.rfa_bmask;
 
 	max_bmask = 0x1 << esdata->cmd.size;
-	t_logic = esdata->time.logic_1_low  esdata->time.logic_0_low;
+	t_logic = esdata->time.logic_1_low + esdata->time.logic_0_low;
 
 	local_irq_save(flags);
 	/* t_start : 2us high before data byte */
@@ -341,10 +341,10 @@ static DEVICE_ATTR(enable, S_IWUSR, NULL, tps611xx_enable_store);
 
 #ifdef CONFIG_OF
 static const struct of_device_id tps611xx_backlight_of_match[] = {
-	{.compatible = "ti,tps61158_bl",.data = &tps611xx_info[TPS61158_ID]},
-	{.compatible = "ti,tps61161_bl",.data = &tps611xx_info[TPS61161_ID]},
-	{.compatible = "ti,tps61163_bl",.data = &tps611xx_info[TPS61163_ID]},
-	{.compatible = "ti,tps61165_bl",.data = &tps611xx_info[TPS61165_ID]},
+	{.compatible = "ti,tps61158_bl", .data = &tps611xx_info[TPS61158_ID]},
+	{.compatible = "ti,tps61161_bl", .data = &tps611xx_info[TPS61161_ID]},
+	{.compatible = "ti,tps61163_bl", .data = &tps611xx_info[TPS61163_ID]},
+	{.compatible = "ti,tps61165_bl", .data = &tps611xx_info[TPS61165_ID]},
 	{}
 };
 
@@ -418,9 +418,12 @@ static int tps611xx_backlight_probe(struct platform_device *pdev)
 	props.max_brightness = esdata->cmd.brt_max;
 	props.type = BACKLIGHT_RAW;
 	pchip->bled =
-	    devm_backlight_device_register(pchip->dev, TPS611XX_NAME,
+/*	    devm_backlight_device_register(pchip->dev, TPS611XX_NAME,
 					   pchip->dev, pchip,
 					   &tps611xx_bl_ops, &props);
+*/		backlight_device_register(TPS611XX_NAME, pchip->dev, pchip,
+					   &tps611xx_bl_ops, &props);
+
 	if (IS_ERR(pchip->bled))
 		return PTR_ERR(pchip->bled);
 
@@ -478,10 +481,10 @@ static const struct platform_device_id tps611xx_id_table[] = {
 
 static struct platform_driver tps611xx_backlight_driver = {
 	.driver = {
-		   .name = TPS611XX_NAME,
-		   .owner = THIS_MODULE,
-		   .of_match_table = of_match_ptr(tps611xx_backlight_of_match),
-		   },
+		.name = TPS611XX_NAME,
+		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(tps611xx_backlight_of_match),
+	},
 	.probe = tps611xx_backlight_probe,
 	.remove = tps611xx_backlight_remove,
 	.id_table = tps611xx_id_table,

@@ -34,6 +34,16 @@
 #include <linux/usb/gadget.h>
 #include <linux/platform_data/s3c-hsotg.h>
 
+#include <linux/netlink.h>
+#include <net/netlink.h>
+#include <net/net_namespace.h>
+/* Protocol family, consistent in both kernel prog and user prog. */
+#define MYPROTO NETLINK_USERSOCK
+/* Multicast group, consistent in both kernel prog and user prog. */
+#define MYGRP 21
+struct sock *nl_sk = NULL;
+
+
 #include <mach/map.h>
 
 #include "s3c-hsotg.h"
@@ -151,20 +161,20 @@ struct s3c_hsotg_ep {
  * @eps: The endpoints being supplied to the gadget framework
  */
 struct s3c_hsotg {
-	struct device		 *dev;
-	struct usb_gadget_driver *driver;
-	struct s3c_hsotg_plat	 *plat;
+	struct device				*dev;
+	struct usb_gadget_driver	*driver;
+	struct s3c_hsotg_plat		*plat;
 
-	spinlock_t              lock;
+	spinlock_t			lock;
 
 	void __iomem		*regs;
-	int			irq;
-	struct clk		*clk;
+	int					irq;
+	struct clk			*clk;
 
-	struct regulator_bulk_data supplies[ARRAY_SIZE(s3c_hsotg_supply_names)];
+	struct regulator_bulk_data	supplies[ARRAY_SIZE(s3c_hsotg_supply_names)];
 
 	unsigned int		dedicated_fifos:1;
-	unsigned char           num_of_eps;
+	unsigned char		num_of_eps;
 
 	struct dentry		*debug_root;
 	struct dentry		*debug_file;
@@ -172,12 +182,12 @@ struct s3c_hsotg {
 
 	struct usb_request	*ep0_reply;
 	struct usb_request	*ctrl_req;
-	u8			ep0_buff[8];
-	u8			ctrl_buff[8];
+	u8					ep0_buff[8];
+	u8					ctrl_buff[8];
 
 	struct usb_gadget	gadget;
 	unsigned int		setup;
-	unsigned long           last_rst;
+	unsigned long		last_rst;
 	struct s3c_hsotg_ep	*eps;
 };
 
@@ -194,6 +204,39 @@ struct s3c_hsotg_req {
 	unsigned char		in_progress;
 	unsigned char		mapped;
 };
+
+int netlink_sendmsg(const char* msg)
+{
+	struct sk_buff *skb;
+	struct nlmsghdr *nlh;
+	int msg_size = strlen(msg) + 1;
+	int res;
+
+	nl_sk = netlink_kernel_create(&init_net, MYPROTO, NULL);
+	if (!nl_sk) {
+		//Error creating socket
+		return -1;
+	}
+
+	skb = nlmsg_new(NLMSG_ALIGN(msg_size), GFP_KERNEL);
+	if (!skb) {
+		//Allocation failure
+		netlink_kernel_release(nl_sk);
+		return -2;
+	}
+
+	nlh = nlmsg_put(skb, 0, 1, NLMSG_DONE, msg_size, 0);
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+
+	res = nlmsg_multicast(nl_sk, skb, 0, MYGRP, GFP_KERNEL);
+	netlink_kernel_release(nl_sk);
+	if (res < 0) {
+		//"nlmsg_multicast() error: %d", res);
+		return -3;
+	}
+
+	return 0;
+}
 
 /* conversion functions */
 static inline struct s3c_hsotg_req *our_req(struct usb_request *req)
@@ -1223,7 +1266,12 @@ static void s3c_hsotg_process_control(struct s3c_hsotg *hsotg,
 			dcfg |= ctrl->wValue << DCFG_DevAddr_SHIFT;
 			writel(dcfg, hsotg->regs + DCFG);
 
-			dev_info(hsotg->dev, "new address %d\n", ctrl->wValue);
+//
+			dev_info(hsotg->dev, "new address %d - TwoNav UMOUNT\n", ctrl->wValue);
+			if(netlink_sendmsg("TwoNav umount") < 0) {
+				dev_info(hsotg->dev, "TwoNav: Error notifying umount\n");
+			}
+//
 
 			ret = s3c_hsotg_send_reply(hsotg, ep0, NULL, 0);
 			return;
@@ -2687,6 +2735,13 @@ static int s3c_hsotg_ep_disable(struct usb_ep *ep)
 	u32 ctrl;
 
 	dev_info(hsotg->dev, "%s(ep %p)\n", __func__, ep);
+
+//
+	dev_info(hsotg->dev, "TwoNav REMOUNT\n");
+	if(netlink_sendmsg("TwoNav remount") < 0) {
+		dev_info(hsotg->dev, "TwoNav: Error notifying remount\n");
+	}
+//
 
 	if (ep == &hsotg->eps[0].ep) {
 		dev_err(hsotg->dev, "%s: called for ep0\n", __func__);

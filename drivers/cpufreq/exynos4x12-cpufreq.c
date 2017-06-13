@@ -20,7 +20,7 @@
 #include <mach/regs-clock.h>
 #include <mach/cpufreq.h>
 
-#if defined(CONFIG_ODROID_X) || (CONFIG_CLICKARM_4412)
+#if defined(CONFIG_MACH_TWONAV) || (CONFIG_CLICKARM_4412)
 #define CPUFREQ_LEVEL_END	(L16 + 1)
 #elif defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_U2)
 #define CPUFREQ_LEVEL_END	(L18 + 1)
@@ -42,7 +42,7 @@ struct cpufreq_clkdiv {
 
 static unsigned int exynos4x12_volt_table[CPUFREQ_LEVEL_END];
 
-#if defined(CONFIG_ODROID_X) || (CONFIG_CLICKARM_4412)
+#if defined(CONFIG_MACH_TWONAV) || (CONFIG_CLICKARM_4412)
 static struct cpufreq_frequency_table exynos4x12_freq_table[] = {
 	{L0, 1800 * 1000},
 	{L1, 1704 * 1000},
@@ -63,7 +63,7 @@ static struct cpufreq_frequency_table exynos4x12_freq_table[] = {
 	{L16,200 * 1000},
 	{0, CPUFREQ_TABLE_END},
 };
-#elif defined(CONFIG_ODROID_X2) || defined(CONFIG_ODROID_U2)
+#elif defined(CONFIG_MACH_TWONAV) || defined(CONFIG_ODROID_U2)
 static struct cpufreq_frequency_table exynos4x12_freq_table[] = {
 	{L0, 2000*1000}, 
 	{L1, 1920*1000}, 

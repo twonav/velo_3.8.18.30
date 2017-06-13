@@ -635,7 +635,7 @@ void __init s3c_i2c3_set_platdata(struct s3c2410_platform_i2c *pd)
 #ifdef CONFIG_S3C_DEV_I2C4
 static struct resource s3c_i2c4_resource[] = {
 	[0] = DEFINE_RES_MEM(S3C_PA_IIC4, SZ_4K),
-	[1] = DEFINE_RES_IRQ(IRQ_IIC4),
+	[1] = DEFINE_RES_IRQ(EXYNOS4_IRQ_IIC4),
 };
 
 struct platform_device s3c_device_i2c4 = {
