@@ -236,13 +236,13 @@ struct tsc2007_platform_data tsc2007_info = {
 	/* max. resistance above which samples are ignored */
 	.max_rt		= 1200, // [#1] antes 1<<12
 
-	.poll_delay	= 30, /* delay (in ms) after pen-down event
+	.poll_delay	= 20, /* delay (in ms) after pen-down event
 					     before polling starts */
-	.poll_period = 25,/* time (in ms) between samples */
+	.poll_period = 10,/* time (in ms) between samples */
 
 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 256, // [#2] antes 64
-	.fuzzy		= 256, // [#2] antes 64
+	.fuzzx		= 64, // [#2] antes 64
+	.fuzzy		= 64, // [#2] antes 64
 	.fuzzz		= 64,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
