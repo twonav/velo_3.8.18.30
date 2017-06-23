@@ -228,21 +228,22 @@ static void tsc2007_clear_penirq(void)
 //				=> Cuando se pulsa flojo, los valores X, Y tienen mucho error
 //                            [#2] Aumentar control fuzz de los valores X, Y (fuzzx, fuzzy)
 //				=> Para evitar baile de X, Y debido a variaciones electricas en el touch
+// 2017-06-23 TPA:			  [#3] Adjust driver settings for new touch panel
 struct tsc2007_platform_data tsc2007_info = {
 	.model 		= 2007,	/* 2007. */
 
-	.x_plate_ohms	= 265, /* must be non-zero value */
-	.y_plate_ohms	= 680, /* must be non-zero value */
+	.x_plate_ohms	= 250, /* must be non-zero value */
+	.y_plate_ohms	= 748, /* must be non-zero value */
 	/* max. resistance above which samples are ignored */
-	.max_rt		= 1200, // [#1] antes 1<<12
+	.max_rt		= 1000, // [#1] antes 1<<12
 
-	.poll_delay	= 30, /* delay (in ms) after pen-down event
+	.poll_delay	= 20, /* delay (in ms) after pen-down event
 					     before polling starts */
-	.poll_period = 25,/* time (in ms) between samples */
+	.poll_period = 15,/* time (in ms) between samples */
 
 	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 256, // [#2] antes 64
-	.fuzzy		= 256, // [#2] antes 64
+	.fuzzx		= 64, // [#2] antes 64
+	.fuzzy		= 64, // [#2] antes 64
 	.fuzzz		= 64,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
