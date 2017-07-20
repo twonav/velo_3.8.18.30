@@ -1,9 +1,16 @@
-./build_backports.sh twonav_velo 1.0.1
-./build_backports.sh twonav_aventura 1.0.1
-./build_backports.sh twonav_horizon 1.0.1
-./build_backports.sh twonav_trail 1.0.1
-./build_backports.sh os_velo 1.0.1
-./build_backports.sh os_aventura 1.0.1
-./build_backports.sh os_horizon 1.0.1
-./build_backports.sh os_trail 1.0.1
+if [ $# -ne 1 ] ; then
+echo "Usage: ./rebuildAll.sh <VERSION>"
+exit
+fi
+
+VERSION=$1
+
+./build_backports.sh twonav_velo $VERSION
+./build_backports.sh twonav_aventura $VERSION
+./build_backports.sh twonav_horizon $VERSION
+./build_backports.sh twonav_trail $VERSION
+./build_backports.sh os_velo $VERSION
+./build_backports.sh os_aventura $VERSION
+./build_backports.sh os_horizon $VERSION
+./build_backports.sh os_trail $VERSION
 
