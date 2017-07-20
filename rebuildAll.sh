@@ -1,9 +1,9 @@
-./build_backports.sh twonav_velo
-./build_backports.sh twonav_aventura
-./build_backports.sh twonav_horizon
-./build_backports.sh twonav_trail
-./build_backports.sh os_velo
-./build_backports.sh os_aventura
-./build_backports.sh os_horizon
-./build_backports.sh os_trail
+./build_backports.sh twonav_velo 1.0.1
+./build_backports.sh twonav_aventura 1.0.1
+./build_backports.sh twonav_horizon 1.0.1
+./build_backports.sh twonav_trail 1.0.1
+./build_backports.sh os_velo 1.0.1
+./build_backports.sh os_aventura 1.0.1
+./build_backports.sh os_horizon 1.0.1
+./build_backports.sh os_trail 1.0.1
 

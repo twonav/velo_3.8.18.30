@@ -13,14 +13,15 @@ exit
 fi
 
 
-if [[ -z $1 ]]; then
-echo "Usage: ./build_backports.sh <DEVICE>"
+if [ $# -ne 2 ] ; then
+echo "Usage: ./build_backports.sh <DEVICE> <VERSION>"
 echo " <DEVICE> is the name of defconfig (twonav_velo, os_aventura, ...)"
 exit
 fi
 
 HOMEUSERFOLDER=$(logname)
 DEVICE=$1
+VERSION=$2
 
 revision=$(
     case "$DEVICE" in
@@ -36,6 +37,7 @@ revision=$(
     esac)
 
 echo "Compilation: $revision"
+echo "Version: $VERSION"
 
 #1.EXPORT REQUIRED VARIABLES
 
@@ -109,9 +111,9 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
 if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0$revision -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
 else
-	DEB_HOST_ARCH=armhf make-kpkg --revision=1.0.0$revision -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
 fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd

@@ -232,14 +232,14 @@ static void tsc2007_clear_penirq(void)
 struct tsc2007_platform_data tsc2007_info = {
 	.model 		= 2007,	/* 2007. */
 
-	.x_plate_ohms	= 250, /* must be non-zero value */
-	.y_plate_ohms	= 748, /* must be non-zero value */
+	.x_plate_ohms	= 265, /* must be non-zero value */
+	.y_plate_ohms	= 680, /* must be non-zero value */
 	/* max. resistance above which samples are ignored */
-	.max_rt		= 1000, // [#1] antes 1<<12
+	.max_rt		= 1200, // [#1] antes 1<<12
 
 	.poll_delay	= 20, /* delay (in ms) after pen-down event
 					     before polling starts */
-	.poll_period = 15,/* time (in ms) between samples */
+	.poll_period = 10,/* time (in ms) between samples */
 
 	/* fuzz factor for X, Y and pressure axes */
 	.fuzzx		= 64, // [#2] antes 64
