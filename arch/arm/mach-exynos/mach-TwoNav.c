@@ -627,14 +627,14 @@ static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
 };
 
 /* SDCARD */
-//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-//static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
-//	.max_width	= 4,
-//	.host_caps	= MMC_CAP_4_BIT_DATA |
-//			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
-//	.cd_type	= S3C_SDHCI_CD_NONE,
-//};
-//#endif
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
+	.max_width	= 4,
+	.host_caps	= MMC_CAP_4_BIT_DATA |
+			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+	.cd_type	= S3C_SDHCI_CD_NONE,
+};
+#endif
 
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
@@ -881,9 +881,9 @@ static struct platform_device twonav_lcd_spi = {
 static struct platform_device *twonav_devices[] __initdata = {
 	&tps611xx,
 	&s3c_device_hsmmc0,
-//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-//	&s3c_device_hsmmc2,
-//#endif
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+	&s3c_device_hsmmc2,
+#endif
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
@@ -1141,9 +1141,9 @@ static void __init twonav_machine_init(void)
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
 	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
-//#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-//	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
-//#endif
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
+	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+#endif
 	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
 //	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
