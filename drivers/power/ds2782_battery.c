@@ -43,28 +43,39 @@
 struct dentry *file;
 int pid = 0;
 
-static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, void *ppos)
+static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
     char mybuf[10];
-    int ret;
     /* read the value from user space */
     if(count > 10)
         return -EINVAL;
-    copy_from_user(mybuf, buf, count);
+    if (copy_from_user(mybuf, buf, count))
+    	return -EFAULT;
     sscanf(mybuf, "%d", &pid);
+
     return count;
 }
 
-static ssize_t send_sigterm()
+static ssize_t send_sigterm(int force)
 {
 	int ret;
 	struct siginfo info;
     struct task_struct *task;
 
-    struct timespec *ts;
-    getnstimeofday(ts);
-    if (ts->tv_sec % 10 == 0) // send SIGTERM every 10 seconds
+    if (pid == 0) {
+    	printk(KERN_INFO "DS2782 no registered pid\n");
     	return 0;
+    }
+
+    if (force == 0) {
+    	struct timespec ts;
+    	getnstimeofday(&ts);
+    	if (ts.tv_sec % 10 != 0) // send SIGTERM every 10 seconds
+    		return -EPERM;
+    }
+    else {
+    	printk(KERN_INFO "DS2782 send sigterm forced\n");
+    }
 
     /****************************** send the signal *****************************/
     memset(&info, 0, sizeof(struct siginfo));
@@ -305,6 +316,7 @@ struct ds278x_battery_ops {
 	int (*get_battery_rsns)(struct ds278x_info *info, int *rsns);
 	int (*get_battery_learning)(struct ds278x_info *info, int *learning);
 	int (*get_battery_charge_full)(struct ds278x_info *info, int *full);
+	int (*get_battery_signal_low_batt)(struct ds278x_info *info, int *signal);
 };
 
 #define to_ds278x_info(x) container_of(x, struct ds278x_info, battery)
@@ -509,6 +521,12 @@ static int ds2782_get_learning(struct ds278x_info *info, int *_learning)
 	return 0;
 }
 
+static int ds2782_get_signal_low_batt(struct ds278x_info *info, int *_signal)
+{
+	*_signal = send_sigterm(1);
+	return 0;
+}
+
 static int ds2782_get_charge_full(struct ds278x_info *info, int *_full)
 {
 	*_full = fully_charged;
@@ -631,6 +649,10 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 			ret = info->ops->get_battery_learning(info, &val->intval);
 			break;
 
+	case POWER_SUPPLY_PROP_SIGNAL_LOW_BATT:
+			ret = info->ops->get_battery_signal_low_batt(info, &val->intval);
+			break;
+
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 				ret = info->ops->get_battery_charge_full(info, &val->intval);
 				break;
@@ -668,6 +690,7 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_NEW_BATTERY,
 	POWER_SUPPLY_PROP_RSNS,
 	POWER_SUPPLY_PROP_LEARNING,
+	POWER_SUPPLY_PROP_SIGNAL_LOW_BATT,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
@@ -718,6 +741,7 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_rsns     = ds2782_get_rsns,
 		.get_battery_learning = ds2782_get_learning,
 		.get_battery_charge_full 	  = ds2782_get_charge_full,
+		.get_battery_signal_low_batt = ds2782_get_signal_low_batt,
 	},
 	[DS2786] = {
 		.get_battery_current  = ds2786_get_current,
@@ -917,7 +941,7 @@ int check_if_discharge(struct ds278x_info *info)
 
 	// Send sigterm signal to registered app when battery too low
 	if (voltage < 2950000)
-		send_sigterm();
+		send_sigterm(0);
 
 	err = info->ops->get_battery_current(info, &current_uA);
 	if (err)

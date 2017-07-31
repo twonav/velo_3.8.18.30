@@ -48,6 +48,10 @@ struct sock *nl_sk = NULL;
 
 #include "s3c-hsotg.h"
 
+// Variables used for interrupting the mountning process
+static struct s3c_hsotg *twonav_hsotg;
+static struct usb_ctrlrequest *twonav_ctrl;
+
 #define DMA_ADDR_INVALID (~((dma_addr_t)0))
 
 static const char * const s3c_hsotg_supply_names[] = {
@@ -189,6 +193,9 @@ struct s3c_hsotg {
 	unsigned int		setup;
 	unsigned long		last_rst;
 	struct s3c_hsotg_ep	*eps;
+
+	int 				usb_connected;
+	int 				twonav_pid;
 };
 
 /**
@@ -1265,14 +1272,6 @@ static void s3c_hsotg_process_control(struct s3c_hsotg *hsotg,
 			dcfg &= ~DCFG_DevAddr_MASK;
 			dcfg |= ctrl->wValue << DCFG_DevAddr_SHIFT;
 			writel(dcfg, hsotg->regs + DCFG);
-
-//
-			dev_info(hsotg->dev, "new address %d - TwoNav UMOUNT\n", ctrl->wValue);
-			if(netlink_sendmsg("TwoNav umount") < 0) {
-				dev_info(hsotg->dev, "TwoNav: Error notifying umount\n");
-			}
-//
-
 			ret = s3c_hsotg_send_reply(hsotg, ep0, NULL, 0);
 			return;
 
@@ -1349,10 +1348,20 @@ static void s3c_hsotg_complete_setup(struct usb_ep *ep,
 		return;
 	}
 
-	if (req->actual == 0)
+	if (req->actual == 0) {
 		s3c_hsotg_enqueue_setup(hsotg);
-	else
-		s3c_hsotg_process_control(hsotg, req->buf);
+	}
+	else {
+		// Store endpoint pointers for when external mount signal arrives
+		twonav_hsotg = hsotg;
+		twonav_ctrl = req->buf;
+
+		hsotg->usb_connected = 1;
+		if (hsotg->twonav_pid == 0) {
+			// Continue with mount if PC USB is connected on startup
+			s3c_hsotg_process_control(hsotg, req->buf);
+		}
+	}
 }
 
 /**
@@ -2495,6 +2504,9 @@ irq_retry:
 				hsotg->last_rst = jiffies;
 			}
 		}
+		hsotg->usb_connected = 0;
+		twonav_hsotg = NULL;
+		twonav_ctrl = NULL;
 	}
 
 	/* check both FIFOs */
@@ -2735,13 +2747,6 @@ static int s3c_hsotg_ep_disable(struct usb_ep *ep)
 	u32 ctrl;
 
 	dev_info(hsotg->dev, "%s(ep %p)\n", __func__, ep);
-
-//
-	dev_info(hsotg->dev, "TwoNav REMOUNT\n");
-	if(netlink_sendmsg("TwoNav remount") < 0) {
-		dev_info(hsotg->dev, "TwoNav: Error notifying remount\n");
-	}
-//
 
 	if (ep == &hsotg->eps[0].ep) {
 		dev_err(hsotg->dev, "%s: called for ep0\n", __func__);
@@ -3539,6 +3544,71 @@ static void s3c_hsotg_release(struct device *dev)
 {
 }
 
+static ssize_t twonav_usb_connected_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+    struct s3c_hsotg *hsotg = dev_get_drvdata(dev);
+    int len;
+
+    len = sprintf(buf, "%d\n", hsotg->usb_connected);
+    if (len <= 0)
+        dev_err(dev, "hsotg: Invalid sprintf len: %d\n", len);
+
+    return len;
+}
+
+static ssize_t twonav_usb_connected_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+	return count;
+}
+
+static ssize_t twonav_pid_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+    struct s3c_hsotg *hsotg = dev_get_drvdata(dev);
+    int len;
+
+    len = sprintf(buf, "%d\n", hsotg->twonav_pid);
+    if (len <= 0)
+        dev_err(dev, "hsotg: Invalid sprintf len: %d\n", len);
+
+    return len;
+}
+
+static ssize_t twonav_pid_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+    struct s3c_hsotg *hsotg = dev_get_drvdata(dev);
+    kstrtol(buf, 10, &hsotg->twonav_pid);
+
+    if (hsotg->twonav_pid == 0 && hsotg->usb_connected == 1) {
+        if (twonav_hsotg && twonav_ctrl) {
+            printk(KERN_INFO "**********MOUNTING**********\n");
+            s3c_hsotg_process_control(twonav_hsotg, twonav_ctrl);
+        }
+    }
+
+    return count;
+}
+
+static DEVICE_ATTR(usb_connected, S_IRUGO | S_IWUSR, twonav_usb_connected_show,
+					twonav_usb_connected_store);
+static DEVICE_ATTR(twonav_pid, S_IRUGO | S_IWUSR, twonav_pid_show,
+					twonav_pid_store);
+
+static struct attribute *twonav_attrs[] = {
+    &dev_attr_usb_connected.attr,
+	&dev_attr_twonav_pid.attr,
+    NULL
+};
+
+static struct attribute_group twonav_attr_group = {
+    .name = "twonav",
+    .attrs = twonav_attrs,
+};
+
+
 /**
  * s3c_hsotg_probe - probe function for hsotg driver
  * @pdev: The platform information for the driver
@@ -3616,6 +3686,13 @@ static int s3c_hsotg_probe(struct platform_device *pdev)
 	hsotg->gadget.dev.parent = dev;
 	hsotg->gadget.dev.dma_mask = dev->dma_mask;
 	hsotg->gadget.dev.release = s3c_hsotg_release;
+
+	// Create /sys/devices/platform/s3c-hsotg/twonav
+	ret = sysfs_create_group(&pdev->dev.kobj, &twonav_attr_group);
+	    if (ret) {
+	        dev_err(&pdev->dev, "sysfs creation failed\n");
+	        return ret;
+	    }
 
 	/* reset the system */
 
@@ -3744,6 +3821,9 @@ static int s3c_hsotg_remove(struct platform_device *pdev)
 	clk_disable_unprepare(hsotg->clk);
 
 	device_unregister(&hsotg->gadget.dev);
+
+	sysfs_remove_group(&pdev->dev.kobj, &twonav_attr_group);
+
 	return 0;
 }
 
