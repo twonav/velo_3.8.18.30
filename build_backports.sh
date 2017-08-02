@@ -33,6 +33,7 @@ revision=$(
     	("os_aventura") echo "OsAventura" ;;
     	("os_horizon") echo "OsHorizon" ;;
     	("os_trail") echo "OsTrail" ;;
+		("base") echo "KernelBase" ;;
 	(*) echo "$DEVICE" ;;
     esac)
 
