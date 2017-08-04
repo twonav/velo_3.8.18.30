@@ -523,8 +523,9 @@ static int ds2782_get_learning(struct ds278x_info *info, int *_learning)
 
 static int ds2782_get_signal_low_batt(struct ds278x_info *info, int *_signal)
 {
-	*_signal = send_sigterm(1);
 	return 0;
+	//*_signal = send_sigterm(1);
+	//return 0;
 }
 
 static int ds2782_get_charge_full(struct ds278x_info *info, int *_full)
