@@ -254,6 +254,45 @@ struct tsc2007_platform_data tsc2007_info = {
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
 
+/* Keyboard Aventura/trail MCP23017 (I2C GPIO expander) XE_INT23*/
+#if defined CONFIG_JOYSTICK_TWONAV_KBD
+#include <linux/input/twonav_kbd.h>
+#define twonav_kbd_irq_pin		EXYNOS4_GPX2(7) /*IRQ_EINT23*/
+
+static int twonav_kbd_get_pendown_state(void)
+{
+    return !gpio_get_value(twonav_kbd_irq_pin);
+}
+
+static int twonav_kbd_init_platform_hw(void)
+{
+    /* TOUCH_INT: XEINT_22 */
+    printk(KERN_INFO "twonav_kbd_init_platform_hw\n");
+	gpio_request(twonav_kbd_irq_pin, "TWON_KBD_INT");
+    s3c_gpio_cfgpin(twonav_kbd_irq_pin, S3C_GPIO_SFN(0xf));
+    s3c_gpio_setpull(twonav_kbd_irq_pin, S3C_GPIO_PULL_UP);
+
+    return 0;
+}
+
+static void twonav_kbd_exit_platform_hw(void)
+{
+    gpio_free(twonav_kbd_irq_pin);
+}
+
+struct twonav_kbd_platform_data twonav_kbd_info = {
+
+	.poll_delay	= 20, /* delay (in ms) after pen-down event
+					     before polling starts */
+	.poll_period = 10,/* time (in ms) between samples */
+	.base = 0x20,
+	.get_pendown_state = twonav_kbd_get_pendown_state,
+	.init_platform_hw =  twonav_kbd_init_platform_hw,
+	.exit_platform_hw =  twonav_kbd_exit_platform_hw
+};
+#endif
+/* END OF Keyboard Aventura/trail MCP23017 (I2C GPIO expander)*/
+
 static struct tps611xx_platform_data tps611xx_data = {
 	.rfa_en = 1,
 	.en_gpio_num = EXYNOS4_GPD0(2),
@@ -316,6 +355,14 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
                 I2C_BOARD_INFO("tsc2007", 0x48),
                 .platform_data  = &tsc2007_info,
                 .irq            = IRQ_EINT(22),
+        },
+#endif
+  	
+#if defined(CONFIG_JOYSTICK_TWONAV_KBD)
+        {
+            I2C_BOARD_INFO("twonav_kbd", 0x20),
+            .platform_data  = &twonav_kbd_info,
+            .irq            = IRQ_EINT(23),
         },
 #endif
 
@@ -1071,12 +1118,12 @@ static void __init twonav_gpio_init(void)
 
 /*********************************************************************/
 /*				MAX44005 CONFIGURATION								 */
-/*********************************************************************/
+/********************************************************************
     gpio_request_one(EXYNOS4_GPX2(7), GPIOF_IN, "MAX44005_IRQ");
         s3c_gpio_cfgpin(EXYNOS4_GPX2(7), S3C_GPIO_SFN(0xF));
         s3c_gpio_setpull(EXYNOS4_GPX2(7), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPX2(7));
-
+*/
 
 /*********************************************************************/
 /*				BUTTONS CONFIGURATION								 */
