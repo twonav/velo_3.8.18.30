@@ -281,10 +281,6 @@ static void twonav_kbd_exit_platform_hw(void)
 }
 
 struct twonav_kbd_platform_data twonav_kbd_info = {
-
-	.poll_delay	= 20, /* delay (in ms) after pen-down event
-					     before polling starts */
-	.poll_period = 10,/* time (in ms) between samples */
 	.base = 0x20,
 	.get_pendown_state = twonav_kbd_get_pendown_state,
 	.init_platform_hw =  twonav_kbd_init_platform_hw,

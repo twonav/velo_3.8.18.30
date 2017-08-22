@@ -77,9 +77,6 @@ struct twonav_kbd_device {
 
 	struct i2c_client *i2c_client;
 	
-
-	unsigned long poll_delay;
-	unsigned long poll_period;
 	int irq;
 
 	wait_queue_head_t	wait;
@@ -229,38 +226,25 @@ static irqreturn_t twonav_kbd_interrupt_process(int irq, void *dev_id)
 			unsigned char keys = 0, joystick = 0;
 			struct i2c_client *client = kb->i2c_client;
 
-			if (kb->poll_delay > 0)
-				msleep(kb->poll_delay);
+			//Read INT values
+			val = twonav_kbd_xfer(kb, JOYSTICK_INTERRUPT_FLAG);
+			if (val < 0){
+				printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - INTERRUPT_FLAG\n");
+				goto out;
+			}
 
-			do {
-				//Read INT values
-				val = twonav_kbd_xfer(kb, JOYSTICK_INTERRUPT_FLAG);
-				if (val < 0){
-					printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - INTERRUPT_FLAG\n");
-					goto out;
-				}
-				//dev_notice(&client->dev,"twonav_kbd_interrupt:"
-				//"[FLAG] Joystick: %02x - buttons: %02x\n", (val >> 8)&0xFF, (val&0xFF));
+			//Read GPIO values
+			val = twonav_kbd_xfer(kb, JOYSTICK_GPIO);
+			if (val < 0){
+				printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - GPIO\n");
+				goto out;
+			}
 
+			twonav_kbd_send_evts(kb, val);
+			input_sync(kb->input_dev);
 
-				//Read GPIO values
-				val = twonav_kbd_xfer(kb, JOYSTICK_GPIO);
-				if (val < 0){
-					printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - GPIO\n");
-					goto out;
-				}
-				//dev_notice(&client->dev,"twonav_kbd_interrupt:"
-				//"[GPIO] Joystick: %02x - buttons: %02x\n", (val >> 8)&0xFF, (val&0xFF));
-
-
-				twonav_kbd_send_evts(kb, val);
-
-				wait_event_timeout(kb->wait, kb->stopped,
-						   msecs_to_jiffies(kb->poll_period));
-
-				input_sync(kb->input_dev);
-				
-			}while (!kb->stopped && val);
+			//dev_notice(&client->dev,"twonav_kbd_interrupt:");
+			
 
 		} else {
 			printk(KERN_ERR "twonav_kbd_interrupt (stopped) :(\n");
@@ -429,8 +413,6 @@ static int twonav_kbd_probe(struct i2c_client *client,
 	keyboard->input_dev = input_dev;
 	init_waitqueue_head(&keyboard->wait);
 
-	keyboard->poll_delay  = pdata->poll_delay ? : 1;
-	keyboard->poll_period = pdata->poll_period ? : 1;
 	keyboard->get_pendown_state = pdata->get_pendown_state;
 
 	snprintf(keyboard->phys, sizeof(keyboard->phys),
