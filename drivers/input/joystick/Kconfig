@@ -329,4 +329,13 @@ config JOYSTICK_MAPLE
 	  To compile this as a module choose M here: the module will be called
 	  maplecontrol.
 
+config JOYSTICK_TWONAV_KBD
+	tristate "TwoNav Aventura and Trail keyboard"
+	depends on I2C
+	help
+	  Say Y here if you have a TwoNav Aventura or Trail devices and want 
+	  to use the joystick.
+
+	  To compile this as a module choose M here: the module will be called
+	  twonav_kbd.
 endif
