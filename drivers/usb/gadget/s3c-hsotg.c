@@ -43,6 +43,8 @@
 #define MYGRP 21
 struct sock *nl_sk = NULL;
 
+#include <linux/sched.h>
+#include <linux/pid.h>
 
 #include <mach/map.h>
 
@@ -1357,6 +1359,16 @@ static void s3c_hsotg_complete_setup(struct usb_ep *ep,
 		twonav_ctrl = req->buf;
 
 		hsotg->usb_connected = 1;
+
+		// Check if twonav_pid is really active
+		if (hsotg->twonav_pid != 0) {
+			pid_t pid = hsotg->twonav_pid;
+			struct pid *pid_struct = find_get_pid(pid);
+			struct task_struct *task = pid_task(pid_struct,PIDTYPE_PID);
+			if (task == NULL)
+				hsotg->twonav_pid = 0;
+		}
+
 		if (hsotg->twonav_pid == 0) {
 			// Continue with mount if PC USB is connected on startup
 			s3c_hsotg_process_control(hsotg, req->buf);
