@@ -289,7 +289,7 @@ out:
 	return IRQ_HANDLED;
 
 err:
-	twonav_kbd_stop(kb)
+	twonav_kbd_stop(kb);
 	return IRQ_HANDLED;
 
 }
