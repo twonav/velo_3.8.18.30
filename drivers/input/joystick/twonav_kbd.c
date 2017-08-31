@@ -212,10 +212,45 @@ static void twonav_kbd_send_evts(struct twonav_kbd_device * kb, int curr)
 	return;
 }
 
+
+static void twonav_kbd_stop(struct twonav_kbd_device *kb)
+{
+	dev_notice(&kb->i2c_client->dev,"twonav_kbd_stop\n");
+	kb->stopped = true;
+	mb();
+	wake_up(&kb->wait);
+
+	disable_irq(kb->irq);
+}
+
+static int twonav_kbd_open(struct input_dev *input_dev)
+{
+	struct twonav_kbd_device *kb = input_get_drvdata(input_dev);
+	dev_notice(&kb->i2c_client->dev,"twonav_kbd_open\n");
+
+	kb->stopped = false;
+	mb();
+
+	enable_irq(kb->irq);
+
+	return 0;
+}
+
+static void twonav_kbd_close(struct input_dev *input_dev)
+{
+	struct twonav_kbd_device *kb = input_get_drvdata(input_dev);
+
+	twonav_kbd_stop(kb);
+	return;
+}
+
+
 static irqreturn_t twonav_kbd_interrupt_process(int irq, void *dev_id)
 {
+	struct twonav_kbd_device *kb;
+
 	if (dev_id) {
-		struct twonav_kbd_device *kb = (struct twonav_kbd_device *)dev_id;
+		kb = (struct twonav_kbd_device *)dev_id;
 		
 		if (!kb) {
 			printk(KERN_ERR "twonav_kbd_interrupt Invalid pointer\n");
@@ -230,14 +265,14 @@ static irqreturn_t twonav_kbd_interrupt_process(int irq, void *dev_id)
 			val = twonav_kbd_xfer(kb, JOYSTICK_INTERRUPT_FLAG);
 			if (val < 0){
 				printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - INTERRUPT_FLAG\n");
-				goto out;
+				goto err;
 			}
 
 			//Read GPIO values
 			val = twonav_kbd_xfer(kb, JOYSTICK_GPIO);
 			if (val < 0){
 				printk(KERN_ERR "twonav_kbd_interrupt error: twonav_kbd_i2c_read - GPIO\n");
-				goto out;
+				goto err;
 			}
 
 			twonav_kbd_send_evts(kb, val);
@@ -251,6 +286,10 @@ static irqreturn_t twonav_kbd_interrupt_process(int irq, void *dev_id)
 		}
 	}
 out:
+	return IRQ_HANDLED;
+
+err:
+	twonav_kbd_stop(kb)
 	return IRQ_HANDLED;
 
 }
@@ -345,37 +384,6 @@ static int twonav_kbd_configure_chip(struct twonav_kbd_device *twonav_kbd,
 	}
 
 	return 0;
-}
-
-static void twonav_kbd_stop(struct twonav_kbd_device *kb)
-{
-	dev_notice(&kb->i2c_client->dev,"twonav_kbd_stop\n");
-	kb->stopped = true;
-	mb();
-	wake_up(&kb->wait);
-
-	disable_irq(kb->irq);
-}
-
-static int twonav_kbd_open(struct input_dev *input_dev)
-{
-	struct twonav_kbd_device *kb = input_get_drvdata(input_dev);
-	dev_notice(&kb->i2c_client->dev,"twonav_kbd_open\n");
-
-	kb->stopped = false;
-	mb();
-
-	enable_irq(kb->irq);
-
-	return 0;
-}
-
-static void twonav_kbd_close(struct input_dev *input_dev)
-{
-	struct twonav_kbd_device *kb = input_get_drvdata(input_dev);
-
-	twonav_kbd_stop(kb);
-	return;
 }
 
 static int twonav_kbd_probe(struct i2c_client *client,
