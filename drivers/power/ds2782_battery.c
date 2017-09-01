@@ -316,7 +316,6 @@ struct ds278x_battery_ops {
 	int (*get_battery_rsns)(struct ds278x_info *info, int *rsns);
 	int (*get_battery_learning)(struct ds278x_info *info, int *learning);
 	int (*get_battery_charge_full)(struct ds278x_info *info, int *full);
-	int (*get_battery_signal_low_batt)(struct ds278x_info *info, int *signal);
 };
 
 #define to_ds278x_info(x) container_of(x, struct ds278x_info, battery)
@@ -521,13 +520,6 @@ static int ds2782_get_learning(struct ds278x_info *info, int *_learning)
 	return 0;
 }
 
-static int ds2782_get_signal_low_batt(struct ds278x_info *info, int *_signal)
-{
-	return 0;
-	//*_signal = send_sigterm(1);
-	//return 0;
-}
-
 static int ds2782_get_charge_full(struct ds278x_info *info, int *_full)
 {
 	*_full = fully_charged;
@@ -650,10 +642,6 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 			ret = info->ops->get_battery_learning(info, &val->intval);
 			break;
 
-	case POWER_SUPPLY_PROP_SIGNAL_LOW_BATT:
-			ret = info->ops->get_battery_signal_low_batt(info, &val->intval);
-			break;
-
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 				ret = info->ops->get_battery_charge_full(info, &val->intval);
 				break;
@@ -691,7 +679,6 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_NEW_BATTERY,
 	POWER_SUPPLY_PROP_RSNS,
 	POWER_SUPPLY_PROP_LEARNING,
-	POWER_SUPPLY_PROP_SIGNAL_LOW_BATT,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
@@ -742,7 +729,6 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_rsns     = ds2782_get_rsns,
 		.get_battery_learning = ds2782_get_learning,
 		.get_battery_charge_full 	  = ds2782_get_charge_full,
-		.get_battery_signal_low_batt = ds2782_get_signal_low_batt,
 	},
 	[DS2786] = {
 		.get_battery_current  = ds2786_get_current,
