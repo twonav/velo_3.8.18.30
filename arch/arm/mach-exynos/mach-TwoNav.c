@@ -79,7 +79,6 @@ extern char *device_version;
 #include <linux/w1-gpio.h>
 #define VELO_FAN_INT    EXYNOS4X12_GPM3(0) /*IRQ XEINT8*/
 
-
 //extern void exynos4_setup_dwmci_cfg_gpio(struct platform_device *dev, int width);
 
 /* Following are default values for UCON, ULCON and UFCON UART registers */
@@ -254,10 +253,10 @@ struct tsc2007_platform_data tsc2007_info = {
 #endif
 /*END OF touchscreen config tsc2007 XE_INT22*/
 
-/* Keyboard Aventura/trail MCP23017 (I2C GPIO expander) XE_INT23*/
+/* Keyboard Aventura/trail MCP23017 (I2C GPIO expander) XE_INT14*/
 #if defined CONFIG_JOYSTICK_TWONAV_KBD
 #include <linux/input/twonav_kbd.h>
-#define twonav_kbd_irq_pin		EXYNOS4_GPX2(7) /*IRQ_EINT23*/
+#define twonav_kbd_irq_pin		EXYNOS4_GPX1(6) /*IRQ_EINT14*/
 
 static int twonav_kbd_get_pendown_state(void)
 {
@@ -358,7 +357,7 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
         {
             I2C_BOARD_INFO("twonav_kbd", 0x20),
             .platform_data  = &twonav_kbd_info,
-            .irq            = IRQ_EINT(23),
+            .irq            = IRQ_EINT(14),
         },
 #endif
 
