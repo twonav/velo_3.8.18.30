@@ -3591,8 +3591,16 @@ static ssize_t twonav_pid_show(struct device *dev,
 static ssize_t twonav_pid_store(struct device *dev,
         struct device_attribute *attr, const char *buf, size_t count)
 {
+	int pid_value = 0;
     struct s3c_hsotg *hsotg = dev_get_drvdata(dev);
-    kstrtol(buf, 10, &hsotg->twonav_pid);
+    kstrtol(buf, 10, &pid_value);
+
+    if (hsotg->twonav_pid == 0 && pid_value == 0) {
+        printk(KERN_INFO "S3C-HSOTG : ignoring repetitive attempt to mount\n");
+        return count;
+    }
+
+    hsotg->twonav_pid = pid_value;
 
     if (hsotg->twonav_pid == 0 && hsotg->usb_connected == 1) {
         if (twonav_hsotg && twonav_ctrl) {
