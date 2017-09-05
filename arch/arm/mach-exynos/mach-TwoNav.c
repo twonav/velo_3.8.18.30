@@ -288,6 +288,8 @@ struct twonav_kbd_platform_data twonav_kbd_info = {
 #endif
 /* END OF Keyboard Aventura/trail MCP23017 (I2C GPIO expander)*/
 
+/* LCD Backlight data tps611xx PWM_platform_data*/
+
 static struct tps611xx_platform_data tps611xx_data = {
 	.rfa_en = 1,
 	.en_gpio_num = EXYNOS4_GPD0(2),
@@ -299,6 +301,8 @@ static struct platform_device tps611xx = {
 		.platform_data	= &tps611xx_data,
 	},
 };
+
+/* END OF LCD Backlight data tps611xx PWM_platform_data*/
 
 /*Audio Codec MAX98090 Configuration*/
 #if defined(CONFIG_SND_SOC_MAX98090)
@@ -436,7 +440,6 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 #endif
 };
 
-/* END OF LCD Backlight data tps611xx PWM_platform_data*/
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
 #if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
@@ -572,13 +575,11 @@ void init_button_irqs(void)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
 		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
 		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
-#endif
 	}
 /*END OF GPIO KEYS KEYBOARD*/ 		
 
@@ -1039,8 +1040,6 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPF2(5));
 
-
-#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	/* BR/BL */
 	gpio_request_one(EXYNOS4_GPJ0(1), GPIOF_IN, "BR");
 	s3c_gpio_cfgpin(EXYNOS4_GPJ0(1), S3C_GPIO_INPUT );
@@ -1051,7 +1050,7 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_cfgpin(EXYNOS4_GPJ1(1), S3C_GPIO_INPUT );
 	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
 	gpio_free(EXYNOS4_GPJ1(1));
-#endif
+
 /*********************************************************************/
 /*				WIFI MODULE CONFIGURATION									 */
 /*********************************************************************/

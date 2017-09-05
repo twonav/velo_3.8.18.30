@@ -444,6 +444,11 @@ static int twonav_kbd_probe(struct i2c_client *client,
 	if (pdata->init_platform_hw)
 		pdata->init_platform_hw();
 
+	if (twonav_kbd_xfer(keyboard, JOYSTICK_INTERRUPT_FLAG) < 0){
+		dev_err(&client->dev, "Device is not present");
+		goto err_free_irq;	
+	}
+
 	input_dev->evbit[0] = BIT_MASK(EV_KEY);
 
 	__set_bit(KEY_F3, input_dev->keybit);
