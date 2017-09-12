@@ -43,6 +43,13 @@
 #define MYGRP 21
 struct sock *nl_sk = NULL;
 
+// signal handling
+#include <linux/init.h>
+#include <asm/siginfo.h>
+#include <linux/rcupdate.h>
+#include <linux/uaccess.h>
+
+
 #include <linux/sched.h>
 #include <linux/pid.h>
 
@@ -2427,6 +2434,51 @@ static void s3c_hsotg_core_init(struct s3c_hsotg *hsotg)
 	__bic32(hsotg->regs + DCTL, DCTL_SftDiscon);
 }
 
+static ssize_t s3c_hsotg_send_signal_usb_suspended(struct s3c_hsotg *hsotg) {
+	int ret;
+	struct siginfo info;
+
+	if (hsotg->usb_connected == 0) {
+		dev_dbg(hsotg->dev, "USB send suspend signal: USB setup not completed\n");
+		return 0;
+	}
+
+	hsotg->usb_connected = 0;
+	twonav_hsotg = NULL;
+	twonav_ctrl = NULL;
+
+    if (hsotg->twonav_pid == 0) {
+    	dev_dbg(hsotg->dev, "s3c_hsotg_send_signal_usb_suspended: no process registered\n");
+    	return 0;
+    }
+
+    /****************************** send the signal *****************************/
+    memset(&info, 0, sizeof(struct siginfo));
+    info.si_signo = SIGUSR1;
+    info.si_code = SI_USER;
+
+    rcu_read_lock();
+    //find the task_struct associated with this pid
+    pid_t pid = hsotg->twonav_pid;
+    struct pid *pid_struct = find_get_pid(pid);
+    struct task_struct *task = pid_task(pid_struct,PIDTYPE_PID);
+
+    if(task == NULL){
+        dev_dbg(hsotg->dev, "s3c_hsotg_send_signal_usb_suspended: No process with pid %i\n",hsotg->twonav_pid);
+        rcu_read_unlock();
+        return -ENODEV;
+    }
+
+    dev_dbg(hsotg->dev, "Sending USB suspend signal to process: %i\n",hsotg->twonav_pid);
+    rcu_read_unlock();
+    ret = send_sig_info(SIGUSR1, &info, task);    //send the signal
+    if (ret < 0) {
+        printk("s3c_hsotg_send_signal_usb_suspended: Error sending suspend signal\n");
+    }
+    return ret;
+}
+
+
 /**
  * s3c_hsotg_irq - handle device interrupt
  * @irq: The IRQ number triggered
@@ -2516,9 +2568,7 @@ irq_retry:
 				hsotg->last_rst = jiffies;
 			}
 		}
-		hsotg->usb_connected = 0;
-		twonav_hsotg = NULL;
-		twonav_ctrl = NULL;
+
 	}
 
 	/* check both FIFOs */
@@ -2562,6 +2612,10 @@ irq_retry:
 
 	if (gintsts & GINTSTS_USBSusp) {
 		dev_info(hsotg->dev, "GINTSTS_USBSusp\n");
+
+		/****** signal : cannot mount after USB is suspended ******/
+		s3c_hsotg_send_signal_usb_suspended(hsotg);
+
 		writel(GINTSTS_USBSusp, hsotg->regs + GINTSTS);
 
 		call_gadget(hsotg, suspend);
@@ -3602,11 +3656,9 @@ static ssize_t twonav_pid_store(struct device *dev,
 
     hsotg->twonav_pid = pid_value;
 
-    if (hsotg->twonav_pid == 0 && hsotg->usb_connected == 1) {
-        if (twonav_hsotg && twonav_ctrl) {
-            printk(KERN_INFO "**********MOUNTING**********\n");
-            s3c_hsotg_process_control(twonav_hsotg, twonav_ctrl);
-        }
+    if (hsotg->twonav_pid == 0 && twonav_hsotg && twonav_ctrl) {
+        printk(KERN_INFO "**********MOUNTING**********\n");
+        s3c_hsotg_process_control(twonav_hsotg, twonav_ctrl);
     }
 
     return count;
