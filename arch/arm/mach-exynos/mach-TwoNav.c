@@ -71,7 +71,7 @@
 #include "common.h"
 #include "pmic-77686.h"
 
-extern char *device_version;
+extern char *device_model;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -442,8 +442,7 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_big = {
 	.panel = {
 		.timing = {
 			.left_margin 	= 40,
@@ -462,8 +461,7 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 	.bpp 		= 32,
 	};
 
-#else
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_small = {
 		.panel = {
 			.timing = {
 				.left_margin 	= 9,
@@ -484,7 +482,6 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 		.default_win 	= 0,
 		.bpp 		= 24,
 	};
-#endif
 	
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
@@ -529,8 +526,6 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-
-#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
 		.code			= KEY_F3,
 		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
@@ -545,7 +540,6 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-#endif
 };
 
 static struct gpio_keys_platform_data twonav_gpio_keys_data = {
@@ -670,14 +664,12 @@ static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
 };
 
 /* SDCARD */
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
 	.max_width	= 4,
 	.host_caps	= MMC_CAP_4_BIT_DATA |
 			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type	= S3C_SDHCI_CD_NONE,
 };
-#endif
 
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
@@ -924,9 +916,7 @@ static struct platform_device twonav_lcd_spi = {
 static struct platform_device *twonav_devices[] __initdata = {
 	&tps611xx,
 	&s3c_device_hsmmc0,
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 	&s3c_device_hsmmc2,
-#endif
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
@@ -1024,11 +1014,15 @@ static void __init twonav_gpio_init(void)
 //	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
 
 	//Aventua/Trail ST
-	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-		gpio_free(EXYNOS4X12_GPM0(3));
-		gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
-		gpio_free(EXYNOS4X12_GPM0(3));
-	#endif
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0) || (strcmp(device_model, "base_big")==0))
+		{
+			gpio_free(EXYNOS4X12_GPM0(3));
+			gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
+			gpio_free(EXYNOS4X12_GPM0(3));
+		}
+	}
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
@@ -1161,7 +1155,7 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 
 static void __init twonav_machine_init(void)
 {
-	printk(KERN_INFO "device version: %s\n", device_version);
+	printk(KERN_INFO "\e[1;92mdevice model: %s\e[0m\n", device_model);
 
 	twonav_gpio_init();
 
@@ -1182,9 +1176,15 @@ static void __init twonav_machine_init(void)
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
 	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
-#endif
+
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "horizon")==0)
+				|| (strcmp(device_model, "base_big")==0) || (strcmp(device_model, "base_small")==0))
+		{
+			s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+		}
+	}
 	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
 //	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
@@ -1202,8 +1202,21 @@ static void __init twonav_machine_init(void)
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
 
 #if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
+
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0) || (strcmp(device_model, "base_big")==0))
+		{
+			s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_big;
+		}
+		else
+		{
+			s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_small;
+		}
+	}
+
 	exynos4_fimd0_gpio_setup_24bpp();
+
 #endif
 	init_button_irqs();
 
@@ -1225,7 +1238,7 @@ MACHINE_START(TWONAV, "TwoNav")
 	/* Maintainer: Eric Bosch <ebosch@twonav.com> */
 	.atag_offset	= 0x100,
 	.smp		= smp_ops(exynos_smp_ops),
-	.init_irq	= exynos4_init_irq,
+.init_irq = exynos4_init_irq,
 	.init_early	= exynos_firmware_init,
 	.map_io		= twonav_map_io,
 	.handle_irq	= gic_handle_irq,

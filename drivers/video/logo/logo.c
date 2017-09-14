@@ -24,7 +24,7 @@
 static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
-extern char *device;
+extern char *device_model;
 
 /* logo's are marked __initdata. Use __init_refok to tell
  * modpost that it is intended that this function uses data
@@ -34,7 +34,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 {
 	const struct linux_logo *logo = NULL;
 
-	printk(KERN_INFO "Logo: %s\n", device);
+	printk(KERN_INFO "Logo: %s\n", device_model);
 
 	if (nologo)
 		return NULL;

@@ -107,7 +107,8 @@ extern void tc_init(void);
 bool early_boot_irqs_disabled __read_mostly;
 
 char *device_version;
-char *device;
+char *device_model;
+char *device_brand;
 
 enum system_states system_state __read_mostly;
 EXPORT_SYMBOL(system_state);
@@ -265,10 +266,16 @@ static int __init pass_bootoption(char *param, char *val, const char *unused, in
 		printk(KERN_INFO "Velo version: %s\n",val);
 	}
 
-	if(strcmp(param, "device")==0)
+	if(strcmp(param, "device_model")==0)
 	{
-		device = val;
-		printk(KERN_INFO "Device: %s\n",val);
+		device_model = val;
+		printk(KERN_INFO "\e[1;92mDevice Model: %s\e[0m\n",val);
+	}
+
+	if(strcmp(param, "device_brand")==0)
+	{
+		device_brand = val;
+		printk(KERN_INFO "\e[1;92mDevice Brand: %s\e[0m\n",val);
 	}
 
 	repair_env_string(param, val, unused, all);
