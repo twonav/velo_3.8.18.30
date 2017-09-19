@@ -181,9 +181,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(capacity_rsac),
 	POWER_SUPPLY_ATTR(capacity_rarc),
 	POWER_SUPPLY_ATTR(capacity_rsrc),
-	POWER_SUPPLY_ATTR(new_battery),
 	POWER_SUPPLY_ATTR(rsns),
-	POWER_SUPPLY_ATTR(learning),
 	POWER_SUPPLY_ATTR(temp),
 	POWER_SUPPLY_ATTR(temp_alert_min),
 	POWER_SUPPLY_ATTR(temp_alert_max),
@@ -196,6 +194,8 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(time_to_full_avg),
 	POWER_SUPPLY_ATTR(type),
 	POWER_SUPPLY_ATTR(scope),
+	POWER_SUPPLY_ATTR(new_battery),
+	POWER_SUPPLY_ATTR(learning),
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
