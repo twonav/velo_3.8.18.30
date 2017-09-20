@@ -2507,6 +2507,10 @@ irq_retry:
 		dev_info(hsotg->dev, "OTGInt: %08x\n", otgint);
 
 		writel(otgint, hsotg->regs + GOTGINT);
+
+		hsotg->usb_connected = 0;
+		twonav_hsotg = NULL;
+		twonav_ctrl = NULL;
 	}
 
 	if (gintsts & GINTSTS_SessReqInt) {
@@ -2568,7 +2572,6 @@ irq_retry:
 				hsotg->last_rst = jiffies;
 			}
 		}
-
 	}
 
 	/* check both FIFOs */
