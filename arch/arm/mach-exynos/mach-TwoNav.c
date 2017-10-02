@@ -440,6 +440,26 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 #endif
 };
 
+#if defined(CONFIG_TWONAV_TESTER)
+/* I2C5 bus GPIO-Bitbanging */
+#define		GPIO_I2C5_SDA	EXYNOS4X12_GPM4(1)
+#define		GPIO_I2C5_SCL	EXYNOS4X12_GPM4(0)
+static struct 	i2c_gpio_platform_data 	i2c5_gpio_platdata = {
+	.sda_pin = GPIO_I2C5_SDA,
+	.scl_pin = GPIO_I2C5_SCL,
+	.udelay  = 5,
+	.sda_is_open_drain = 0,
+	.scl_is_open_drain = 0,
+	.scl_is_output_only = 0
+};
+
+static struct 	platform_device 	gpio_device_i2c5 = {
+	.name 	= "i2c-gpio",
+	.id  	= 5,    // adepter number
+	.dev.platform_data = &i2c5_gpio_platdata,
+};
+#endif
+
 /*Define VELO display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
 	static struct exynos_drm_fimd_pdata drm_fimd_pdata_big = {
@@ -671,6 +691,7 @@ static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
 	.cd_type	= S3C_SDHCI_CD_NONE,
 };
 
+#ifdef CONFIG_TWONAV_BASE
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
@@ -684,6 +705,7 @@ static struct wl12xx_platform_data twonav_wl12xx_wlan_data __initdata = {
 	.board_ref_clock	= WL12XX_REFCLOCK_26,
 	.platform_quirks	= WL12XX_PLATFORM_QUIRK_EDGE_IRQ,
 };
+#endif
 
 /* DWMMC */
 /*
@@ -917,10 +939,16 @@ static struct platform_device *twonav_devices[] __initdata = {
 	&tps611xx,
 	&s3c_device_hsmmc0,
 	&s3c_device_hsmmc2,
+
+#ifdef CONFIG_TWONAV_BASE
 	&s3c_device_hsmmc3,
+#endif
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
 	&gpio_device_i2c4,
+#if defined(CONFIG_TWONAV_TESTER)
+	&gpio_device_i2c5,
+#endif
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &twonav_w1_device,
 #endif
@@ -1155,8 +1183,6 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 
 static void __init twonav_machine_init(void)
 {
-	printk(KERN_INFO "\e[1;92mdevice model: %s\e[0m\n", device_model);
-
 	twonav_gpio_init();
 
 	/* Register power off function */
@@ -1185,7 +1211,9 @@ static void __init twonav_machine_init(void)
 			s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
 		}
 	}
-	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
+	#ifdef CONFIG_TWONAV_BASE
+		s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
+	#endif
 
 //	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
 //	exynos_dwmci_set_platdata(&twonav_dwmci_pdata);
@@ -1224,14 +1252,15 @@ static void __init twonav_machine_init(void)
 
 	register_reboot_notifier(&twonav_reboot_notifier_nb);
 
-	/* WIFI PLATFORM DATA
-	 * FIXME: when using backports compability, the platformdata is not set properly
-	 * and all the configuration is directly set in the driver. Should be changed 
-	 * so that the platform data is configured in this file	*/
-	twonav_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
-	printk("twonav_wl12xx_wlan_data.irq: %d\n",twonav_wl12xx_wlan_data.irq);
-	wl12xx_set_platform_data(&twonav_wl12xx_wlan_data);
-
+	#ifdef CONFIG_TWONAV_BASE
+		/* WIFI PLATFORM DATA
+		 * FIXME: when using backports compability, the platformdata is not set properly
+		 * and all the configuration is directly set in the driver. Should be changed
+		 * so that the platform data is configured in this file	*/
+		twonav_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
+		printk("twonav_wl12xx_wlan_data.irq: %d\n",twonav_wl12xx_wlan_data.irq);
+		wl12xx_set_platform_data(&twonav_wl12xx_wlan_data);
+	#endif
 }
 
 MACHINE_START(TWONAV, "TwoNav")

@@ -15,7 +15,7 @@ fi
 
 if [ $# -ne 2 ] ; then
 echo "Usage: ./build_backports.sh <DEVICE> <VERSION>"
-echo " <DEVICE> is the name of defconfig (twonav_velo, os_aventura, ...)"
+echo " <DEVICE> is the name of defconfig (twonav, flasher)"
 exit
 fi
 
@@ -25,15 +25,9 @@ VERSION=$2
 
 revision=$(
     case "$DEVICE" in
-    	("twonav_velo") echo "TwoNavVelo" ;;
-    	("twonav_aventura") echo "TwoNavAventura" ;;
-    	("twonav_horizon") echo "TwoNavHorizon" ;;
-    	("twonav_trail") echo "TwoNavTrail" ;;
-    	("os_velo") echo "OsVelo" ;;
-    	("os_aventura") echo "OsAventura" ;;
-    	("os_horizon") echo "OsHorizon" ;;
-    	("os_trail") echo "OsTrail" ;;
-		("base") echo "KernelBase" ;;
+    	("twonav") echo "TwoNavKernel" ;;
+	("flaher") echo "TwoNavFlasher" ;;
+	("tester") echo "TwoNavTester" ;;
 	(*) echo "$DEVICE" ;;
     esac)
 

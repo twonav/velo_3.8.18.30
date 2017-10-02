@@ -547,22 +547,14 @@ config MACH_TWONAV
 choice 
 	depends on MACH_TWONAV
 	prompt "Select your TwoNav Product"
-	default TWONAV_VELO
+	default TWONAV_BASE
 
-	config TWONAV_VELO
-		bool "Enable Support for Velo"
+	config TWONAV_BASE
+		bool "Enable Support for any board"
 		depends on MACH_TWONAV
-
-	config TWONAV_HORIZON
-		bool "Enable Support for Horizon"
-		depends on MACH_TWONAV
-
-	config TWONAV_AVENTURA
-		bool "Enable Support for Aventura"
-		depends on MACH_TWONAV
-
-	config TWONAV_TRAIL
-		bool "Enable Support for Trail"
+		
+	config TWONAV_FLASHER
+		bool "Enable Support for Flasher"
 		depends on MACH_TWONAV
 
 endchoice
