@@ -740,13 +740,17 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 
 static int ds2782_detect_new_battery(struct i2c_client *client)
 {
-	int r;
-	r = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
-	if (r > 0) {
+	int rsns;
+	rsns = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
+	if (rsns > 0) {
 		int learn_complete = i2c_smbus_read_byte_data(client, DS2782_Register_LearnComplete);
 		if (learn_complete) {
 			return 0;
 		}
+	}
+	else {
+		// Reset learn flag when new battery is detected
+		i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, 0x00);
 	}
 	return 1;
 }
