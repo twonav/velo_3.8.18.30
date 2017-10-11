@@ -30,6 +30,8 @@
 #include <linux/input/twonav_kbd.h>
 #include <linux/delay.h>
 
+extern char *device_model;
+
 #define DRIVER_DESC "Driver for TwoNav Aventura and Trail keyboard"
 #define MODULE_DEVICE_ALIAS "twonav_kbd" 
 
@@ -389,111 +391,118 @@ static int twonav_kbd_configure_chip(struct twonav_kbd_device *twonav_kbd,
 static int twonav_kbd_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
-	struct twonav_kbd_platform_data *pdata;
-	struct twonav_kbd_device *keyboard;
-	struct input_dev *input_dev;
-	int error;
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0) || (strcmp(device_model, "base_big")==0))
+		{
+			struct twonav_kbd_platform_data *pdata;
+			struct twonav_kbd_device *keyboard;
+			struct input_dev *input_dev;
+			int error;
 
-	dev_notice(&client->dev, "twonav_kbd_probe!\n");
-	
-	pdata = client->dev.platform_data;
-	if (!pdata) {
-		dev_err(&client->dev, "platform data is required!\n");
-		return -EINVAL;
+			dev_notice(&client->dev, "twonav_kbd_probe!\n");
+
+			pdata = client->dev.platform_data;
+			if (!pdata) {
+				dev_err(&client->dev, "platform data is required!\n");
+				return -EINVAL;
+			}
+
+			if (!client->irq) {
+				dev_err(&client->dev, "No device IRQ?\n");
+				return -EINVAL;
+			}
+
+			keyboard = kzalloc(sizeof(struct twonav_kbd_device), GFP_KERNEL);
+			input_dev = input_allocate_device();
+			if (!keyboard || !input_dev) {
+				dev_err(&client->dev,
+					"Can't allocate memory for device structure\n");
+				error = -ENOMEM;
+				goto err_free_mem;
+			}
+
+			keyboard->i2c_client = client;
+			keyboard->irq = client->irq;
+			keyboard->input_dev = input_dev;
+			init_waitqueue_head(&keyboard->wait);
+
+			keyboard->get_pendown_state = pdata->get_pendown_state;
+
+			snprintf(keyboard->phys, sizeof(keyboard->phys),
+				 "%s/input0", dev_name(&client->dev));
+
+			input_dev->name = "TwoNav keyboard";
+			input_dev->phys = keyboard->phys;
+			input_dev->id.bustype = BUS_I2C;
+
+			input_dev->open = twonav_kbd_open;
+			input_dev->close = twonav_kbd_close;
+
+			input_set_drvdata(input_dev, keyboard);
+
+			error = twonav_kbd_configure_chip(keyboard, pdata);
+			if (error) {
+				dev_err(&client->dev, "Can't configure chip");
+				goto err_free_irq;
+			}
+
+			if (pdata->init_platform_hw)
+				pdata->init_platform_hw();
+
+			if (twonav_kbd_xfer(keyboard, JOYSTICK_INTERRUPT_FLAG) < 0){
+				dev_err(&client->dev, "Device is not present");
+				goto err_free_irq;
+			}
+
+			input_dev->evbit[0] = BIT_MASK(EV_KEY);
+
+			__set_bit(KEY_F3, input_dev->keybit);
+			__set_bit(KEY_F4, input_dev->keybit);
+			__set_bit(KEY_F5, input_dev->keybit);
+			__set_bit(KEY_F6, input_dev->keybit);
+			__set_bit(KEY_UP, input_dev->keybit);
+			__set_bit(KEY_RIGHT, input_dev->keybit);
+			__set_bit(KEY_DOWN, input_dev->keybit);
+			__set_bit(KEY_LEFT, input_dev->keybit);
+			__set_bit(KEY_ENTER, input_dev->keybit);
+
+			error = request_threaded_irq(keyboard->irq,
+							 NULL,
+							 twonav_kbd_interrupt_process,
+							 IRQF_ONESHOT,
+							 client->dev.driver->name, keyboard);
+			if (error) {
+				dev_err(&client->dev, "Can't allocate twonav_kbd irq %d\n", keyboard->irq);
+				goto err_free_irq;
+			}
+			else {
+				dev_notice(&client->dev, "Allocated twonav_kbd irq %d\n", keyboard->irq);
+			}
+
+			twonav_kbd_stop(keyboard);
+
+			error = input_register_device(keyboard->input_dev);
+			if (error) {
+				dev_err(&client->dev, "Failed to register input device\n");
+				goto err_free_irq;
+			}
+
+			i2c_set_clientdata(client, keyboard);
+
+			dev_notice(&client->dev, "Init twonav_kbd driver probe success\n");
+			return 0;
+
+			err_free_irq:
+				free_irq(keyboard->irq, keyboard);
+			err_free_mem:
+				input_free_device(input_dev);
+				kfree(keyboard);
+
+			return error;
+		}
 	}
-
-	if (!client->irq) {
-		dev_err(&client->dev, "No device IRQ?\n");
-		return -EINVAL;
-	}
-
-	keyboard = kzalloc(sizeof(struct twonav_kbd_device), GFP_KERNEL);
-	input_dev = input_allocate_device();
-	if (!keyboard || !input_dev) {
-		dev_err(&client->dev,
-			"Can't allocate memory for device structure\n");
-		error = -ENOMEM;
-		goto err_free_mem;
-	}
-
-	keyboard->i2c_client = client;
-	keyboard->irq = client->irq;
-	keyboard->input_dev = input_dev;
-	init_waitqueue_head(&keyboard->wait);
-
-	keyboard->get_pendown_state = pdata->get_pendown_state;
-
-	snprintf(keyboard->phys, sizeof(keyboard->phys),
-		 "%s/input0", dev_name(&client->dev));
-
-	input_dev->name = "TwoNav keyboard";
-	input_dev->phys = keyboard->phys;
-	input_dev->id.bustype = BUS_I2C;
-
-	input_dev->open = twonav_kbd_open;
-	input_dev->close = twonav_kbd_close;
-
-	input_set_drvdata(input_dev, keyboard);
-
-	error = twonav_kbd_configure_chip(keyboard, pdata);
-	if (error) {
-		dev_err(&client->dev, "Can't configure chip");
-		goto err_free_irq;
-	}
-
-	if (pdata->init_platform_hw)
-		pdata->init_platform_hw();
-
-	if (twonav_kbd_xfer(keyboard, JOYSTICK_INTERRUPT_FLAG) < 0){
-		dev_err(&client->dev, "Device is not present");
-		goto err_free_irq;	
-	}
-
-	input_dev->evbit[0] = BIT_MASK(EV_KEY);
-
-	__set_bit(KEY_F3, input_dev->keybit);
-	__set_bit(KEY_F4, input_dev->keybit);
-	__set_bit(KEY_F5, input_dev->keybit);
-	__set_bit(KEY_F6, input_dev->keybit);
-	__set_bit(KEY_UP, input_dev->keybit);
-	__set_bit(KEY_RIGHT, input_dev->keybit);
-	__set_bit(KEY_DOWN, input_dev->keybit);
-	__set_bit(KEY_LEFT, input_dev->keybit);
-	__set_bit(KEY_ENTER, input_dev->keybit);
-
-	error = request_threaded_irq(keyboard->irq, 
-					 NULL,
-				     twonav_kbd_interrupt_process, 
-				     IRQF_ONESHOT,
-				     client->dev.driver->name, keyboard);
-	if (error) {
-		dev_err(&client->dev, "Can't allocate twonav_kbd irq %d\n", keyboard->irq);
-		goto err_free_irq;
-	}
-	else {
-		dev_notice(&client->dev, "Allocated twonav_kbd irq %d\n", keyboard->irq);
-	}
-	
-	twonav_kbd_stop(keyboard);
-
-	error = input_register_device(keyboard->input_dev);
-	if (error) {
-		dev_err(&client->dev, "Failed to register input device\n");
-		goto err_free_irq;
-	}
-
-	i2c_set_clientdata(client, keyboard);
-
-	dev_notice(&client->dev, "Init twonav_kbd driver probe success\n");
 	return 0;
-
-err_free_irq:
-	free_irq(keyboard->irq, keyboard);
-err_free_mem:
-	input_free_device(input_dev);
-	kfree(keyboard);
-
-	return error;
 }
 
 static int twonav_kbd_remove(struct i2c_client *client)

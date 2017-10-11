@@ -742,10 +742,14 @@ static int fimd_calc_clkdiv(struct fimd_context *ctx,
 
 	DRM_DEBUG_KMS("%s\n", __FILE__);
 
+	printk(KERN_INFO "lcd_clk: %d", clk);
+
 	retrace = timing->left_margin + timing->hsync_len +
 				timing->right_margin + timing->xres;
 	retrace *= timing->upper_margin + timing->vsync_len +
 				timing->lower_margin + timing->yres;
+
+	printk(KERN_INFO "lcd_retrace: %d", retrace);
 
 	/* default framerate is 60Hz */
 	if (!timing->refresh)
@@ -770,6 +774,8 @@ static int fimd_calc_clkdiv(struct fimd_context *ctx,
 			break;
 		}
 	}
+
+	printk(KERN_INFO "lcd_clkdiv: %d", clkdiv);
 
 	return clkdiv;
 }
@@ -882,6 +888,8 @@ static int fimd_probe(struct platform_device *pdev)
 	int win;
 	int ret = -EINVAL;
 
+	printk(KERN_INFO "exynos_drm_fimd: fimd_probe");
+
 	DRM_DEBUG_KMS("%s\n", __FILE__);
 
 	pdata = pdev->dev.platform_data;
@@ -959,7 +967,7 @@ static int fimd_probe(struct platform_device *pdev)
 	ctx->clkdiv = fimd_calc_clkdiv(ctx, &panel->timing);
 	panel->timing.pixclock = clk_get_rate(ctx->lcd_clk) / ctx->clkdiv;
 
-	DRM_DEBUG_KMS("pixel clock = %d, clkdiv = %d\n",
+	printk(KERN_INFO "pixel clock = %d, clkdiv = %d\n",
 			panel->timing.pixclock, ctx->clkdiv);
 
 	for (win = 0; win < WINDOWS_NR; win++)

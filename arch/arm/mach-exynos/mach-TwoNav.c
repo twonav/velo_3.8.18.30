@@ -691,7 +691,7 @@ static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
 	.cd_type	= S3C_SDHCI_CD_NONE,
 };
 
-#ifdef CONFIG_TWONAV_BASE
+#if defined (CONFIG_TWONAV_BASE) || defined (CONFIG_TWONAV_TESTER)
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
 	.max_width		= 4,
@@ -940,7 +940,7 @@ static struct platform_device *twonav_devices[] __initdata = {
 	&s3c_device_hsmmc0,
 	&s3c_device_hsmmc2,
 
-#ifdef CONFIG_TWONAV_BASE
+#if defined (CONFIG_TWONAV_BASE) || defined (CONFIG_TWONAV_TESTER)
 	&s3c_device_hsmmc3,
 #endif
 	&s3c_device_i2c0,
@@ -1148,6 +1148,13 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+
+
+/*********************************************************************/
+/*				I2C5 CONFIGURATION  								 */
+/*********************************************************************/
+	s3c_gpio_cfgall_range(EXYNOS4X12_GPM4(0), 2,
+			      S3C_GPIO_SFN(2), S3C_GPIO_PULL_UP);
 }
 
 static void twonav_power_off(void)
@@ -1211,7 +1218,7 @@ static void __init twonav_machine_init(void)
 			s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
 		}
 	}
-	#ifdef CONFIG_TWONAV_BASE
+	#if defined (CONFIG_TWONAV_BASE) || defined (CONFIG_TWONAV_TESTER)
 		s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 	#endif
 
@@ -1252,7 +1259,7 @@ static void __init twonav_machine_init(void)
 
 	register_reboot_notifier(&twonav_reboot_notifier_nb);
 
-	#ifdef CONFIG_TWONAV_BASE
+	#if defined(CONFIG_TWONAV_BASE) || defined (CONFIG_TWONAV_TESTER)
 		/* WIFI PLATFORM DATA
 		 * FIXME: when using backports compability, the platformdata is not set properly
 		 * and all the configuration is directly set in the driver. Should be changed

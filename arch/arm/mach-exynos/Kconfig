@@ -556,6 +556,11 @@ choice
 	config TWONAV_FLASHER
 		bool "Enable Support for Flasher"
 		depends on MACH_TWONAV
+		
+	config TWONAV_TESTER
+		bool "Enable Support for Tester"
+		depends on MACH_TWONAV
+		select EXYNOS4_SETUP_I2C5
 
 endchoice
 
