@@ -474,6 +474,7 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 				.vsync_len 	= 1,
 				.xres 		= 240,
 				.yres 		= 400,
+				.refresh	= 80,
 			},
 			.width_mm = 39,
 			.height_mm = 65,
