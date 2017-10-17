@@ -712,18 +712,18 @@ static struct regulator_init_data max77686_ldo22_data = {
 // LDO23 : TOUCH (2.8V)
 //-----------------------------------------------------------------------------------
 static struct regulator_consumer_supply ldo23_consumer_77686 =
-	REGULATOR_SUPPLY("vdd_touch", NULL);
+	REGULATOR_SUPPLY("vdd_buzzer", NULL);
 
 static struct regulator_init_data max77686_ldo23_data = {
 	.constraints	= {
-		.name		= "LDO23 VDD_TOUCH_2V8",
-		.min_uV		= 3300000,
-		.max_uV		= 3300000,
+		.name		= "LDO23 AUDIO.3V",
+		.min_uV		= 3000000,
+		.max_uV		= 3000000,
 		.apply_uV	= 1,
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV		= 3300000,
+			.uV		= 3000000,
 			.enabled = 1,
 		},
 	},
