@@ -492,6 +492,7 @@ static struct 	platform_device 	gpio_device_i2c5 = {
 				.vsync_len 	= 1,
 				.xres 		= 240,
 				.yres 		= 400,
+				.refresh	= 80,
 			},
 			.width_mm = 39,
 			.height_mm = 65,
