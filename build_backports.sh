@@ -26,7 +26,7 @@ VERSION=$2
 revision=$(
     case "$DEVICE" in
     	("twonav") echo "TwoNavKernel" ;;
-	("flaher") echo "TwoNavFlasher" ;;
+	("flasher") echo "TwoNavFlasher" ;;
 	("tester") echo "TwoNavTester" ;;
 	(*) echo "$DEVICE" ;;
     esac)
