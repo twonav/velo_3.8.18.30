@@ -16,5 +16,5 @@ VERSION=$1
 ./build_backports.sh os_trail $VERSION
 
 
-scp -i ~/Downloads/velo.pem ../linux-*.deb  admin@apt.twonav.com:/home/admin/Downloads/Experimental
-ssh -i ~/Downloads/velo.pem admin@apt.twonav.com "/home/admin/update-repository.sh linux-*.deb Experimental Kernel"
+#scp -i ~/Downloads/velo.pem ../linux-*.deb  admin@apt.twonav.com:/home/admin/Downloads/Experimental
+#ssh -i ~/Downloads/velo.pem admin@apt.twonav.com "/home/admin/update-repository.sh linux-*.deb Experimental Kernel"
