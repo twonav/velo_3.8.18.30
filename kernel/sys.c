@@ -389,15 +389,25 @@ static void migrate_to_reboot_cpu(void)
  */
 void kernel_restart(char *cmd)
 {
+	printk(KERN_INFO "Init restart (kernel_restart_prepare)\n");
 	kernel_restart_prepare(cmd);
+	printk(KERN_INFO "Init restart (kernel_restart_prepare OK!)\n");
+	printk(KERN_INFO "Init restart (disable_nonboot_cpus)\n");
 	disable_nonboot_cpus();
+	printk(KERN_INFO "Init restart (disable_nonboot_cpus OK!)\n");
+	printk(KERN_INFO "Init restart (syscore_shutdown)\n");
 	syscore_shutdown();
+	printk(KERN_INFO "Init restart (syscore_shutdown OK!)\n");
 	if (!cmd)
-		printk(KERN_EMERG "Restarting system.\n");
+		printk(KERN_INFO "Restarting system.\n");
 	else
-		printk(KERN_EMERG "Restarting system with command '%s'.\n", cmd);
+		printk(KERN_INFO "Restarting system with command '%s'.\n", cmd);
+	printk(KERN_INFO "Init restart (kmsg_dump)\n");
 	kmsg_dump(KMSG_DUMP_RESTART);
+	printk(KERN_INFO "Init restart (kmsg_dump OK!)\n");
+	printk(KERN_INFO "Init restart (machine_restart)\n");
 	machine_restart(cmd);
+	printk(KERN_INFO "Init restart (machine_restart OK!)\n");
 }
 EXPORT_SYMBOL_GPL(kernel_restart);
 

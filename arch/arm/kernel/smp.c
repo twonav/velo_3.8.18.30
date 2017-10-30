@@ -586,11 +586,15 @@ asmlinkage void __exception_irq_entry do_IPI(int ipinr, struct pt_regs *regs)
 
 void handle_IPI(int ipinr, struct pt_regs *regs)
 {
+	printk(KERN_INFO, "Step 1\n");
 	unsigned int cpu = smp_processor_id();
+	printk(KERN_INFO, "Step 2\n");
 	struct pt_regs *old_regs = set_irq_regs(regs);
+	printk(KERN_INFO, "Step 3\n");
 
 	if (ipinr < NR_IPI)
 		__inc_irq_stat(cpu, ipi_irqs[ipinr]);
+	printk(KERN_INFO, "Step 4\n");
 
 	switch (ipinr) {
 	case IPI_WAKEUP:
@@ -619,9 +623,13 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 		break;
 
 	case IPI_CPU_STOP:
+		printk(KERN_INFO, "Step 5\n");
 		irq_enter();
+		printk(KERN_INFO, "Step 6\n");
 		ipi_cpu_stop(cpu);
+		printk(KERN_INFO, "Step 7\n");
 		irq_exit();
+		printk(KERN_INFO, "Step 8\n");
 		break;
 
 	default:

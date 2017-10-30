@@ -666,7 +666,7 @@ static void __init twonav_usbswitch_init(void)
 static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
 	.max_width		= 4,
 	.host_caps	= MMC_CAP_4_BIT_DATA |
-			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
+			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED | MMC_CAP_HW_RESET,
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
 
@@ -1127,6 +1127,13 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+
+/*********************************************************************/
+/*				MMC CDn CONFIGURATION								 */
+/*********************************************************************/
+	s3c_gpio_cfgpin(EXYNOS4_GPK0(2), S3C_GPIO_SFN(2));
+	s3c_gpio_setpull(EXYNOS4_GPK0(2), S3C_GPIO_PULL_UP);
+	s5p_gpio_set_drvstr(EXYNOS4_GPK0(2), S5P_GPIO_DRVSTR_LV4);
 }
 
 static void twonav_power_off(void)
@@ -1142,17 +1149,21 @@ static void twonav_power_off(void)
 
 static int twonav_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
 	pr_emerg("exynos4-reboot: Notifier called\n");
-
+	printk(KERN_INFO "exynos4-reboot: CODE:%l\n", code);
+	printk(KERN_INFO "exynos4-reboot: CMD:%s\n", _cmd);
+	writel(0x12345678, S5P_INFORM2);
+	writel(0x12345670, S5P_INFORM3);
 	__raw_writel(0, S5P_INFORM4);
 
-        // eMMC HW_RST  
-        gpio_request(EXYNOS4_GPK1(2), "GPK1");
-        gpio_direction_output(EXYNOS4_GPK1(2), 0);
-        msleep(150);
-        gpio_direction_output(EXYNOS4_GPK1(2), 1);
-        gpio_free(EXYNOS4_GPK1(2));
+    // eMMC HW_RST  
+    gpio_request(EXYNOS4_GPK1(2), "GPK1");
+    gpio_direction_output(EXYNOS4_GPK1(2), 0);
+    msleep(150);
+    gpio_direction_output(EXYNOS4_GPK1(2), 1);
+    gpio_free(EXYNOS4_GPK1(2));
+        
 	msleep(500);
-        return NOTIFY_DONE;
+	return NOTIFY_DONE;
 }	
 
 

@@ -25,6 +25,7 @@ VERSION=$2
 
 revision=$(
     case "$DEVICE" in
+    	("twonav_debug") echo "TwoNavDebug" ;;
     	("twonav_velo") echo "TwoNavVelo" ;;
     	("twonav_aventura") echo "TwoNavAventura" ;;
     	("twonav_horizon") echo "TwoNavHorizon" ;;
@@ -61,11 +62,11 @@ echo "**** STEP 2 END CLEAN PREVIOUS COMPILATION ****"
 #3.BUILD KERNEL AS USUAL
 
 cd $KERNEL_SRC
-make mrproper
+#make mrproper
 #make twonav_velo_defconfig
-make $1_defconfig
+#make $1_defconfig
 #make wireless_backports_defconfig
-make oldconfig
+#make oldconfig
 make -j4
 make modules_install INSTALL_MOD_PATH=$KLIB && sync
 make modules_install INSTALL_MOD_PATH=/media/$HOMEUSERFOLDER/trusty && sync
@@ -75,9 +76,9 @@ echo "**** STEP 3 END BUILD KERNEL AS USUAL ****"
 #4.BUILD BACKPORTS
 
 cd $BACK_PORTS
-make mrproper
-make defconfig-wifi
-make oldconfig
+#make mrproper
+#make defconfig-wifi
+#make oldconfig
 make -j4
 make install
 

@@ -294,6 +294,7 @@ asmlinkage void __exception_irq_entry gic_handle_irq(struct pt_regs *regs)
 		if (irqnr < 16) {
 			writel_relaxed(irqstat, cpu_base + GIC_CPU_EOI);
 #ifdef CONFIG_SMP
+			printk(KERN_INFO, "gic_handle_irq: irqnr: %d\n", irqnr);
 			handle_IPI(irqnr, regs);
 #endif
 			continue;

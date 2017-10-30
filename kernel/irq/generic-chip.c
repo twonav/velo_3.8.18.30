@@ -354,6 +354,11 @@ static void irq_gc_shutdown(void)
 	list_for_each_entry(gc, &gc_list, list) {
 		struct irq_chip_type *ct = gc->chip_types;
 
+		struct irq_chip ch = ct->chip;
+		char* chip_name = ch.name;
+
+		printk(KERN_INFO "IRQ: %s\n", chip_name);
+
 		if (ct->chip.irq_pm_shutdown)
 			ct->chip.irq_pm_shutdown(irq_get_irq_data(gc->irq_base));
 	}
