@@ -62,7 +62,7 @@ module_param(tmr_margin,  int, 0);
 module_param(tmr_atboot,  int, 0);
 module_param(nowayout,   bool, 0);
 module_param(soft_noboot, int, 0);
-module_param(debug,	  int, 0);
+module_param(debug,	  int, 1);
 
 MODULE_PARM_DESC(tmr_margin, "Watchdog tmr_margin in seconds. (default="
 		__MODULE_STRING(CONFIG_S3C2410_WATCHDOG_DEFAULT_TIME) ")");

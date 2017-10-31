@@ -36,8 +36,8 @@ enum {
 	MAX77686_DEBUG_IRQ_INT = 1 << 2,
 };
 
-static int debug_mask = 0;
-module_param(debug_mask, int, 0);
+static int debug_mask = 1;
+module_param(debug_mask, int, 1);
 MODULE_PARM_DESC(debug_mask, "Set debug_mask : 0x0=off 0x1=IRQ_INFO  0x2=IRQ_MASK 0x4=IRQ_INI)");
 
 static const u8 max77686_mask_reg[] = {
