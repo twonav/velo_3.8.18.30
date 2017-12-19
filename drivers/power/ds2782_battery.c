@@ -42,6 +42,8 @@
 
 struct dentry *file;
 int pid = 0;
+struct timespec charger_time_start;
+
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -919,6 +921,24 @@ int check_learn_complete(struct ds278x_info *info)
 	return 0;
 }
 
+void enable_charger(int gpio)
+{
+	printk("gpio charge\n");
+	gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+	gpio_set_value(gpio,0);
+	gpio_free(gpio);
+	charger_enabled = 1;
+}
+
+void disable_charger(int gpio)
+{
+	printk("gpio discharge\n");
+	gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+	gpio_set_value(gpio,1);
+	gpio_free(gpio);
+	charger_enabled = 0;
+}
+
 int check_if_discharge(struct ds278x_info *info)
 {
 	int err;
@@ -954,23 +974,33 @@ int check_if_discharge(struct ds278x_info *info)
 	{
 		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
 		{
-			printk("gpio discharge\n");
-			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio,1);
-			gpio_free(info->gpio);
-			charger_enabled = 0;
+			disable_charger(info->gpio);
 		}
 	}
 	else
 	{
 		if(capacity <= 95 && !charger_enabled)
 		{
-			printk("gpio charge\n");
-			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio,0);
-			gpio_free(info->gpio);
-			charger_enabled = 1;
+			enable_charger(info->gpio);
 		}
+	}
+#endif
+
+
+#if defined (CONFIG_TWONAV_HORIZON || CONFIG_TWONAV_AVENTURA || CONFIG_TWONAV_TRAIL)
+	struct timespec charger_time_now;
+	getnstimeofday(&charger_time_now);
+	int diff = charger_time_now.tv_sec - charger_timer_start.tv_sec;
+
+	if (diff >= 10800) {
+		if (current_uA > 0) {
+			printk("Reseting charge timer\n");
+			gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(gpio,0);
+			gpio_set_value(gpio,1);
+			gpio_free(gpio);
+		}
+		charger_timer_start = charger_time_now;
 	}
 #endif
 
@@ -1077,6 +1107,8 @@ static int ds278x_battery_probe(struct i2c_client *client,
 
 	// Userspace interface to register pid for signal
 	file = debugfs_create_file("signal_low_battery", 0200, NULL, NULL, &my_fops);
+
+	getnstimeofday(&charger_time_start);
 
 	return 0;
 
