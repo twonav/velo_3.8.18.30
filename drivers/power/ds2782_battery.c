@@ -987,20 +987,20 @@ int check_if_discharge(struct ds278x_info *info)
 #endif
 
 
-#if defined (CONFIG_TWONAV_HORIZON || CONFIG_TWONAV_AVENTURA || CONFIG_TWONAV_TRAIL)
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	struct timespec charger_time_now;
 	getnstimeofday(&charger_time_now);
-	int diff = charger_time_now.tv_sec - charger_timer_start.tv_sec;
+	int diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
 	if (diff >= 10800) {
 		if (current_uA > 0) {
 			printk("Reseting charge timer\n");
-			gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(gpio,0);
-			gpio_set_value(gpio,1);
-			gpio_free(gpio);
+			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(info->gpio,1);
+			gpio_set_value(info->gpio,0);
+			gpio_free(info->gpio);
 		}
-		charger_timer_start = charger_time_now;
+		charger_time_start = charger_time_now;
 	}
 #endif
 
