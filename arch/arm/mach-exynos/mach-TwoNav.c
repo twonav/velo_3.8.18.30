@@ -849,6 +849,20 @@ static int lcd_cfg_gpio(void)
 	gpio_free(EXYNOS4_GPX2(0));
 	gpio_set_value(EXYNOS4_GPX2(0), 0); //SPI ID
 	
+
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
+	gpio_free(EXYNOS4X12_GPM3(6));
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
+	gpio_free(EXYNOS4X12_GPM3(6));
+
+	gpio_free(EXYNOS4X12_GPM4(3));
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
+	s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
+	gpio_free(EXYNOS4X12_GPM4(3));
+#endif
+
 	return 1;
 }
 
