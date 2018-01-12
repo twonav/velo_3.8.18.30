@@ -131,10 +131,12 @@ static struct s3c2410_uartcfg twonav_uartcfgs[] __initdata = {
 #include <linux/ds2782_battery.h>
 #define DS2786_RSNS    	20 /* Constant sense resistor value, mOhms */
 #define MAX8814_EN    	EXYNOS4X12_GPM3(1) /* Enable GPIO */
+#define CHARGING_LED    EXYNOS4X12_GPM3(0)
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
-	.gpio = MAX8814_EN,
+	.gpio_enable = MAX8814_EN,
+	.gpio_charging = CHARGING_LED,
 };
 #endif
 /*FAN54040 CONFIGURATION PLATDATA*/
