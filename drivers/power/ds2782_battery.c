@@ -44,6 +44,11 @@ struct dentry *file;
 int pid = 0;
 struct timespec charger_time_start;
 
+enum BatteryChemistry {
+	LionPoly = 0,
+	Alkaline = 1,
+	Lithium = 2
+};
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -107,6 +112,7 @@ struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
 int fully_charged = 0;
+int AA_battery = 0;
 
 #define DS2782_REG_Status	0x01
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
@@ -166,6 +172,7 @@ int fully_charged = 0;
 
 #define DS2782_Register_Command 0xFE
 #define DS2782_Register_LearnComplete 0x20
+#define DS2782_Register_Chemistry 0x21
 
 //DS2782 EEPROM values for TwoNav
 
@@ -262,6 +269,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
 	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
 	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
+	#define RECHARGABLE_BATTERY_MAX_VOLTAGE 		4210000
 #elif defined (CONFIG_TWONAV_HORIZON)
 	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
@@ -328,7 +336,8 @@ struct ds278x_info {
 	struct ds278x_battery_ops  *ops;
 	int id;
 	int rsns;
-	int gpio;
+	int gpio_enable;
+	int gpio_charging;
 	int new_battery;
 };
 
@@ -428,12 +437,67 @@ static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 	return 0;
 }
 
+static int ds2782_get_Alkaline_capacity(struct ds278x_info *info, int *capacity)
+{
+	int voltage;
+	int err;
+
+	err = info->ops->get_battery_voltage(info, &voltage);
+	if (err)
+		return err;
+
+	if (voltage >= 3991840)
+		*capacity = 100;
+	else if (voltage >= 3713680)
+		*capacity = 75;
+	else if (voltage >= 3406240)
+		*capacity = 50;
+	else if (voltage >= 3220800)
+		*capacity = 25;
+	else
+		*capacity = 0;
+
+	return 0;
+}
+
+static int ds2782_get_Lithium_capacity(struct ds278x_info *info, int *capacity)
+{
+	int voltage;
+	int err;
+
+	err = info->ops->get_battery_voltage(info, &voltage);
+	if (err)
+		return err;
+
+	if (voltage >= 4479840)
+		*capacity = 100;
+	else if (voltage >= 4392000)
+		*capacity = 75;
+	else if (voltage >= 4206560)
+		*capacity = 50;
+	else if (voltage >= 3923520)
+		*capacity = 25;
+	else
+		*capacity = 0;
+
+	return 0;
+}
+
 static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 {
 	int err;
 	u8 raw;
 
-	err = ds278x_read_reg(info, DS2782_REG_RARC, &raw);
+	u8 battery_chemistry;
+	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+
+	if (battery_chemistry == Alkaline)
+		return ds2782_get_Alkaline_capacity(info, capacity);
+	else if (battery_chemistry == Lithium)
+		return ds2782_get_Lithium_capacity(info, capacity);
+	else
+		err = ds278x_read_reg(info, DS2782_REG_RARC, &raw);
+
 	if (err)
 		return err;
 	*capacity = raw;
@@ -693,25 +757,6 @@ static void ds278x_power_supply_init(struct power_supply *battery)
 	battery->external_power_changed	= NULL;
 }
 
-static int ds278x_battery_remove(struct i2c_client *client)
-{
-	struct ds278x_info *info = i2c_get_clientdata(client);
-
-   kthread_stop(task);
-
-	power_supply_unregister(&info->battery);
-	kfree(info->battery.name);
-
-	mutex_lock(&battery_lock);
-	idr_remove(&battery_id, info->id);
-	mutex_unlock(&battery_lock);
-
-	kfree(info);
-	debugfs_remove(file);
-
-	return 0;
-}
-
 enum ds278x_num_id {
 	DS2782 = 0,
 	DS2786,
@@ -947,6 +992,12 @@ int check_if_discharge(struct ds278x_info *info)
 	int capacity;
 	int voltage;
 
+#if defined (CONFIG_TWONAV_AVENTURA)
+	int is_usb_connected;
+	struct timespec charger_time_now;
+	int diff;
+#endif
+
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(HZ);
 
@@ -974,31 +1025,61 @@ int check_if_discharge(struct ds278x_info *info)
 	{
 		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
 		{
-			disable_charger(info->gpio);
+			disable_charger(info->gpio_enable);
 		}
 	}
 	else
 	{
 		if(capacity <= 95 && !charger_enabled)
 		{
-			enable_charger(info->gpio);
+			enable_charger(info->gpio_enable);
 		}
 	}
 #endif
 
+#if defined (CONFIG_TWONAV_AVENTURA)
+	// Detect non-rechargable batteries and disable charge
+	gpio_request_one(info->gpio_charging, GPIOF_DIR_OUT, "CHARGING_LED"); // THIS IS ONLY FOR MCP73833
+	is_usb_connected = gpio_get_value(info->gpio_charging);
+	gpio_free(info->gpio_charging);
+	if (is_usb_connected) {
+		if (charger_enabled == 1)
+		{
+			if (voltage > RECHARGABLE_BATTERY_MAX_VOLTAGE)
+				AA_battery += 1;
+
+			if (AA_battery >= 5)
+			{
+				printk(KERN_INFO "ds2782: Disable charger after 5 consecutive indications of alkaline battery\n");
+				disable_charger(info->gpio_enable);
+				i2c_smbus_write_byte_data(info->client, DS2782_Register_Chemistry, 1);
+				// TODO: signal TwoNav to present a pop-up so that the user selects battery chemistry
+			}
+		}
+		else
+		{
+			// charger is disabled - check if we should enable
+			if (AA_battery == 0)
+				enable_charger(info->gpio_enable);
+		}
+	}
+	else {
+		if (charger_enabled == 0)
+			enable_charger(info->gpio_enable);
+	}
+#endif
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	struct timespec charger_time_now;
 	getnstimeofday(&charger_time_now);
-	int diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
+	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
 	if (diff >= 10800) {
-		if (current_uA > 0) {
+		if (current_uA > 0 && charger_enabled == 1) {
 			printk("Reseting charge timer\n");
-			gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio,1);
-			gpio_set_value(info->gpio,0);
-			gpio_free(info->gpio);
+			gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(info->gpio_enable,1);
+			gpio_set_value(info->gpio_enable,0);
+			gpio_free(info->gpio_enable);
 		}
 		charger_time_start = charger_time_now;
 	}
@@ -1020,9 +1101,40 @@ int check_full_battery(void *info)
 	return 0;
 }
 
+static ssize_t chemistry_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+	int value;
+	struct i2c_client * client = to_i2c_client(dev);
+	value = i2c_smbus_read_byte_data(client, DS2782_Register_Chemistry);
+    return sprintf(buf, "%d\n", value);;
+}
+
+static ssize_t chemistry_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+	int err;
+	int value;
+	struct i2c_client * client = to_i2c_client(dev);
+	err = kstrtoint(buf, 10, &value);
+	if (err < 0)
+	    return err;
+
+	if ((value>=0) && (value <= 2))
+		i2c_smbus_write_byte_data(client, DS2782_Register_Chemistry, value);
+	else
+		printk(KERN_INFO "ds2782: invalid battery chemistry\n");
+
+	return count;
+}
+
+static DEVICE_ATTR(chemistry, S_IRUGO | S_IWUSR, chemistry_show,
+		chemistry_store);
+
 static int ds278x_battery_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
+	struct device *dev = &client->dev;
 	struct ds278x_platform_data *pdata = client->dev.platform_data;
 	struct ds278x_info *info;
 	int ret;
@@ -1070,11 +1182,12 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	}
 
 	info->rsns = pdata->rsns;
-	info->gpio = pdata->gpio;
+	info->gpio_enable = pdata->gpio_enable;
+	info->gpio_charging = pdata->gpio_charging;
 
-	gpio_request_one(info->gpio, GPIOF_DIR_OUT, "MAX8814_EN");
-	charger_enabled = !gpio_get_value(info->gpio);
-	gpio_free(info->gpio);
+	gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
+	charger_enabled = !gpio_get_value(info->gpio_enable);
+	gpio_free(info->gpio_enable);
 
 	if(charger_enabled)
 	{
@@ -1108,6 +1221,9 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	// Userspace interface to register pid for signal
 	file = debugfs_create_file("signal_low_battery", 0200, NULL, NULL, &my_fops);
 
+    // Register sysfs attribute chemistry
+    device_create_file(dev, &dev_attr_chemistry);
+
 	getnstimeofday(&charger_time_start);
 
 	return 0;
@@ -1122,6 +1238,27 @@ fail_info:
 	mutex_unlock(&battery_lock);
 fail_id:
 	return ret;
+}
+
+static int ds278x_battery_remove(struct i2c_client *client)
+{
+	struct device * dev = &client->dev;
+	struct ds278x_info *info = i2c_get_clientdata(client);
+
+	kthread_stop(task);
+
+	power_supply_unregister(&info->battery);
+	kfree(info->battery.name);
+
+	mutex_lock(&battery_lock);
+	idr_remove(&battery_id, info->id);
+	mutex_unlock(&battery_lock);
+
+	kfree(info);
+	debugfs_remove(file);
+	device_remove_file(dev, &dev_attr_chemistry);
+
+	return 0;
 }
 
 static const struct i2c_device_id ds278x_id[] = {
