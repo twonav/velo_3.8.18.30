@@ -44,7 +44,11 @@ struct dentry *file;
 int pid = 0;
 struct timespec charger_time_start;
 
-enum BatteryChemistry {LionPoly = 0, Alkaline = 1, Lithium = 2};
+enum BatteryChemistry {
+	LionPoly = 0,
+	Alkaline = 1,
+	Lithium = 2
+};
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -491,8 +495,9 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 		return ds2782_get_Alkaline_capacity(info, capacity);
 	else if (battery_chemistry == Lithium)
 		return ds2782_get_Lithium_capacity(info, capacity);
+	else
+		err = ds278x_read_reg(info, DS2782_REG_RARC, &raw);
 
-	err = ds278x_read_reg(info, DS2782_REG_RARC, &raw);
 	if (err)
 		return err;
 	*capacity = raw;
