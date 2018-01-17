@@ -1101,12 +1101,9 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
-
-#if defined (CONFIG_TWONAV_AVENTURA)
 	int is_usb_connected;
 	struct timespec charger_time_now;
 	int diff;
-#endif
 
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(HZ);
