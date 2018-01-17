@@ -864,20 +864,24 @@ static int lcd_cfg_gpio(void)
 	s3c_gpio_setpull(EXYNOS4_GPX2(0), S3C_GPIO_PULL_NONE);
 	gpio_free(EXYNOS4_GPX2(0));
 	gpio_set_value(EXYNOS4_GPX2(0), 0); //SPI ID
-	
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
-	gpio_free(EXYNOS4X12_GPM3(6));
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM3(6));
+	//MCP73833 CHARGER
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "velo")!=0)) //All except Velo
+		{
+			/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
+			gpio_free(EXYNOS4X12_GPM3(6));
+			s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
+			s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
+			gpio_free(EXYNOS4X12_GPM3(6));
 
-	gpio_free(EXYNOS4X12_GPM4(3));
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM4(3));
-#endif
+			gpio_free(EXYNOS4X12_GPM4(3));
+			s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
+			s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
+			gpio_free(EXYNOS4X12_GPM4(3));
+		}
+	}
 
 	return 1;
 }

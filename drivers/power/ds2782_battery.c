@@ -52,6 +52,8 @@ enum BatteryChemistry {
 
 extern char *device_model;
 
+unsigned int RECHARGABLE_BATTERY_MAX_VOLTAGE;
+
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
     char mybuf[10];
@@ -751,23 +753,23 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x21;
 			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 			DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x0D;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x0A;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
 			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 			DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
 			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x21;
 			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
-			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
-			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x11;
+			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0F;
+			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x26;
+			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
+			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x07;
+			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
 			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1E;
 			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x12;
-			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x01;
-			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x04;
 			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x05;
 			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0A;
 			DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
@@ -781,28 +783,28 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 		{
 			DS2782_EEPROM_CONTROL_VALUE 		 = 0x00;
 			DS2782_EEPROM_AB_VALUE 				 = 0x00;
-			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x50;
+			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x54;
 			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 			DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x1A;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x40;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
-			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x03;
+			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 			DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
-			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x50;
+			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x54;
 			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
-			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
-			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x07;
-			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x0C;
-			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x07;
-			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x04;
+			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0F;
+			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x26;
+			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
+			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x06;
+			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
+			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1E;
+			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x12;
+			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0B;
 			DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
 			DS2782_EEPROM_RSGAIN_LSB_VALUE 		 = 0x00;
 			DS2782_EEPROM_RSTC_VALUE 			 = 0x00;
@@ -817,58 +819,59 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x64;
 			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 			DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x20;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x40;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
-			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x03;
+			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 			DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
 			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x64;
 			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
-			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
-			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x0A;
-			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x02;
-			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x03;
+			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0F;
+			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x26;
+			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
+			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x07;
+			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
+			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1D;
+			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x12;
+			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0A;
 			DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
 			DS2782_EEPROM_RSGAIN_LSB_VALUE 		 = 0x00;
 			DS2782_EEPROM_RSTC_VALUE 			 = 0x00;
 			DS2782_EEPROM_FRSGAIN_MSB_VALUE 	 = 0x04;
 			DS2782_EEPROM_FRSGAIN_LSB_VALUE 	 = 0x1A;
 			DS2782_EEPROM_SlaveAddressConfig_VALUE  = 0x68;
+			RECHARGABLE_BATTERY_MAX_VOLTAGE		 = 4210000
 	    }
 		else if(strcmp(device_model, "horizon")==0)
 		{
 			DS2782_EEPROM_CONTROL_VALUE 		 = 0x00;
 			DS2782_EEPROM_AB_VALUE 				 = 0x00;
-			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x1A;
-			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x99;
-			DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x0D;
+			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x1E;
+			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
+			DS2782_EEPROM_VCHG_VALUE 			 = 0xDF;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x36;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
-			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x0A;
+			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 			DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
-			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x1A;
-			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x99;
-			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
+			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x1E;
+			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
+			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0E;
+			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x25;
+			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
 			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x07;
-			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x15;
-			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x25;
-			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x16;
-			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x01;
-			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0C;
+			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
+			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1D;
+			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x13;
+			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x04;
+			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x04;
+			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0B;
 			DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
 			DS2782_EEPROM_RSGAIN_LSB_VALUE 		 = 0x00;
 			DS2782_EEPROM_RSTC_VALUE 			 = 0x00;
@@ -883,23 +886,23 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x21;
 			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 			DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x0D;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x0A;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
 			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 			DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
 			DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x21;
 			DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
-			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
-			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x06;
-			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x11;
+			DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0F;
+			DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+			DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x26;
+			DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
+			DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x07;
+			DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
 			DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1E;
 			DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x12;
-			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x01;
-			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x05;
+			DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+			DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x04;
 			DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x05;
 			DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0A;
 			DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
@@ -917,23 +920,23 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 		DS2782_EEPROM_AC_MSB_VALUE 			 = 0x21;
 		DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 		DS2782_EEPROM_VCHG_VALUE 			 = 0xD7;
-		DS2782_EEPROM_IMIN_VALUE 			 = 0x0D;
+		DS2782_EEPROM_IMIN_VALUE 			 = 0x0A;
 		DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 		DS2782_EEPROM_IAE_VALUE 			 = 0x10;
 		DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
 		DS2782_EEPROM_RSNS_VALUE 			 = 0x1F;
 		DS2782_EEPROM_Full40_MSB_VALUE 		 = 0x21;
 		DS2782_EEPROM_Full40_LSB_VALUE 		 = 0x00;
-		DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x00;
-		DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x00;
-		DS2782_EEPROM_Full1020Slope_VALUE 	 = 0xB9;
-		DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x8F;
-		DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x06;
-		DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x11;
+		DS2782_EEPROM_Full3040Slope_VALUE 	 = 0x0F;
+		DS2782_EEPROM_Full2030Slope_VALUE 	 = 0x1C;
+		DS2782_EEPROM_Full1020Slope_VALUE 	 = 0x26;
+		DS2782_EEPROM_Full0010Slope_VALUE 	 = 0x27;
+		DS2782_EEPROM_AE3040Slope_VALUE 	 = 0x07;
+		DS2782_EEPROM_AE2030Slope_VALUE 	 = 0x10;
 		DS2782_EEPROM_AE1020Slope_VALUE 	 = 0x1E;
 		DS2782_EEPROM_AE0010Slope_VALUE 	 = 0x12;
-		DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x01;
-		DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x05;
+		DS2782_EEPROM_SE3040Slope_VALUE 	 = 0x02;
+		DS2782_EEPROM_SE2030Slope_VALUE 	 = 0x04;
 		DS2782_EEPROM_SE1020Slope_VALUE 	 = 0x05;
 		DS2782_EEPROM_SE0010Slope_VALUE 	 = 0x0A;
 		DS2782_EEPROM_RSGAIN_MSB_VALUE 		 = 0x04;
@@ -1127,70 +1130,78 @@ int check_if_discharge(struct ds278x_info *info)
 	err = info->ops->get_battery_capacity(info, &capacity);
 	if (err)
 		return err;
-#if defined (CONFIG_TWONAV_VELO) // ONLY APPLICABLE IN VELO
-	if(status == POWER_SUPPLY_STATUS_FULL)
-	{
-		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
-		{
-			disable_charger(info->gpio_enable);
-		}
-	}
-	else
-	{
-		if(capacity <= 95 && !charger_enabled)
-		{
-			enable_charger(info->gpio_enable);
-		}
-	}
-#endif
 
-#if defined (CONFIG_TWONAV_AVENTURA)
-	// Detect non-rechargable batteries and disable charge
-	gpio_request_one(info->gpio_charging, GPIOF_DIR_OUT, "CHARGING_LED"); // THIS IS ONLY FOR MCP73833
-	is_usb_connected = gpio_get_value(info->gpio_charging);
-	gpio_free(info->gpio_charging);
-	if (is_usb_connected) {
-		if (charger_enabled == 1)
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if(strcmp(device_model, "velo")==0)
 		{
-			if (voltage > RECHARGABLE_BATTERY_MAX_VOLTAGE)
-				AA_battery += 1;
-
-			if (AA_battery >= 5)
+			if(status == POWER_SUPPLY_STATUS_FULL)
 			{
-				printk(KERN_INFO "ds2782: Disable charger after 5 consecutive indications of alkaline battery\n");
-				disable_charger(info->gpio_enable);
-				i2c_smbus_write_byte_data(info->client, DS2782_Register_Chemistry, 1);
-				// TODO: signal TwoNav to present a pop-up so that the user selects battery chemistry
+				if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
+				{
+					disable_charger(info->gpio_enable);
+				}
+			}
+			else
+			{
+				if(capacity <= 95 && !charger_enabled)
+				{
+					enable_charger(info->gpio_enable);
+				}
 			}
 		}
-		else
+
+		if(strcmp(device_model, "aventura")==0)
 		{
-			// charger is disabled - check if we should enable
-			if (AA_battery == 0)
-				enable_charger(info->gpio_enable);
-		}
-	}
-	else {
-		if (charger_enabled == 0)
-			enable_charger(info->gpio_enable);
-	}
-#endif
+			// Detect non-rechargable batteries and disable charge
+			gpio_request_one(info->gpio_charging, GPIOF_DIR_OUT, "CHARGING_LED"); // THIS IS ONLY FOR MCP73833
+			is_usb_connected = gpio_get_value(info->gpio_charging);
+			gpio_free(info->gpio_charging);
+			if (is_usb_connected) {
+				if (charger_enabled == 1)
+				{
+					if (voltage > RECHARGABLE_BATTERY_MAX_VOLTAGE)
+						AA_battery += 1;
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	getnstimeofday(&charger_time_now);
-	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
-
-	if (diff >= 10800) {
-		if (current_uA > 0 && charger_enabled == 1) {
-			printk("Reseting charge timer\n");
-			gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio_enable,1);
-			gpio_set_value(info->gpio_enable,0);
-			gpio_free(info->gpio_enable);
+					if (AA_battery >= 5)
+					{
+						printk(KERN_INFO "ds2782: Disable charger after 5 consecutive indications of alkaline battery\n");
+						disable_charger(info->gpio_enable);
+						i2c_smbus_write_byte_data(info->client, DS2782_Register_Chemistry, 1);
+						// TODO: signal TwoNav to present a pop-up so that the user selects battery chemistry
+					}
+				}
+				else
+				{
+					// charger is disabled - check if we should enable
+					if (AA_battery == 0)
+						enable_charger(info->gpio_enable);
+				}
+			}
+			else {
+				if (charger_enabled == 0)
+					enable_charger(info->gpio_enable);
+			}
 		}
-		charger_time_start = charger_time_now;
+
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0) || (strcmp(device_model, "horizon")==0))
+		{
+			getnstimeofday(&charger_time_now);
+			diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
+
+			if (diff >= 10800) {
+				if (current_uA > 0 && charger_enabled == 1) {
+					printk("Reseting charge timer\n");
+					gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
+					gpio_set_value(info->gpio_enable,1);
+					gpio_set_value(info->gpio_enable,0);
+					gpio_free(info->gpio_enable);
+				}
+				charger_time_start = charger_time_now;
+			}
+		}
+
 	}
-#endif
 
 	// CHECK_LEARN_CYCLE_COMPLETE
 	check_learn_complete(info);
