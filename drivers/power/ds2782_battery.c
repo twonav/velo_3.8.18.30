@@ -779,7 +779,7 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 			DS2782_EEPROM_FRSGAIN_LSB_VALUE 	 = 0x1A;
 			DS2782_EEPROM_SlaveAddressConfig_VALUE  = 0x68;
 		}
-		if(strcmp(device_model, "trail")==0)
+		else if(strcmp(device_model, "trail")==0)
 		{
 			DS2782_EEPROM_CONTROL_VALUE 		 = 0x00;
 			DS2782_EEPROM_AB_VALUE 				 = 0x00;
@@ -844,7 +844,7 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 			DS2782_EEPROM_FRSGAIN_MSB_VALUE 	 = 0x04;
 			DS2782_EEPROM_FRSGAIN_LSB_VALUE 	 = 0x1A;
 			DS2782_EEPROM_SlaveAddressConfig_VALUE  = 0x68;
-			RECHARGABLE_BATTERY_MAX_VOLTAGE		 = 4210000
+			RECHARGABLE_BATTERY_MAX_VOLTAGE		 = 4210000;
 	    }
 		else if(strcmp(device_model, "horizon")==0)
 		{
