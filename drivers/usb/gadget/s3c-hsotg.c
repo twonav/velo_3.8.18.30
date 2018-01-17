@@ -3764,10 +3764,10 @@ static int s3c_hsotg_probe(struct platform_device *pdev)
 
 	// Create /sys/devices/platform/s3c-hsotg/twonav
 	ret = sysfs_create_group(&pdev->dev.kobj, &twonav_attr_group);
-	    if (ret) {
-	        dev_err(&pdev->dev, "sysfs creation failed\n");
-	        return ret;
-	    }
+	if (ret) {
+	    dev_err(&pdev->dev, "sysfs creation failed\n");
+	    return ret;
+	}
 
 	/* reset the system */
 
