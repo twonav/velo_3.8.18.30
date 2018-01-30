@@ -112,7 +112,6 @@ struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
 int fully_charged = 0;
-int AA_battery = 0;
 
 #define DS2782_REG_Status	0x01
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
@@ -993,7 +992,6 @@ int check_if_discharge(struct ds278x_info *info)
 	int voltage;
 
 #if defined (CONFIG_TWONAV_AVENTURA)
-	int is_usb_connected;
 	struct timespec charger_time_now;
 	int diff;
 #endif
@@ -1034,38 +1032,6 @@ int check_if_discharge(struct ds278x_info *info)
 		{
 			enable_charger(info->gpio_enable);
 		}
-	}
-#endif
-
-#if defined (CONFIG_TWONAV_AVENTURA)
-	// Detect non-rechargable batteries and disable charge
-	gpio_request_one(info->gpio_charging, GPIOF_DIR_OUT, "CHARGING_LED"); // THIS IS ONLY FOR MCP73833
-	is_usb_connected = gpio_get_value(info->gpio_charging);
-	gpio_free(info->gpio_charging);
-	if (is_usb_connected) {
-		if (charger_enabled == 1)
-		{
-			if (voltage > RECHARGABLE_BATTERY_MAX_VOLTAGE)
-				AA_battery += 1;
-
-			if (AA_battery >= 5)
-			{
-				printk(KERN_INFO "ds2782: Disable charger after 5 consecutive indications of alkaline battery\n");
-				disable_charger(info->gpio_enable);
-				i2c_smbus_write_byte_data(info->client, DS2782_Register_Chemistry, 1);
-				// TODO: signal TwoNav to present a pop-up so that the user selects battery chemistry
-			}
-		}
-		else
-		{
-			// charger is disabled - check if we should enable
-			if (AA_battery == 0)
-				enable_charger(info->gpio_enable);
-		}
-	}
-	else {
-		if (charger_enabled == 0)
-			enable_charger(info->gpio_enable);
 	}
 #endif
 
