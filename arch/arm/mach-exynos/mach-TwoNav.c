@@ -292,6 +292,8 @@ struct twonav_kbd_platform_data twonav_kbd_info = {
 
 /* LCD Backlight data tps611xx PWM_platform_data*/
 
+#if defined(CONFIG_BACKLIGHT_TPS611xx)
+
 static struct tps611xx_platform_data tps611xx_data = {
 	.rfa_en = 1,
 	.en_gpio_num = EXYNOS4_GPD0(2),
@@ -303,6 +305,8 @@ static struct platform_device tps611xx = {
 		.platform_data	= &tps611xx_data,
 	},
 };
+
+#endif
 
 /* END OF LCD Backlight data tps611xx PWM_platform_data*/
 
@@ -957,7 +961,9 @@ static struct platform_device twonav_lcd_spi = {
 #endif
 
 static struct platform_device *twonav_devices[] __initdata = {
+#if defined (CONFIG_BACKLIGHT_TPS611xx)
 	&tps611xx,
+#endif
 	&s3c_device_hsmmc0,
 	&s3c_device_hsmmc2,
 
@@ -1254,10 +1260,10 @@ static void __init twonav_machine_init(void)
 	twonav_usbswitch_init();
 #endif
 
+#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
+
 	//s3c64xx_spi1_set_platdata(NULL, 0, 1);
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
-
-#if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
 
 	if((device_model != NULL) && (device_model[0] != '\0'))
 	{

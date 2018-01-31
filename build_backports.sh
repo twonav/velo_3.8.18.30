@@ -60,7 +60,7 @@ make mrproper
 make $1_defconfig
 #make wireless_backports_defconfig
 make oldconfig
-make -j4
+make -j2
 make modules_install INSTALL_MOD_PATH=$KLIB && sync
 make modules_install INSTALL_MOD_PATH=/media/$HOMEUSERFOLDER/trusty && sync
 
@@ -72,7 +72,7 @@ cd $BACK_PORTS
 make mrproper
 make defconfig-wifi
 make oldconfig
-make -j4
+make -j2
 make install
 
 echo "**** STEP 4 END BUILD BACKPORTS ****"
@@ -106,9 +106,9 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
 if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j4 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
 else
-	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j4 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
 fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
