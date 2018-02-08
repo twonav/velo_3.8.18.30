@@ -999,7 +999,7 @@ int check_if_discharge(struct ds278x_info *info)
 	int capacity;
 	int voltage;
 
-#if defined (CONFIG_TWONAV_AVENTURA)
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	struct timespec charger_time_now;
 	int diff;
 #endif
@@ -1047,7 +1047,7 @@ int check_if_discharge(struct ds278x_info *info)
 	getnstimeofday(&charger_time_now);
 	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
-	if (diff >= 10800) {
+	if (diff >= 10800) { // Reset charger timer every 3 hours
 		if (current_uA > 0 && charger_enabled == 1) {
 			printk("Reseting charge timer\n");
 			gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
