@@ -43,6 +43,7 @@
 struct dentry *file;
 int pid = 0;
 struct timespec charger_time_start;
+int mcp73833_end_of_charge = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
@@ -211,8 +212,8 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x54 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x40 //0x65
+	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x43 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -242,8 +243,8 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x64 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x40 //0x65
+	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x43 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -274,8 +275,8 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xDF //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x36 //0x65
+	#define DS2782_EEPROM_VCHG_VALUE 				0xDC //0x64
+	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A//0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -500,6 +501,13 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	if (err)
 		return err;
 	*capacity = raw;
+
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+	if (capacity >= 99 & fully_charged == 0){
+		capacity = 99;
+	}
+#endif
+
 	return 0;
 }
 
@@ -991,7 +999,7 @@ int check_if_discharge(struct ds278x_info *info)
 	int capacity;
 	int voltage;
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+#if defined (CONFIG_TWONAV_AVENTURA)
 	struct timespec charger_time_now;
 	int diff;
 #endif
@@ -1039,8 +1047,7 @@ int check_if_discharge(struct ds278x_info *info)
 	getnstimeofday(&charger_time_now);
 	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
-	if (diff >= 10800) // 3 hours
-	{
+	if (diff >= 10800) {
 		if (current_uA > 0 && charger_enabled == 1) {
 			printk("Reseting charge timer\n");
 			gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
@@ -1050,6 +1057,22 @@ int check_if_discharge(struct ds278x_info *info)
 		}
 		charger_time_start = charger_time_now;
 	}
+
+	if (current_uA >= 0) {
+		if (current_uA < 1000) {
+			if (mcp73833_end_of_charge == 0) {
+				mcp73833_end_of_charge = 1;
+				char *envp[2];
+				envp[0] = "EVENT=endofcharge";
+				envp[1] = NULL;
+				kobject_uevent_env(&dev->kobj,KOBJ_CHANGE, envp);
+			}
+		}
+		else {
+			mcp73833_end_of_charge = 0;
+		}
+	}
+
 #endif
 
 	// CHECK_LEARN_CYCLE_COMPLETE
