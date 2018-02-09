@@ -22,6 +22,7 @@ fi
 HOMEUSERFOLDER=$(logname)
 DEVICE=$1
 VERSION=$2
+UBUNTU_VERSION=`lsb_release -r | awk -F: '{ print $2 }' | awk -F. '{ print $1 }' | tr -d '[:space:]'`
 
 revision=$(
     case "$DEVICE" in
@@ -111,10 +112,10 @@ echo "**** STEP 6 END INSTALL MODULES ****"
 
 #7.BUILD PACKAGE
 cd $KERNEL_SRC
-if [ $HOMEUSERFOLDER == 'ebosch' ]; then
-	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd linux_headers linux_image
+if [ $UBUNTU_VERSION -ge 16 ]; then
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile $CCPREFIX --initrd linux_headers linux_image
 else
-	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile arm-linux-gnueabihf- --initrd --zImage linux_headers linux_image
+	DEB_HOST_ARCH=armhf make-kpkg --revision=$VERSION -j5 --rootcmd fakeroot --arch arm --cross-compile $CCPREFIX --initrd --zImage linux_headers linux_image
 fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
