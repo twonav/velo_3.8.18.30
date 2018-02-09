@@ -503,8 +503,10 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	*capacity = raw;
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	if (capacity >= 99 & fully_charged == 0){
-		capacity = 99;
+	if (mcp73833_end_of_charge == 0) {
+		if (*capacity == 100 && fully_charged == 0){
+			*capacity = 99;
+		}
 	}
 #endif
 
@@ -1065,12 +1067,15 @@ int check_if_discharge(struct ds278x_info *info)
 				char *envp[2];
 				envp[0] = "EVENT=endofcharge";
 				envp[1] = NULL;
-				kobject_uevent_env(&dev->kobj,KOBJ_CHANGE, envp);
+				kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
 			}
 		}
 		else {
 			mcp73833_end_of_charge = 0;
 		}
+	}
+	else {
+		mcp73833_end_of_charge = 0;
 	}
 
 #endif
