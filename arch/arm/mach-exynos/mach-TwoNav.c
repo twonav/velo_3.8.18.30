@@ -131,10 +131,12 @@ static struct s3c2410_uartcfg twonav_uartcfgs[] __initdata = {
 #include <linux/ds2782_battery.h>
 #define DS2786_RSNS    	20 /* Constant sense resistor value, mOhms */
 #define MAX8814_EN    	EXYNOS4X12_GPM3(1) /* Enable GPIO */
+#define CHARGING_LED    EXYNOS4X12_GPM3(0)
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
-	.gpio = MAX8814_EN,
+	.gpio_enable = MAX8814_EN,
+	.gpio_charging = CHARGING_LED,
 };
 #endif
 /*FAN54040 CONFIGURATION PLATDATA*/
@@ -849,6 +851,20 @@ static int lcd_cfg_gpio(void)
 	gpio_free(EXYNOS4_GPX2(0));
 	gpio_set_value(EXYNOS4_GPX2(0), 0); //SPI ID
 	
+
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
+	gpio_free(EXYNOS4X12_GPM3(6));
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
+	s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
+	gpio_free(EXYNOS4X12_GPM3(6));
+
+	gpio_free(EXYNOS4X12_GPM4(3));
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
+	s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
+	gpio_free(EXYNOS4X12_GPM4(3));
+#endif
+
 	return 1;
 }
 

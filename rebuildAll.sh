@@ -5,7 +5,7 @@ fi
 
 VERSION=$1
 
-./build_backports.sh base $VERSION
+#./build_backports.sh base $VERSION
 ./build_backports.sh twonav_velo $VERSION
 ./build_backports.sh twonav_aventura $VERSION
 ./build_backports.sh twonav_horizon $VERSION

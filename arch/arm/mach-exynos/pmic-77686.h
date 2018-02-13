@@ -376,19 +376,18 @@ static struct regulator_init_data max77686_ldo8_data = {
 };
 
 //-----------------------------------------------------------------------------------
-// LDO9 : VT_CORE (1.8V)
-// 2016-06-10 DNP Subimos a 1.8V: I2C SENSORS POWER ON VELO (1.8V)
+// LDO9 : VT_CORE (1.9V)
 //-----------------------------------------------------------------------------------
 static struct regulator_init_data max77686_ldo9_data = {
 	.constraints	= {
 		.name		= "LDO9 VT_CORE_1V0",
-		.min_uV		= 1850000,
-		.max_uV		= 1850000,
+		.min_uV		= 1900000,
+		.max_uV		= 1900000,
 		.apply_uV	= 1,
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV		= 1850000,
+			.uV		= 1900000,
 			.enabled = 1,
 		},
 	},
