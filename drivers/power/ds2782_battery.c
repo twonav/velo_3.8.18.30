@@ -503,7 +503,7 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	*capacity = raw;
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	if (mcp73833_end_of_charge == 0) {
+	if (mcp73833_end_of_charge == 0) { // if we are still charging
 		if (*capacity == 100 && fully_charged == 0){
 			*capacity = 99;
 		}
@@ -1060,8 +1060,11 @@ int check_if_discharge(struct ds278x_info *info)
 		charger_time_start = charger_time_now;
 	}
 
-	if (current_uA >= 0) {
+	// FIX: when Fuel Gauge is configured (i2cset) it resets some of its registers and in this case current register becomes 0
+	// So 0 should not be considered a valid value to detect EOC
+	if (current_uA > 0) {
 		if (current_uA < 1000) {
+
 			if (mcp73833_end_of_charge == 0) {
 				mcp73833_end_of_charge = 1;
 				char *envp[2];
