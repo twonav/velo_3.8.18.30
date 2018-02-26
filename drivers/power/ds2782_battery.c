@@ -1077,6 +1077,9 @@ int check_if_discharge(struct ds278x_info *info)
 			mcp73833_end_of_charge = 0;
 		}
 	}
+	else if (current_uA == 0) {
+		// Do not reset End Of Charge flag when FG resets current register due to a capacity estimation
+	}
 	else {
 		mcp73833_end_of_charge = 0;
 	}
