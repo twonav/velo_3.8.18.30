@@ -666,8 +666,8 @@ static void __init twonav_usbswitch_init(void)
 
 /*MMC SDIO*/
 static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
-	.max_width		= 4,
-	.host_caps	= MMC_CAP_4_BIT_DATA |
+	.max_width		= 8,
+	.host_caps	= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA |
 			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type		= S3C_SDHCI_CD_NONE,
 };
@@ -1137,6 +1137,14 @@ static void __init twonav_gpio_init(void)
 */
 
 /*********************************************************************/
+/*				MMC RESET CONFIGURATION								 */
+/********************************************************************
+    gpio_request_one(EXYNOS4_GPK0(2), GPIOF_OUT_INIT_HIGH, "MMC_RSTN");
+        s3c_gpio_cfgpin(EXYNOS4_GPK0(2), S3C_GPIO_OUTPUT);
+        s3c_gpio_setpull(EXYNOS4_GPK0(2), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPK0(2));
+*/
+/*********************************************************************/
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
@@ -1156,19 +1164,35 @@ static void twonav_power_off(void)
 	}
 }
 
+static void pulse_mmc_reset(void) {
+	//echo 0 && sleep 1 && echo 1
+    // eMMC HW_RST -> GPIO 139
+    int status = gpio_request(EXYNOS4_GPK0(2), "MMC_RSTN");
+    if(status) {
+    	pr_emerg("gpio_request(EXYNOS4_GPK0(2), \"MMC_RSTN\") error: %d\n", status);
+    }
+	status = gpio_direction_output(EXYNOS4_GPK0(2), 0);
+    if(status){
+    	pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), 0) error: %d\n", status);
+    }
+	msleep(500);
+	status = gpio_direction_output(EXYNOS4_GPK0(2), 1);
+    if(status){
+    	pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), 1) error: %d\n", status);
+    }
+	gpio_free(EXYNOS4_GPK0(2));
+	msleep(500);
+}
+
 static int twonav_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
-	pr_emerg("exynos4-reboot: Notifier called\n");
+	pr_emerg("twonav_device: Notifier called -> code: %d\n", code);
 
 	__raw_writel(0, S5P_INFORM4);
-
-        // eMMC HW_RST  
-        gpio_request(EXYNOS4_GPK1(2), "GPK1");
-        gpio_direction_output(EXYNOS4_GPK1(2), 0);
-        msleep(150);
-        gpio_direction_output(EXYNOS4_GPK1(2), 1);
-        gpio_free(EXYNOS4_GPK1(2));
-	msleep(500);
-        return NOTIFY_DONE;
+	if (code == SYS_RESTART){
+		pulse_mmc_reset();
+	}
+	
+	return NOTIFY_DONE;
 }	
 
 
