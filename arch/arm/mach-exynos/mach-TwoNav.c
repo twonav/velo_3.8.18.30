@@ -18,6 +18,8 @@
 #include <linux/i2c-gpio.h>
 #include <linux/i2c/pca953x.h>
 #include <linux/input.h>
+#include <linux/rtc.h>
+#include <linux/alarmtimer.h>
 #include <linux/io.h>
 #include <linux/mfd/max77686.h>
 #include <linux/mmc/host.h>
@@ -1138,12 +1140,12 @@ static void __init twonav_gpio_init(void)
 
 /*********************************************************************/
 /*				MMC RESET CONFIGURATION								 */
-/********************************************************************
-    gpio_request_one(EXYNOS4_GPK0(2), GPIOF_OUT_INIT_HIGH, "MMC_RSTN");
+/*********************************************************************/
+    gpio_request_one(EXYNOS4_GPK0(2), GPIOF_OUT_INIT_LOW, "MMC_RSTN");
         s3c_gpio_cfgpin(EXYNOS4_GPK0(2), S3C_GPIO_OUTPUT);
         s3c_gpio_setpull(EXYNOS4_GPK0(2), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPK0(2));
-*/
+
 /*********************************************************************/
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
@@ -1164,32 +1166,73 @@ static void twonav_power_off(void)
 	}
 }
 
+
+static void set_mmc_RST_n_value(int value) {
+	int status = gpio_direction_output(EXYNOS4_GPK0(2), value);
+	if(status){
+		pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), %d) error: %d\n", value, status);
+	}
+	else {
+		pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), %d) OK\n", value);
+	}
+}
+
+
 static void pulse_mmc_reset(void) {
-	//echo 0 && sleep 1 && echo 1
     // eMMC HW_RST -> GPIO 139
     int status = gpio_request(EXYNOS4_GPK0(2), "MMC_RSTN");
     if(status) {
     	pr_emerg("gpio_request(EXYNOS4_GPK0(2), \"MMC_RSTN\") error: %d\n", status);
     }
-	status = gpio_direction_output(EXYNOS4_GPK0(2), 0);
-    if(status){
-    	pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), 0) error: %d\n", status);
-    }
-	msleep(500);
-	status = gpio_direction_output(EXYNOS4_GPK0(2), 1);
-    if(status){
-    	pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), 1) error: %d\n", status);
-    }
-	gpio_free(EXYNOS4_GPK0(2));
-	msleep(500);
+    else {
+    	set_mmc_RST_n_value(0);
+		msleep(10);
+    	set_mmc_RST_n_value(1);
+		msleep(250);
+    	set_mmc_RST_n_value(0);
+		msleep(10);
+    	set_mmc_RST_n_value(1);
+		msleep(250);
+		gpio_free(EXYNOS4_GPK0(2));
+    	
+    	pr_info("pulse_mmc_reset success\n");
+	}
+}
+
+static void reboot_system(void) {
+	struct rtc_device * rtc_dev = alarmtimer_get_rtcdev();
+	if(rtc_dev){
+		struct rtc_wkalrm alarm;
+		int err = rtc_read_time(rtc_dev, &alarm.time);
+		if(err){
+			pr_crit("Error while reading time\n");
+		}
+		else {
+			unsigned long time = 0;
+			rtc_tm_to_time(&alarm.time, &time);
+			time += 2;
+			rtc_time_to_tm(time, &alarm.time);
+			alarm.enabled = 1;
+			alarm.pending = 1;
+			err = rtc_set_alarm(rtc_dev, &alarm);		
+			if(err){
+				pr_crit("Error while setting alarm\n");
+			}
+			writel(0x5200, S5P_PS_HOLD_CONTROL);
+		}
+	}
+	else {
+		pr_crit("Error while getting rtc device\n");
+	}
 }
 
 static int twonav_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
-	pr_emerg("twonav_device: Notifier called -> code: %d\n", code);
+	pr_info("twonav_device: Notifier called -> code: %d\n", code);
 
 	__raw_writel(0, S5P_INFORM4);
 	if (code == SYS_RESTART){
-		pulse_mmc_reset();
+		reset_mmc();
+		reboot_system();
 	}
 	
 	return NOTIFY_DONE;
