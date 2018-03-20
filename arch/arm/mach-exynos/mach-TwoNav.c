@@ -1168,9 +1168,9 @@ static void twonav_power_off(void)
 
 
 static void set_mmc_RST_n_value(int value) {
-	int status = gpio_direction_output(EXYNOS4_GPK0(2), value);
-	if(status){
-		pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), %d) error: %d\n", value, status);
+	int err = gpio_direction_output(EXYNOS4_GPK0(2), value);
+	if(err){
+		pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), %d) error: %d\n", value, err);
 	}
 	else {
 		pr_emerg("gpio_direction_output(EXYNOS4_GPK0(2), %d) OK\n", value);
@@ -1178,11 +1178,11 @@ static void set_mmc_RST_n_value(int value) {
 }
 
 
-static void pulse_mmc_reset(void) {
+static void mmc_reset(void) {
     // eMMC HW_RST -> GPIO 139
-    int status = gpio_request(EXYNOS4_GPK0(2), "MMC_RSTN");
-    if(status) {
-    	pr_emerg("gpio_request(EXYNOS4_GPK0(2), \"MMC_RSTN\") error: %d\n", status);
+    int err = gpio_request(EXYNOS4_GPK0(2), "MMC_RSTN");
+    if(err) {
+    	pr_emerg("gpio_request(EXYNOS4_GPK0(2), \"MMC_RSTN\") error: %d\n", err);
     }
     else {
     	set_mmc_RST_n_value(0);
@@ -1199,7 +1199,7 @@ static void pulse_mmc_reset(void) {
 	}
 }
 
-static void reboot_system(void) {
+static void set_rtc_alarm(void) {
 	struct rtc_device * rtc_dev = alarmtimer_get_rtcdev();
 	if(rtc_dev){
 		struct rtc_wkalrm alarm;
@@ -1208,9 +1208,10 @@ static void reboot_system(void) {
 			pr_crit("Error while reading time\n");
 		}
 		else {
+			const int REBOOT_DELAY_SEC = 2;
 			unsigned long time = 0;
 			rtc_tm_to_time(&alarm.time, &time);
-			time += 2;
+			time += REBOOT_DELAY_SEC;
 			rtc_time_to_tm(time, &alarm.time);
 			alarm.enabled = 1;
 			alarm.pending = 1;
@@ -1230,8 +1231,8 @@ static int twonav_reboot_notifier(struct notifier_block *this, unsigned long cod
 
 	__raw_writel(0, S5P_INFORM4);
 	if (code == SYS_RESTART){
-		reset_mmc();
-		reboot_system();
+		mmc_reset();
+		set_rtc_alarm();
 		writel(0x5200, S5P_PS_HOLD_CONTROL);
 	}
 	
