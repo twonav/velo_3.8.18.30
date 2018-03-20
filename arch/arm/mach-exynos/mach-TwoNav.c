@@ -1218,7 +1218,6 @@ static void reboot_system(void) {
 			if(err){
 				pr_crit("Error while setting alarm\n");
 			}
-			writel(0x5200, S5P_PS_HOLD_CONTROL);
 		}
 	}
 	else {
@@ -1233,6 +1232,7 @@ static int twonav_reboot_notifier(struct notifier_block *this, unsigned long cod
 	if (code == SYS_RESTART){
 		reset_mmc();
 		reboot_system();
+		writel(0x5200, S5P_PS_HOLD_CONTROL);
 	}
 	
 	return NOTIFY_DONE;
