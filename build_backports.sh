@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # http://confluence.compegps.com/display/TV/Cross+Compiling+Wireless+Backports
 
 # Requirements:
