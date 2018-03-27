@@ -971,7 +971,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		}
 		else {
 			card->ext_csd.rst_n_function = 1;
-			pr_info("Enable mmc reset function OK\n", err);
+			pr_info("Enable mmc reset function OK\n");
 		}
 	} 
 	else {

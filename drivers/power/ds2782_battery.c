@@ -43,6 +43,7 @@
 struct dentry *file;
 int pid = 0;
 struct timespec charger_time_start;
+int mcp73833_end_of_charge = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
@@ -1112,7 +1113,6 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
-	int is_usb_connected;
 	struct timespec charger_time_now;
 	int diff;
 
@@ -1164,7 +1164,7 @@ int check_if_discharge(struct ds278x_info *info)
 			getnstimeofday(&charger_time_now);
 			diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
-			if (diff >= 10800) {
+			if (diff >= 10800) {// Reset charger timer every 3 hours
 				if (current_uA > 0 && charger_enabled == 1) {
 					printk("Reseting charge timer\n");
 					gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
@@ -1190,10 +1190,10 @@ int check_if_discharge(struct ds278x_info *info)
 		 			mcp73833_end_of_charge = 0;
 		 		}
 		 	}
-		 	else if (current_uA != 0) {
-				// Do not reset End Of Charge flag when FG resets current register due to a capacity estimation
+		 	else if (current_uA < 0) {
 		 		mcp73833_end_of_charge = 0;
 		 	}
+			// if (current_uA = 0) Do not reset End Of Charge flag when FG resets current register due to a capacity estimation
 		}
 
 	}
