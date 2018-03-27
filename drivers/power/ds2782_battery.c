@@ -717,14 +717,6 @@ static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *clie
 
 static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 {
-	*new_battery = ds2782_detect_new_battery(client);
-
-	if (!new_battery)
-		return 0;
-
-	printk(KERN_INFO "NEW BATTERY\n");
-
-
 	unsigned int DS2782_EEPROM_CONTROL_VALUE;
 	unsigned int DS2782_EEPROM_AB_VALUE;
 	unsigned int DS2782_EEPROM_AC_MSB_VALUE;
@@ -755,6 +747,12 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	unsigned int DS2782_EEPROM_FRSGAIN_MSB_VALUE;
 	unsigned int DS2782_EEPROM_FRSGAIN_LSB_VALUE;
 	unsigned int DS2782_EEPROM_SlaveAddressConfig_VALUE;
+
+	*new_battery = ds2782_detect_new_battery(client);
+	if (!new_battery)
+		return 0;
+
+	printk(KERN_INFO "NEW BATTERY\n");
 
 	if((device_model != NULL) && (device_model[0] != '\0'))
 	{
@@ -1179,10 +1177,10 @@ int check_if_discharge(struct ds278x_info *info)
 			if (current_uA > 0) {
 				if (current_uA < 1000) {
 					if (mcp73833_end_of_charge == 0) {
-		 				mcp73833_end_of_charge = 1;
 		 				char *envp[2];
 		 				envp[0] = "EVENT=endofcharge";
 		 				envp[1] = NULL;
+		 				mcp73833_end_of_charge = 1;
 		 				kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
 		 			}
 		 		}
