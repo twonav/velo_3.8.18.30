@@ -43,6 +43,7 @@
 struct dentry *file;
 int pid = 0;
 struct timespec charger_time_start;
+int mcp73833_end_of_charge = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
@@ -116,7 +117,6 @@ struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
 int fully_charged = 0;
-int AA_battery = 0;
 
 #define DS2782_REG_Status	0x01
 #define DS2782_REG_RAAC		0x02	/* Remaining Active Absolute Capacity */
@@ -376,6 +376,18 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	if (err)
 		return err;
 	*capacity = raw;
+
+	if((device_model != NULL) && (device_model[0] != '\0')) {
+		if((strcmp(device_model, "aventura") == 0) || (strcmp(device_model, "trail") == 0) || (strcmp(device_model, "horizon") == 0))
+		{
+			if (mcp73833_end_of_charge == 0) { // if we are still charging
+				if (*capacity == 100 && fully_charged == 0){
+	 				*capacity = 99;
+	 			}
+ 			}
+		}
+	}
+
 	return 0;
 }
 
@@ -705,14 +717,6 @@ static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *clie
 
 static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 {
-	*new_battery = ds2782_detect_new_battery(client);
-
-	if (!new_battery)
-		return 0;
-
-	printk(KERN_INFO "NEW BATTERY\n");
-
-
 	unsigned int DS2782_EEPROM_CONTROL_VALUE;
 	unsigned int DS2782_EEPROM_AB_VALUE;
 	unsigned int DS2782_EEPROM_AC_MSB_VALUE;
@@ -743,6 +747,12 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	unsigned int DS2782_EEPROM_FRSGAIN_MSB_VALUE;
 	unsigned int DS2782_EEPROM_FRSGAIN_LSB_VALUE;
 	unsigned int DS2782_EEPROM_SlaveAddressConfig_VALUE;
+
+	*new_battery = ds2782_detect_new_battery(client);
+	if (!new_battery)
+		return 0;
+
+	printk(KERN_INFO "NEW BATTERY\n");
 
 	if((device_model != NULL) && (device_model[0] != '\0'))
 	{
@@ -1101,7 +1111,6 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
-	int is_usb_connected;
 	struct timespec charger_time_now;
 	int diff;
 
@@ -1148,45 +1157,12 @@ int check_if_discharge(struct ds278x_info *info)
 			}
 		}
 
-		if(strcmp(device_model, "aventura")==0)
-		{
-			// Detect non-rechargable batteries and disable charge
-			gpio_request_one(info->gpio_charging, GPIOF_DIR_OUT, "CHARGING_LED"); // THIS IS ONLY FOR MCP73833
-			is_usb_connected = gpio_get_value(info->gpio_charging);
-			gpio_free(info->gpio_charging);
-			if (is_usb_connected) {
-				if (charger_enabled == 1)
-				{
-					if (voltage > RECHARGABLE_BATTERY_MAX_VOLTAGE)
-						AA_battery += 1;
-
-					if (AA_battery >= 5)
-					{
-						printk(KERN_INFO "ds2782: Disable charger after 5 consecutive indications of alkaline battery\n");
-						disable_charger(info->gpio_enable);
-						i2c_smbus_write_byte_data(info->client, DS2782_Register_Chemistry, 1);
-						// TODO: signal TwoNav to present a pop-up so that the user selects battery chemistry
-					}
-				}
-				else
-				{
-					// charger is disabled - check if we should enable
-					if (AA_battery == 0)
-						enable_charger(info->gpio_enable);
-				}
-			}
-			else {
-				if (charger_enabled == 0)
-					enable_charger(info->gpio_enable);
-			}
-		}
-
 		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0) || (strcmp(device_model, "horizon")==0))
 		{
 			getnstimeofday(&charger_time_now);
 			diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
 
-			if (diff >= 10800) {
+			if (diff >= 10800) {// Reset charger timer every 3 hours
 				if (current_uA > 0 && charger_enabled == 1) {
 					printk("Reseting charge timer\n");
 					gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
@@ -1196,6 +1172,26 @@ int check_if_discharge(struct ds278x_info *info)
 				}
 				charger_time_start = charger_time_now;
 			}
+			// FIX: when Fuel Gauge is configured (i2cset) it resets some of its registers and in this case current register becomes 0
+			// So 0 should not be considered a valid value to detect EOC
+			if (current_uA > 0) {
+				if (current_uA < 1000) {
+					if (mcp73833_end_of_charge == 0) {
+		 				char *envp[2];
+		 				envp[0] = "EVENT=endofcharge";
+		 				envp[1] = NULL;
+		 				mcp73833_end_of_charge = 1;
+		 				kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
+		 			}
+		 		}
+		 		else {
+		 			mcp73833_end_of_charge = 0;
+		 		}
+		 	}
+		 	else if (current_uA < 0) {
+		 		mcp73833_end_of_charge = 0;
+		 	}
+			// if (current_uA = 0) Do not reset End Of Charge flag when FG resets current register due to a capacity estimation
 		}
 
 	}
