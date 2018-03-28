@@ -74,6 +74,7 @@
 #include "pmic-77686.h"
 
 extern char *device_model;
+#define PS_HOLD_RESET	0x5200
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -1197,7 +1198,7 @@ static void twonav_power_off(void)
 {
 	pr_emerg("Bye...\n");
 
-	writel(0x5200, S5P_PS_HOLD_CONTROL);
+	writel(PS_HOLD_RESET, S5P_PS_HOLD_CONTROL);
 	while (1) {
 		pr_emerg("%s : should not reach here!\n", __func__);
 		msleep(1000);
@@ -1265,7 +1266,7 @@ static int twonav_reboot_notifier(struct notifier_block *this, unsigned long cod
 	if(code == SYS_RESTART) {
 		mmc_reset();
 		set_rtc_alarm();
-		writel(0x5200, S5P_PS_HOLD_CONTROL);
+		writel(PS_HOLD_RESET, S5P_PS_HOLD_CONTROL);
 	}
 	    
     return NOTIFY_DONE;

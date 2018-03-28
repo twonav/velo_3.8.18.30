@@ -16,7 +16,7 @@ fi
 
 if [ $# -ne 2 ] ; then
 echo "Usage: ./build_backports.sh <DEVICE> <VERSION>"
-echo " <DEVICE> is the name of defconfig (twonav, flasher)"
+echo " <DEVICE> is the name of defconfig (twonav, flasher, tester)"
 exit
 fi
 
