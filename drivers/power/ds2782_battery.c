@@ -45,6 +45,10 @@ int pid = 0;
 struct timespec charger_time_start;
 int mcp73833_end_of_charge = 0;
 
+#define CAPACITY_EQUAL_MEASUREMENTS 5
+int consecutive_equal_capacity_measurements = -1;
+int stable_capacity_value;
+
 enum BatteryChemistry {
 	LionPoly = 0,
 	Alkaline = 1,
@@ -420,6 +424,10 @@ static int ds2782_get_current(struct ds278x_info *info, int *current_uA)
 	return 0;
 }
 
+static int ds2782_raw_voltage_to_uV(const s16 raw) {
+	return (raw / 32) * 4880;
+}
+
 static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 {
 	s16 raw;
@@ -433,8 +441,34 @@ static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 	if (err)
 		return err;
 
-	*voltage_uV = (raw / 32) * 4880;
+	*voltage_uV = ds2782_raw_voltage_to_uV(raw);
 	return 0;
+}
+
+static void filter_capacity_measurement(int* capacity) {
+	if (consecutive_equal_capacity_measurements == -1) {
+		stable_capacity_value = *capacity;
+		consecutive_equal_capacity_measurements = 0;
+	}
+
+	if (*capacity == stable_capacity_value) {
+		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements + 1;
+	}
+	else {
+		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements - 1;
+	}
+
+	if (consecutive_equal_capacity_measurements >= CAPACITY_EQUAL_MEASUREMENTS) {
+		*capacity = stable_capacity_value;
+		consecutive_equal_capacity_measurements = CAPACITY_EQUAL_MEASUREMENTS;
+	}
+	else if (consecutive_equal_capacity_measurements <= 0) {
+		stable_capacity_value = *capacity;
+		consecutive_equal_capacity_measurements = CAPACITY_EQUAL_MEASUREMENTS;
+	}
+	else {
+		*capacity = stable_capacity_value;
+	}
 }
 
 static int ds2782_get_Alkaline_capacity(struct ds278x_info *info, int *capacity)
@@ -446,16 +480,23 @@ static int ds2782_get_Alkaline_capacity(struct ds278x_info *info, int *capacity)
 	if (err)
 		return err;
 
-	if (voltage >= 3991840)
+	if (voltage < 4200000)
+		return -1; // this should never happen and it would be an error
+
+	if (voltage <= 4270000)
 		*capacity = 100;
-	else if (voltage >= 3713680)
-		*capacity = 75;
-	else if (voltage >= 3406240)
+	else if (voltage <= 4275000)
 		*capacity = 50;
-	else if (voltage >= 3220800)
+	else if (voltage <= 4280000)
 		*capacity = 25;
+	else if (voltage <= 4285000)
+		*capacity = 10;
+	else if (voltage <= 4290000)
+		*capacity = 5;
 	else
 		*capacity = 0;
+
+	filter_capacity_measurement(capacity);
 
 	return 0;
 }
@@ -469,16 +510,23 @@ static int ds2782_get_Lithium_capacity(struct ds278x_info *info, int *capacity)
 	if (err)
 		return err;
 
-	if (voltage >= 4479840)
+	if (voltage < 4200000)
+		return -1; // this should never happen and it would be an error
+
+	if (voltage <= 4270000)
 		*capacity = 100;
-	else if (voltage >= 4392000)
-		*capacity = 75;
-	else if (voltage >= 4206560)
+	else if (voltage <= 4275000)
 		*capacity = 50;
-	else if (voltage >= 3923520)
+	else if (voltage <= 4280000)
 		*capacity = 25;
+	else if (voltage <= 4285000)
+		*capacity = 10;
+	else if (voltage <= 4290000)
+		*capacity = 5;
 	else
 		*capacity = 0;
+
+	filter_capacity_measurement(capacity);
 
 	return 0;
 }
@@ -837,6 +885,28 @@ static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *clie
 }
 */
 
+static void ds2782_autodetect_battery_type(struct i2c_client *client) {
+	s16 raw;
+	int voltage;
+	int chemistry;
+	int err;
+	err = i2c_smbus_read_word_data(client, DS278x_REG_VOLT_MSB);
+	if (err < 0) {
+		return;
+	}
+
+	raw = swab16(err);
+	voltage = ds2782_raw_voltage_to_uV(raw);
+
+	if (voltage > 4250000) {
+		chemistry = Alkaline;
+	} else {
+		chemistry = LionPoly;
+	}
+
+	i2c_smbus_write_byte_data(client, DS2782_Register_Chemistry, chemistry);
+}
+
 static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 {
 	*new_battery = ds2782_detect_new_battery(client);
@@ -845,6 +915,10 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 		return 0;
 
 	printk(KERN_INFO "NEW BATTERY\n");
+
+	#if defined (CONFIG_TWONAV_AVENTURA)
+		ds2782_autodetect_battery_type(client);
+	#endif
 
 	// Configure the IC only if new battery detected;
 	// Values extracted from the DS2782K Test kit
@@ -1000,6 +1074,13 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
+
+#if defined (CONFIG_TWONAV_AVENTURA)
+	u8 battery_chemistry;
+	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+	if (battery_chemistry != LionPoly)
+		return 0; // Exit if AAA batteries are installed
+#endif
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	struct timespec charger_time_now;
