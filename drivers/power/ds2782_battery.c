@@ -489,9 +489,9 @@ static int ds2782_get_Alkaline_capacity(struct ds278x_info *info, int *capacity)
 		*capacity = 50;
 	else if (voltage <= 4280000)
 		*capacity = 25;
-	else if (voltage >= 4285000)
+	else if (voltage <= 4285000)
 		*capacity = 10;
-	else if (voltage >= 4290000)
+	else if (voltage <= 4290000)
 		*capacity = 5;
 	else
 		*capacity = 0;
