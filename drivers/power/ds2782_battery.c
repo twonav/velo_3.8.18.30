@@ -40,6 +40,8 @@
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
 
+#include <linux/queue.h>
+
 struct dentry *low_batt_signal_file;
 int pid = 0;
 struct timespec charger_time_start;
@@ -48,86 +50,17 @@ int mcp73833_end_of_charge = 0;
 #define AA_CAPACITY_EQUAL_MEASUREMENTS 5
 #define AA_VOLTAGE_FILTER_SIZE 10
 #define AA_TIMER_SAMPLE 5
-Queue* voltage_queue;
+queue* voltage_queue;
 int aa_timer_count = 0;
 int consecutive_equal_capacity_measurements = -1;
 int stable_capacity_value;
+int voltage_sum = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
 	Alkaline = 1,
 	Lithium = 2
 };
-
-Queue* qCreate(int maxSize) {
-	Queue* q;
-	q = (Queue *) kmalloc(sizeof(Queue), GFP_ATOMIC);
-	if (!q) {
-		printk(KERN_ALERT "qCreate:kmalloc failed\n");
-		return q;
-	}
-
-	INIT_LIST_HEAD(&(q->list));
-	q->currentSize = 0;
-	q->maxSize = maxSize;
-	q->sum = 0;
-	return q;
-}
-
-void qDelete(Queue *q) {
-	while (qDequeue(q) ){
-		continue;
-	}
-	kfree((void *) q);
-	return;
-}
-
-void* qDequeue(Queue *q) {
-	QueueItem *   qi;
-	void *        item;
-
-	if (qIsEmpty(q)) {
-		return NULL;
-	}
-
-	qi = list_first_entry(&(q->list), QueueItem, list);
-	item = qi->item;
-	list_del(&(qi->list));
-	kfree((void *) qi);
-	q->currentSize = q->currentSize - 1;
-	q->sum = q->sum - *(int*)item;
-
-	return item;
-}
-
-void qEnqueue(Queue *q, void *item) {
-	QueueItem *   qi;
-
-	if (qIsFull(q)) {
-		qDequeue(q);
-	}
-
-	qi = (QueueItem *) kmalloc(sizeof(QueueItem), GFP_ATOMIC);
-	if (! qi) {
-		printk(KERN_ALERT "XXXX qEnqueue:kmalloc failed\n");
-		return;
-	}
-
-	qi->item = item;
-	list_add_tail(&(qi->list), &(q->list));
-	q->currentSize = q->currentSize + 1;
-	q->sum = q->sum + *(int*)item;
-
-	return;
-}
-
-int qIsEmpty(Queue *q) {
-   return list_empty(&(q->list));
-}
-
-int qIsFull(Queue *q) {
-   return q->currentSize == q->maxSize;
-}
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -519,7 +452,7 @@ static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 	return 0;
 }
 
-static int filter_capacity_measurement(int capacity) {
+static int ds2782_filter_capacity_measurement(int capacity) {
 	if (consecutive_equal_capacity_measurements == -1) {
 		stable_capacity_value = capacity;
 		consecutive_equal_capacity_measurements = 0;
@@ -542,7 +475,7 @@ static int filter_capacity_measurement(int capacity) {
 	return 0;
 }
 
-static int update_Alkaline_capacity(int voltage_now, int current_now)
+static int ds2782_update_Alkaline_capacity(int voltage_now, int current_now)
 {
 	int capacity;
 
@@ -570,11 +503,11 @@ static int update_Alkaline_capacity(int voltage_now, int current_now)
 		else
 			capacity = 0;
 	}
-	filter_capacity_measurement(capacity);
+	ds2782_filter_capacity_measurement(capacity);
 	return 0;
 }
 
-static int update_Lithium_capacity(int voltage_now, int current_now)
+static int ds2782_update_Lithium_capacity(int voltage_now, int current_now)
 {
 	int capacity;
 	if (current_now >= -185000) {
@@ -602,11 +535,11 @@ static int update_Lithium_capacity(int voltage_now, int current_now)
 			capacity = 0;
 	}
 
- 	filter_capacity_measurement(capacity);
+ 	ds2782_filter_capacity_measurement(capacity);
  	return 0;
 }
 
-static int calculate_AA_weighted_voltage_average(int voltage_average, const u8 battery_chemistry) {
+static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, const u8 battery_chemistry) {
 	int sum_lower;
 	int sum_higher;
 	int n_lower;
@@ -621,8 +554,8 @@ static int calculate_AA_weighted_voltage_average(int voltage_average, const u8 b
 	n_lower = 0;
 	n_higher = 0;
 	list_for_each(i, &voltage_queue->list) {
-		struct QueueItem* queueItem = list_entry(i, struct QueueItem, list);
-		int value = *(int*)queueItem->item;
+		struct queue_item* q_item = list_entry(i, struct queue_item, list);
+		int value = *(int*)q_item->item;
 		if (value >= voltage_average) {
 			sum_higher = sum_higher + value;
 			n_higher = n_higher + 1;
@@ -643,30 +576,37 @@ static int calculate_AA_weighted_voltage_average(int voltage_average, const u8 b
 		weight_lower = 3;
 		weight_higher = 7;
 	}
-	weighted_average = (weight_lower * sum_lower + weight_higher * sum_higher) / (weight_lower * n_lower + weight_higher * n_higher);
+	weighted_average = (weight_lower * sum_lower + weight_higher * sum_higher) /
+			(weight_lower * n_lower + weight_higher * n_higher);
 
 	return weighted_average;
 }
 
-static int update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
+static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
 	int voltage_average;
 	int weighted_average;
 	struct list_head *i;
-
+	void * removed_item;
 
 	if (voltage_now < 4200000) {
 		printk(KERN_ALERT "DS2782: AA batteries with V < 4.2V\n");
 		return -1;
 	}
 
-	qEnqueue(voltage_queue, &voltage_now);
-	voltage_average = voltage_queue->sum / voltage_queue->currentSize;
-	weighted_average = calculate_AA_weighted_voltage_average(voltage_average, battery_chemistry);
+	removed_item = queue_enqueue(voltage_queue, &voltage_now);
+	voltage_sum = voltage_sum + voltage_now;
+	if (removed_item) {
+		voltage_sum = voltage_sum - *(int*)removed_item;
+		kfree(removed_item);
+	}
+
+	voltage_average = voltage_sum / voltage_queue->current_size;
+	weighted_average = ds2782_calculate_AA_weighted_voltage_average(voltage_average, battery_chemistry);
 
 	if (battery_chemistry == Alkaline)
-		update_Alkaline_capacity(weighted_average, current_now);
+		ds2782_update_Alkaline_capacity(weighted_average, current_now);
 	else if (battery_chemistry == Lithium)
-		update_Lithium_capacity(weighted_average, current_now);
+		ds2782_update_Lithium_capacity(weighted_average, current_now);
 
 	return 0;
 }
@@ -1244,10 +1184,10 @@ int check_if_discharge(struct ds278x_info *info)
 	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
 	if (battery_chemistry != LionPoly) {
 		if (aa_timer_count % AA_TIMER_SAMPLE == 0) {
-			update_AA_capacity(voltage, current_uA, battery_chemistry);
+			ds2782_update_AA_capacity(voltage, current_uA, battery_chemistry);
 			aa_timer_count = 0;
 		}
-		aa_timer_count = aa_timer_count + 1;
+		aa_timer_count = aa_timer_count +1;
 		return 0; // Exit if AAA batteries are installed
 	}
 #endif
@@ -1454,7 +1394,7 @@ static int ds278x_battery_probe(struct i2c_client *client,
     device_create_file(dev, &dev_attr_chemistry);
 
 #if defined (CONFIG_TWONAV_AVENTURA)
-    voltage_queue = qCreate(AA_VOLTAGE_FILTER_SIZE);
+    voltage_queue = queue_create(AA_VOLTAGE_FILTER_SIZE);
 #endif
 
 	getnstimeofday(&charger_time_start);
@@ -1491,7 +1431,7 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	debugfs_remove(low_batt_signal_file);
 	device_remove_file(dev, &dev_attr_chemistry);
 #if defined (CONFIG_TWONAV_AVENTURA)
-	qDelete(voltage_queue);
+	queue_delete(voltage_queue);
 #endif
 
 	return 0;
