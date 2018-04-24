@@ -504,6 +504,7 @@ static int ds2782_update_Alkaline_capacity(int voltage_now, int current_now)
 		else
 			capacity = 0;
 	}
+
 	ds2782_filter_capacity_measurement(capacity);
 	return 0;
 }
@@ -1190,6 +1191,13 @@ int check_if_discharge(struct ds278x_info *info)
 	int capacity;
 	int voltage;
 	u8 battery_chemistry;
+
+#if defined (CONFIG_TWONAV_AVENTURA)
+	u8 battery_chemistry;
+	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+	if (battery_chemistry != LionPoly)
+		return 0; // Exit if AAA batteries are installed
+#endif
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	struct timespec charger_time_now;
