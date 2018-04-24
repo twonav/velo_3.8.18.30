@@ -1193,7 +1193,6 @@ int check_if_discharge(struct ds278x_info *info)
 	u8 battery_chemistry;
 
 #if defined (CONFIG_TWONAV_AVENTURA)
-	u8 battery_chemistry;
 	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
 	if (battery_chemistry != LionPoly)
 		return 0; // Exit if AAA batteries are installed
