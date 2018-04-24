@@ -59,7 +59,8 @@ int voltage_sum = 0;
 enum BatteryChemistry {
 	LionPoly = 0,
 	Alkaline = 1,
-	Lithium = 2
+	Lithium = 2,
+	NiMH = 3,
 };
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
@@ -539,6 +540,38 @@ static int ds2782_update_Lithium_capacity(int voltage_now, int current_now)
  	return 0;
 }
 
+static int ds2782_update_NiMH_capacity(int voltage_now, int current_now)
+{
+	int capacity;
+	if (current_now >= -185000) {
+		if (voltage_now <= 4310000)
+			capacity = 100;
+		else if (voltage_now <= 4340000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else if (current_now >= -210000){
+		if (voltage_now <= 4298750)
+			capacity = 100;
+		else if (voltage_now <= 4320000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else {
+		if (voltage_now <= 4287500)
+			capacity = 100;
+		else if (voltage_now <= 4300000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+
+ 	ds2782_filter_capacity_measurement(capacity);
+ 	return 0;
+}
+
 static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, const u8 battery_chemistry) {
 	int sum_lower;
 	int sum_higher;
@@ -566,7 +599,7 @@ static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, con
 		}
 	}
 
-	if (battery_chemistry == Alkaline){
+	if (battery_chemistry == Alkaline || battery_chemistry == NiMH){
 		weight_lower = 2;
 		weight_higher = 8;
 	} else if (battery_chemistry == Lithium) {
@@ -607,6 +640,8 @@ static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 batter
 		ds2782_update_Alkaline_capacity(weighted_average, current_now);
 	else if (battery_chemistry == Lithium)
 		ds2782_update_Lithium_capacity(weighted_average, current_now);
+	else if (battery_chemistry == NiMH)
+		ds2782_update_NiMH_capacity(weighted_average, current_now);
 
 	return 0;
 }
