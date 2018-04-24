@@ -40,19 +40,27 @@
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
 
-struct dentry *file;
+#include <linux/queue.h>
+
+struct dentry *low_batt_signal_file;
 int pid = 0;
 struct timespec charger_time_start;
 int mcp73833_end_of_charge = 0;
 
-#define CAPACITY_EQUAL_MEASUREMENTS 5
+#define AA_CAPACITY_EQUAL_MEASUREMENTS 5
+#define AA_VOLTAGE_FILTER_SIZE 10
+#define AA_TIMER_SAMPLE 5
+queue* voltage_queue;
+int aa_timer_count = 0;
 int consecutive_equal_capacity_measurements = -1;
 int stable_capacity_value;
+int voltage_sum = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
 	Alkaline = 1,
-	Lithium = 2
+	Lithium = 2,
+	NiMH = 3,
 };
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
@@ -445,88 +453,196 @@ static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 	return 0;
 }
 
-static void filter_capacity_measurement(int* capacity) {
+static int ds2782_filter_capacity_measurement(int capacity) {
 	if (consecutive_equal_capacity_measurements == -1) {
-		stable_capacity_value = *capacity;
+		stable_capacity_value = capacity;
 		consecutive_equal_capacity_measurements = 0;
 	}
 
-	if (*capacity == stable_capacity_value) {
+	if (capacity == stable_capacity_value) {
 		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements + 1;
 	}
 	else {
 		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements - 1;
 	}
 
-	if (consecutive_equal_capacity_measurements >= CAPACITY_EQUAL_MEASUREMENTS) {
-		*capacity = stable_capacity_value;
-		consecutive_equal_capacity_measurements = CAPACITY_EQUAL_MEASUREMENTS;
+	if (consecutive_equal_capacity_measurements >= AA_CAPACITY_EQUAL_MEASUREMENTS) {
+		consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
 	}
 	else if (consecutive_equal_capacity_measurements <= 0) {
-		stable_capacity_value = *capacity;
-		consecutive_equal_capacity_measurements = CAPACITY_EQUAL_MEASUREMENTS;
+		stable_capacity_value = capacity;
+		consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
 	}
-	else {
-		*capacity = stable_capacity_value;
-	}
-}
-
-static int ds2782_get_Alkaline_capacity(struct ds278x_info *info, int *capacity)
-{
-	int voltage;
-	int err;
-
-	err = info->ops->get_battery_voltage(info, &voltage);
-	if (err)
-		return err;
-
-	if (voltage < 4200000)
-		return -1; // this should never happen and it would be an error
-
-	if (voltage <= 4270000)
-		*capacity = 100;
-	else if (voltage <= 4275000)
-		*capacity = 50;
-	else if (voltage <= 4280000)
-		*capacity = 25;
-	else if (voltage <= 4285000)
-		*capacity = 10;
-	else if (voltage <= 4290000)
-		*capacity = 5;
-	else
-		*capacity = 0;
-
-	filter_capacity_measurement(capacity);
-
 	return 0;
 }
 
-static int ds2782_get_Lithium_capacity(struct ds278x_info *info, int *capacity)
+static int ds2782_update_Alkaline_capacity(int voltage_now, int current_now)
 {
-	int voltage;
-	int err;
+	int capacity;
 
-	err = info->ops->get_battery_voltage(info, &voltage);
-	if (err)
-		return err;
+	if (current_now >= -185000) {
+		if (voltage_now <= 4310000)
+			capacity = 100;
+		else if (voltage_now <= 4322500)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else if (current_now >= -210000){
+		if (voltage_now <= 4303000)
+			capacity = 100;
+		else if (voltage_now <= 4313750)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else {
+		if (voltage_now <= 4295000)
+			capacity = 100;
+		else if (voltage_now <= 4305000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
 
-	if (voltage < 4200000)
-		return -1; // this should never happen and it would be an error
+	ds2782_filter_capacity_measurement(capacity);
+	return 0;
+}
 
-	if (voltage <= 4270000)
-		*capacity = 100;
-	else if (voltage <= 4275000)
-		*capacity = 50;
-	else if (voltage <= 4280000)
-		*capacity = 25;
-	else if (voltage <= 4285000)
-		*capacity = 10;
-	else if (voltage <= 4290000)
-		*capacity = 5;
-	else
-		*capacity = 0;
+static int ds2782_update_Lithium_capacity(int voltage_now, int current_now)
+{
+	int capacity;
+	if (current_now >= -185000) {
+		if (voltage_now <= 4285000)
+			capacity = 100;
+		else if (voltage_now <= 4290000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else if (current_now >= -210000){
+		if (voltage_now <= 427500)
+			capacity = 100;
+		else if (voltage_now <= 4285000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else {
+		if (voltage_now <= 4270000)
+			capacity = 100;
+		else if (voltage_now <= 4280000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
 
-	filter_capacity_measurement(capacity);
+ 	ds2782_filter_capacity_measurement(capacity);
+ 	return 0;
+}
+
+static int ds2782_update_NiMH_capacity(int voltage_now, int current_now)
+{
+	int capacity;
+	if (current_now >= -185000) {
+		if (voltage_now <= 4310000)
+			capacity = 100;
+		else if (voltage_now <= 4340000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else if (current_now >= -210000){
+		if (voltage_now <= 4298750)
+			capacity = 100;
+		else if (voltage_now <= 4320000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+	else {
+		if (voltage_now <= 4287500)
+			capacity = 100;
+		else if (voltage_now <= 4300000)
+			capacity = 25;
+		else
+			capacity = 0;
+	}
+
+ 	ds2782_filter_capacity_measurement(capacity);
+ 	return 0;
+}
+
+static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, const u8 battery_chemistry) {
+	int sum_lower;
+	int sum_higher;
+	int n_lower;
+	int n_higher;
+	int weight_lower;
+	int weight_higher;
+	int weighted_average;
+	struct list_head *i;
+
+	sum_lower = 0;
+	sum_higher = 0;
+	n_lower = 0;
+	n_higher = 0;
+	list_for_each(i, &voltage_queue->list) {
+		struct queue_item* q_item = list_entry(i, struct queue_item, list);
+		int value = *(int*)q_item->item;
+		if (value >= voltage_average) {
+			sum_higher = sum_higher + value;
+			n_higher = n_higher + 1;
+		}
+		else {
+			sum_lower = sum_lower + value;
+			n_lower = n_lower + 1;
+		}
+	}
+
+	if (battery_chemistry == Alkaline || battery_chemistry == NiMH){
+		weight_lower = 2;
+		weight_higher = 8;
+	} else if (battery_chemistry == Lithium) {
+		weight_lower = 4;
+		weight_higher = 5;
+	} else {
+		weight_lower = 3;
+		weight_higher = 7;
+	}
+	weighted_average = (weight_lower * sum_lower + weight_higher * sum_higher) /
+			(weight_lower * n_lower + weight_higher * n_higher);
+
+	return weighted_average;
+}
+
+static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
+	int voltage_average;
+	int weighted_average;
+	struct list_head *i;
+	void * removed_item;
+
+	if (voltage_now < 4200000) {
+		printk(KERN_ALERT "DS2782: AA batteries with V < 4.2V\n");
+		return -1;
+	}
+
+	removed_item = queue_enqueue(voltage_queue, &voltage_now);
+	voltage_sum = voltage_sum + voltage_now;
+	if (removed_item) {
+		voltage_sum = voltage_sum - *(int*)removed_item;
+		kfree(removed_item);
+	}
+
+	voltage_average = voltage_sum / voltage_queue->current_size;
+	weighted_average = ds2782_calculate_AA_weighted_voltage_average(voltage_average, battery_chemistry);
+
+	if (battery_chemistry == Alkaline)
+		ds2782_update_Alkaline_capacity(weighted_average, current_now);
+	else if (battery_chemistry == Lithium)
+		ds2782_update_Lithium_capacity(weighted_average, current_now);
+	else if (battery_chemistry == NiMH)
+		ds2782_update_NiMH_capacity(weighted_average, current_now);
 
 	return 0;
 }
@@ -539,10 +655,10 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	u8 battery_chemistry;
 	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
 
-	if (battery_chemistry == Alkaline)
-		return ds2782_get_Alkaline_capacity(info, capacity);
-	else if (battery_chemistry == Lithium)
-		return ds2782_get_Lithium_capacity(info, capacity);
+	if (battery_chemistry != LionPoly) {
+		*capacity = stable_capacity_value;
+		return 0;
+	}
 	else
 		err = ds278x_read_reg(info, DS2782_REG_RARC, &raw);
 
@@ -898,7 +1014,7 @@ static void ds2782_autodetect_battery_type(struct i2c_client *client) {
 	raw = swab16(err);
 	voltage = ds2782_raw_voltage_to_uV(raw);
 
-	if (voltage > 4250000) {
+	if (voltage > 4220000) {
 		chemistry = Alkaline;
 	} else {
 		chemistry = LionPoly;
@@ -1074,6 +1190,7 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
+	u8 battery_chemistry;
 
 #if defined (CONFIG_TWONAV_AVENTURA)
 	u8 battery_chemistry;
@@ -1105,6 +1222,19 @@ int check_if_discharge(struct ds278x_info *info)
 	err = info->ops->get_battery_current(info, &current_uA);
 	if (err)
 		return err;
+
+#if defined (CONFIG_TWONAV_AVENTURA)
+	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+	if (battery_chemistry != LionPoly) {
+		if (aa_timer_count % AA_TIMER_SAMPLE == 0) {
+			ds2782_update_AA_capacity(voltage, current_uA, battery_chemistry);
+			aa_timer_count = 0;
+		}
+		aa_timer_count = aa_timer_count +1;
+		return 0; // Exit if AAA batteries are installed
+	}
+#endif
+
 
 	err = info->ops->get_battery_capacity(info, &capacity);
 	if (err)
@@ -1301,10 +1431,14 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	printk(KERN_INFO"Kernel Thread : %s\n",task->comm);
 
 	// Userspace interface to register pid for signal
-	file = debugfs_create_file("signal_low_battery", 0200, NULL, NULL, &my_fops);
+	low_batt_signal_file = debugfs_create_file("signal_low_battery", 0200, NULL, NULL, &my_fops);
 
     // Register sysfs attribute chemistry
     device_create_file(dev, &dev_attr_chemistry);
+
+#if defined (CONFIG_TWONAV_AVENTURA)
+    voltage_queue = queue_create(AA_VOLTAGE_FILTER_SIZE);
+#endif
 
 	getnstimeofday(&charger_time_start);
 
@@ -1337,8 +1471,11 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	mutex_unlock(&battery_lock);
 
 	kfree(info);
-	debugfs_remove(file);
+	debugfs_remove(low_batt_signal_file);
 	device_remove_file(dev, &dev_attr_chemistry);
+#if defined (CONFIG_TWONAV_AVENTURA)
+	queue_delete(voltage_queue);
+#endif
 
 	return 0;
 }
