@@ -42,6 +42,7 @@
 #include <linux/spi/spi_gpio.h>
 #include <linux/reboot.h>
 #include <linux/i2c/tsc2007.h>
+#include <linux/i2c/atmel_mxt_ts.h>
 #include <linux/wl12xx.h>
 
 #include <asm/mach/arch.h>
@@ -255,6 +256,16 @@ struct tsc2007_platform_data tsc2007_info = {
 	.exit_platform_hw	= tsc2007_exit_platform_hw
 };
 #endif
+
+//#if defined (CONFIG_TOUCHSCREEN_ATMEL_MXT)
+	
+static struct mxt_platform_data mxt_platform_data = {	
+	.irqflags		= IRQF_TRIGGER_FALLING,
+	.gpio_reset     = EXYNOS4X12_GPM0(7),
+};
+
+//#endif
+
 /*END OF touchscreen config tsc2007 XE_INT22*/
 
 /* Keyboard Aventura/trail MCP23017 (I2C GPIO expander) XE_INT14*/
@@ -353,6 +364,7 @@ static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
 
 static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
+/*
 #if defined(CONFIG_TOUCHSCREEN_TSC2007)
         {
                 I2C_BOARD_INFO("tsc2007", 0x48),
@@ -360,6 +372,14 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
                 .irq            = IRQ_EINT(22),
         },
 #endif
+*/
+
+//#if defined(CONFIG_TOUCHSCREEN_ATMEL_MXT)
+        {
+        		I2C_BOARD_INFO("atmel_mxt_ts", 0x4a),        		
+				.platform_data	= &mxt_platform_data,		
+        },
+//#endif
   	
 #if defined(CONFIG_JOYSTICK_TWONAV_KBD)
         {
@@ -1052,6 +1072,10 @@ static void __init twonav_gpio_init(void)
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
+
+	/* PCAP ATMEL interrupt configuration */
+	s3c_gpio_cfgpin(EXYNOS4X12_GPM0(2), S3C_GPIO_SFN(0xF));	
+	s3c_gpio_setpull(EXYNOS4X12_GPM0(2), S3C_GPIO_PULL_UP);
 	
 	/* TR/TL */
 	gpio_request_one(EXYNOS4_GPF2(5), GPIOF_IN, "TL");
@@ -1246,6 +1270,10 @@ static void __init twonav_machine_init(void)
 
 	twonav_gpio_init();
 
+	int numInterrupt = s5p_register_gpio_interrupt(EXYNOS4X12_GPM0(2));
+	printk ("ATMEL s5p num interrupt: %d\n", numInterrupt);
+	twonav_i2c_devs1[0].irq = numInterrupt;
+
 	/* Register power off function */
 	pm_power_off = twonav_power_off;
 
@@ -1299,7 +1327,6 @@ static void __init twonav_machine_init(void)
 	twonav_wl12xx_wlan_data.irq = gpio_to_irq(EXYNOS4_GPX0(1));
 	printk("twonav_wl12xx_wlan_data.irq: %d\n",twonav_wl12xx_wlan_data.irq);
 	wl12xx_set_platform_data(&twonav_wl12xx_wlan_data);
-
 }
 
 MACHINE_START(TWONAV, "TwoNav")
