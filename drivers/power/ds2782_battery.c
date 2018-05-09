@@ -45,22 +45,37 @@
 struct dentry *low_batt_signal_file;
 int pid = 0;
 struct timespec charger_time_start;
-int mcp73833_end_of_charge = 0;
 
+// MCPP73833 charge manager related
+#define N_STABLE_STAT_VALUES 3
+#define EOC_PERIOD_CHECK 5
+int mcp73833_end_of_charge = 0;
+int mcp73833_charging = -1; // STAT1
+int mcp73833_charged = -1; // STAT2
+int mcp73833_n_stat1_stable_values = 0;
+int mcp73833_n_stat2_stable_values = 0;
+
+// AA battery related
 #define AA_CAPACITY_EQUAL_MEASUREMENTS 5
 #define AA_VOLTAGE_FILTER_SIZE 10
 #define AA_TIMER_SAMPLE 5
-queue* voltage_queue;
-int aa_timer_count = 0;
-int consecutive_equal_capacity_measurements = -1;
-int stable_capacity_value;
-int voltage_sum = 0;
+queue* AA_voltage_queue;
+int AA_timer_count = 0;
+int AA_consecutive_equal_capacity_measurements = -1;
+int AA_stable_capacity_value;
+int AA_voltage_sum = 0;
 
 enum BatteryChemistry {
 	LionPoly = 0,
 	Alkaline = 1,
 	Lithium = 2,
 	NiMH = 3,
+};
+
+enum BatteryStatus {
+	LEARN_COMPLETE = 0,
+	NEW_BATTERY =1, // (unknown state)
+	LEARN_CYCLE_INCOMPLETE = 2,
 };
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
@@ -225,7 +240,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x54 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x43 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -256,7 +271,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x64 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x43 //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -287,7 +302,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xDC //0x64
+	#define DS2782_EEPROM_VCHG_VALUE 				0xDB //0x64
 	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A//0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
@@ -348,9 +363,11 @@ struct ds278x_info {
 	struct ds278x_battery_ops  *ops;
 	int id;
 	int rsns;
-	int gpio_enable;
-	int gpio_charging;
+	int gpio_enable_charger;
 	int new_battery;
+	int gpio_charge_manager_pg;
+	int gpio_charge_manager_stat1;
+	int gpio_charge_manager_stat2;
 };
 
 static DEFINE_IDR(battery_id);
@@ -453,26 +470,27 @@ static int ds2782_get_voltage(struct ds278x_info *info, int *voltage_uV)
 	return 0;
 }
 
-static int ds2782_filter_capacity_measurement(int capacity) {
-	if (consecutive_equal_capacity_measurements == -1) {
-		stable_capacity_value = capacity;
-		consecutive_equal_capacity_measurements = 0;
+static int ds2782_filter_AA_capacity_measurement(int capacity) {
+	if (AA_consecutive_equal_capacity_measurements == -1) {
+		AA_stable_capacity_value = capacity;
+		AA_consecutive_equal_capacity_measurements = 0;
 	}
 
-	if (capacity == stable_capacity_value) {
-		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements + 1;
+	if (capacity == AA_stable_capacity_value) {
+		AA_consecutive_equal_capacity_measurements = AA_consecutive_equal_capacity_measurements + 1;
 	}
 	else {
-		consecutive_equal_capacity_measurements = consecutive_equal_capacity_measurements - 1;
+		AA_consecutive_equal_capacity_measurements = AA_consecutive_equal_capacity_measurements - 1;
 	}
 
-	if (consecutive_equal_capacity_measurements >= AA_CAPACITY_EQUAL_MEASUREMENTS) {
-		consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
+	if (AA_consecutive_equal_capacity_measurements >= AA_CAPACITY_EQUAL_MEASUREMENTS) {
+		AA_consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
 	}
-	else if (consecutive_equal_capacity_measurements <= 0) {
-		stable_capacity_value = capacity;
-		consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
+	else if (AA_consecutive_equal_capacity_measurements <= 0) {
+		AA_stable_capacity_value = capacity;
+		AA_consecutive_equal_capacity_measurements = AA_CAPACITY_EQUAL_MEASUREMENTS;
 	}
+
 	return 0;
 }
 
@@ -505,7 +523,7 @@ static int ds2782_update_Alkaline_capacity(int voltage_now, int current_now)
 			capacity = 0;
 	}
 
-	ds2782_filter_capacity_measurement(capacity);
+	ds2782_filter_AA_capacity_measurement(capacity);
 	return 0;
 }
 
@@ -537,7 +555,7 @@ static int ds2782_update_Lithium_capacity(int voltage_now, int current_now)
 			capacity = 0;
 	}
 
- 	ds2782_filter_capacity_measurement(capacity);
+ 	ds2782_filter_AA_capacity_measurement(capacity);
  	return 0;
 }
 
@@ -569,7 +587,7 @@ static int ds2782_update_NiMH_capacity(int voltage_now, int current_now)
 			capacity = 0;
 	}
 
- 	ds2782_filter_capacity_measurement(capacity);
+ 	ds2782_filter_AA_capacity_measurement(capacity);
  	return 0;
 }
 
@@ -587,7 +605,7 @@ static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, con
 	sum_higher = 0;
 	n_lower = 0;
 	n_higher = 0;
-	list_for_each(i, &voltage_queue->list) {
+	list_for_each(i, &AA_voltage_queue->list) {
 		struct queue_item* q_item = list_entry(i, struct queue_item, list);
 		int value = *(int*)q_item->item;
 		if (value >= voltage_average) {
@@ -616,33 +634,61 @@ static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, con
 	return weighted_average;
 }
 
+static int ds2782_enqueueVoltage (queue *AA_voltage_queue, int voltage_now) {
+	int removed_val;
+	int* newVal = kmalloc(sizeof(int), GFP_ATOMIC);
+	*newVal = voltage_now;
+
+	if (AA_voltage_queue->current_size >= AA_VOLTAGE_FILTER_SIZE) {
+		int* removed_item = queue_dequeue(AA_voltage_queue);
+		if (removed_val)
+			removed_val = *removed_item;
+		else
+			removed_val = 0;
+		kfree(removed_item);
+	}
+
+	queue_enqueue(AA_voltage_queue, newVal);
+
+	return removed_val;
+}
+
+static int ds2782_dequeueVoltage (queue *AA_voltage_queue) {
+	int* removed_item = queue_dequeue(AA_voltage_queue);
+	int val = *removed_item;
+	kfree(removed_item);
+
+	return val;
+}
+
 static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
 	int voltage_average;
 	int weighted_average;
 	struct list_head *i;
-	void * removed_item;
+	int removed_voltage;
 
 	if (voltage_now < 4200000) {
-		printk(KERN_ALERT "DS2782: AA batteries with V < 4.2V\n");
+		printk(KERN_ALERT "DS2782: AA batteries with V < 4.2V :%d\n",voltage_now);
 		return -1;
 	}
 
-	removed_item = queue_enqueue(voltage_queue, &voltage_now);
-	voltage_sum = voltage_sum + voltage_now;
-	if (removed_item) {
-		voltage_sum = voltage_sum - *(int*)removed_item;
-		kfree(removed_item);
-	}
-
-	voltage_average = voltage_sum / voltage_queue->current_size;
+	removed_voltage = ds2782_enqueueVoltage(AA_voltage_queue, voltage_now);
+	AA_voltage_sum = AA_voltage_sum + voltage_now - removed_voltage;
+	voltage_average = AA_voltage_sum / AA_voltage_queue->current_size;
 	weighted_average = ds2782_calculate_AA_weighted_voltage_average(voltage_average, battery_chemistry);
 
-	if (battery_chemistry == Alkaline)
+	if (battery_chemistry == Alkaline) {
 		ds2782_update_Alkaline_capacity(weighted_average, current_now);
-	else if (battery_chemistry == Lithium)
+	}
+	else if (battery_chemistry == Lithium) {
 		ds2782_update_Lithium_capacity(weighted_average, current_now);
-	else if (battery_chemistry == NiMH)
+	}
+	else if (battery_chemistry == NiMH) {
 		ds2782_update_NiMH_capacity(weighted_average, current_now);
+	}
+	else {
+		ds2782_update_Alkaline_capacity(weighted_average, current_now); // defualt
+	}
 
 	return 0;
 }
@@ -656,7 +702,7 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
 
 	if (battery_chemistry != LionPoly) {
-		*capacity = stable_capacity_value;
+		*capacity = AA_stable_capacity_value;
 		return 0;
 	}
 	else
@@ -667,8 +713,8 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	*capacity = raw;
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	if (mcp73833_end_of_charge == 0) { // if we are still charging
-		if (*capacity == 100 && fully_charged == 0){
+	if (mcp73833_end_of_charge == 0 && mcp73833_charging == 1) { // if we are still charging
+		if (*capacity == 100 && fully_charged == 0) {
 			*capacity = 99;
 		}
 	}
@@ -969,16 +1015,16 @@ static int ds2782_detect_new_battery(struct i2c_client *client)
 	if (rsns > 0) {
 		int learn_complete = i2c_smbus_read_byte_data(client, DS2782_Register_LearnComplete);
 		if (learn_complete) {
-			battery_condition = 0;
+			battery_condition = LEARN_COMPLETE;
 		}
 		else {
-			battery_condition = 2;
+			battery_condition = LEARN_CYCLE_INCOMPLETE;
 		}
 	}
 	else {
 		// Reset learn flag when new battery is detected
 		i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, 0x00);
-		battery_condition = 1; // new battery
+		battery_condition = NEW_BATTERY; // new battery
 	}
 	return battery_condition;
 }
@@ -1159,7 +1205,7 @@ int check_learn_complete(struct ds278x_info *info)
 	{
 		printk(KERN_INFO "DS2782 LEARN COMPLETE");
 		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, 0x01); // 0x20
-		info->new_battery = 0;
+		info->new_battery = LEARN_COMPLETE;
 	}
 
 	return 0;
@@ -1167,7 +1213,7 @@ int check_learn_complete(struct ds278x_info *info)
 
 void enable_charger(int gpio)
 {
-	printk("gpio charge\n");
+	printk("MAX8814 enable charge\n");
 	gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
 	gpio_set_value(gpio,0);
 	gpio_free(gpio);
@@ -1176,11 +1222,132 @@ void enable_charger(int gpio)
 
 void disable_charger(int gpio)
 {
-	printk("gpio discharge\n");
+	printk("MAX8814 disavle charge\n");
 	gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
 	gpio_set_value(gpio,1);
 	gpio_free(gpio);
 	charger_enabled = 0;
+}
+
+void max8814_reset_every_3_hours(struct ds278x_info *info, int current_uA) {
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+	struct timespec charger_time_now;
+	int diff;
+	getnstimeofday(&charger_time_now);
+	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
+
+	if (diff >= 10800) { // Reset charger timer every 3 hours
+		if (current_uA > 0 && charger_enabled == 1) {
+			printk("Reseting MAX8814 charge timer\n");
+			gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
+			gpio_set_value(info->gpio_enable_charger,1);
+			gpio_set_value(info->gpio_enable_charger,0);
+			gpio_free(info->gpio_enable_charger);
+		}
+		charger_time_start = charger_time_now;
+	}
+#endif
+}
+
+int mcp73833_read_stat1(struct ds278x_info *info)
+{
+	int stable_value = 0;
+	int stat1 = gpio_get_value(info->gpio_charge_manager_stat1);
+
+	if (mcp73833_charging == -1) {
+		mcp73833_charging = stat1;
+	}
+
+	if (stat1 == mcp73833_charging) {
+		mcp73833_n_stat1_stable_values = mcp73833_n_stat1_stable_values + 1;
+		if (mcp73833_n_stat1_stable_values >= N_STABLE_STAT_VALUES) {
+			mcp73833_n_stat1_stable_values = N_STABLE_STAT_VALUES;
+			stable_value = 1;
+		}
+	}
+	else {
+		mcp73833_n_stat1_stable_values = mcp73833_n_stat1_stable_values - 1;
+		if (mcp73833_n_stat1_stable_values < 0) {
+			mcp73833_n_stat1_stable_values = 0;
+			mcp73833_charging = stat1;
+		}
+	}
+
+	return stable_value;
+}
+
+int mcp73833_read_stat2(struct ds278x_info *info)
+{
+	int stable_value = 0;
+	int stat2 = gpio_get_value(info->gpio_charge_manager_stat2);
+
+	if (mcp73833_charged == -1) {
+		mcp73833_charged = stat2;
+	}
+
+	if (stat2 == mcp73833_charged) {
+		mcp73833_n_stat2_stable_values = mcp73833_n_stat2_stable_values + 1;
+		if (mcp73833_n_stat2_stable_values >= N_STABLE_STAT_VALUES) {
+			mcp73833_n_stat2_stable_values = N_STABLE_STAT_VALUES;
+			stable_value = 1;
+		}
+	}
+	else {
+		mcp73833_n_stat2_stable_values = mcp73833_n_stat2_stable_values - 1;
+		if (mcp73833_n_stat2_stable_values < 0) {
+			mcp73833_n_stat2_stable_values = 0;
+			mcp73833_charged = stat2;
+		}
+	}
+
+	return stable_value;
+}
+
+void mcp73833_send_end_of_charge_event(struct ds278x_info *info) {
+	char *envp[2];
+	envp[0] = "EVENT=endofcharge";
+	envp[1] = NULL;
+	kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
+}
+
+int mcp73833_time_to_check_eoc() {
+	static int ttc = 0;
+	if (ttc != 0) {
+		if (ttc == EOC_PERIOD_CHECK)
+			ttc = 0;
+		else {
+			ttc = ttc +1;
+		}
+		return 0;
+	}
+	ttc = ttc +1;
+	return 1;
+}
+
+void mcp73833_detect_end_of_charge(struct ds278x_info *info) {
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+	int power_good = gpio_get_value(info->gpio_charge_manager_pg);
+	if (power_good == 0) {
+		return;
+	}
+
+	int is_time_to_check_eoc = mcp73833_time_to_check_eoc();
+	if (is_time_to_check_eoc == 0) {
+		return;
+	}
+
+	int end_of_charge_previous_value = mcp73833_end_of_charge;
+	int stat1_stable = mcp73833_read_stat1(info);
+	int stat2_stable = mcp73833_read_stat2(info);
+	if ((stat1_stable == 1) && (stat2_stable ==1)) {
+		mcp73833_end_of_charge = (mcp73833_charged == 1) && (mcp73833_charging == 0);
+		if ((mcp73833_end_of_charge == 1) &&
+			(end_of_charge_previous_value != mcp73833_end_of_charge))
+		{
+			mcp73833_send_end_of_charge_event(info);
+		}
+	}
+#endif
 }
 
 int check_if_discharge(struct ds278x_info *info)
@@ -1192,48 +1359,42 @@ int check_if_discharge(struct ds278x_info *info)
 	int voltage;
 	u8 battery_chemistry;
 
-#if defined (CONFIG_TWONAV_AVENTURA)
-	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
-	if (battery_chemistry != LionPoly)
-		return 0; // Exit if AAA batteries are installed
-#endif
-
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	struct timespec charger_time_now;
-	int diff;
-#endif
-
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(HZ);
 
 	err = ds278x_get_status(info, &status);
-	if (err)
+	if (err) {
 		return err;
+	}
 
 	err = info->ops->get_battery_voltage(info, &voltage);
-	if (err)
+	if (err) {
 		return err;
+	}
 
 	// Send sigterm signal to registered app when battery too low
 	if (voltage < 2950000)
 		send_sigterm(0);
 
 	err = info->ops->get_battery_current(info, &current_uA);
-	if (err)
+	if (err) {
 		return err;
+	}
 
 #if defined (CONFIG_TWONAV_AVENTURA)
-	ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+	err = ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+	if (err) {
+		return err;
+	}
 	if (battery_chemistry != LionPoly) {
-		if (aa_timer_count % AA_TIMER_SAMPLE == 0) {
+		if (AA_timer_count % AA_TIMER_SAMPLE == 0) {
 			ds2782_update_AA_capacity(voltage, current_uA, battery_chemistry);
-			aa_timer_count = 0;
+			AA_timer_count = 0;
 		}
-		aa_timer_count = aa_timer_count +1;
+		AA_timer_count = AA_timer_count +1;
 		return 0; // Exit if AAA batteries are installed
 	}
 #endif
-
 
 	err = info->ops->get_battery_capacity(info, &capacity);
 	if (err)
@@ -1243,57 +1404,21 @@ int check_if_discharge(struct ds278x_info *info)
 	{
 		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
 		{
-			disable_charger(info->gpio_enable);
+			disable_charger(info->gpio_enable_charger);
 		}
 	}
 	else
 	{
 		if(capacity <= 95 && !charger_enabled)
 		{
-			enable_charger(info->gpio_enable);
+			enable_charger(info->gpio_enable_charger);
 		}
 	}
 #endif
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	getnstimeofday(&charger_time_now);
-	diff = charger_time_now.tv_sec - charger_time_start.tv_sec;
-
-	if (diff >= 10800) { // Reset charger timer every 3 hours
-		if (current_uA > 0 && charger_enabled == 1) {
-			printk("Reseting charge timer\n");
-			gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio_enable,1);
-			gpio_set_value(info->gpio_enable,0);
-			gpio_free(info->gpio_enable);
-		}
-		charger_time_start = charger_time_now;
-	}
-
-	// FIX: when Fuel Gauge is configured (i2cset) it resets some of its registers and in this case current register becomes 0
-	// So 0 should not be considered a valid value to detect EOC
-	if (current_uA > 0) {
-		if (current_uA < 1000) {
-
-			if (mcp73833_end_of_charge == 0) {
-				mcp73833_end_of_charge = 1;
-				char *envp[2];
-				envp[0] = "EVENT=endofcharge";
-				envp[1] = NULL;
-				kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
-			}
-		}
-		else {
-			mcp73833_end_of_charge = 0;
-		}
-	}
-	else if (current_uA == 0) {
-		// Do not reset End Of Charge flag when FG resets current register due to a capacity estimation
-	}
-	else {
-		mcp73833_end_of_charge = 0;
-	}
-
+	max8814_reset_every_3_hours(info, current_uA);
+	mcp73833_detect_end_of_charge(info);
 #endif
 
 	// CHECK_LEARN_CYCLE_COMPLETE
@@ -1331,7 +1456,7 @@ static ssize_t chemistry_store(struct device *dev,
 	if (err < 0)
 	    return err;
 
-	if ((value>=0) && (value <= 2))
+	if ((value>=LionPoly) && (value <= Lithium))
 		i2c_smbus_write_byte_data(client, DS2782_Register_Chemistry, value);
 	else
 		printk(KERN_INFO "ds2782: invalid battery chemistry\n");
@@ -1393,12 +1518,15 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	}
 
 	info->rsns = pdata->rsns;
-	info->gpio_enable = pdata->gpio_enable;
-	info->gpio_charging = pdata->gpio_charging;
+	info->gpio_enable_charger = pdata->gpio_enable_charger;
+	info->gpio_charge_manager_pg = pdata->gpio_pg;
 
-	gpio_request_one(info->gpio_enable, GPIOF_DIR_OUT, "MAX8814_EN");
-	charger_enabled = !gpio_get_value(info->gpio_enable);
-	gpio_free(info->gpio_enable);
+	gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
+	charger_enabled = !gpio_get_value(info->gpio_enable_charger);
+	gpio_free(info->gpio_enable_charger);
+
+	info->gpio_charge_manager_stat1 = pdata->gpio_stat1;
+	info->gpio_charge_manager_stat2 = pdata->gpio_stat2;
 
 	if(charger_enabled)
 	{
@@ -1436,7 +1564,7 @@ static int ds278x_battery_probe(struct i2c_client *client,
     device_create_file(dev, &dev_attr_chemistry);
 
 #if defined (CONFIG_TWONAV_AVENTURA)
-    voltage_queue = queue_create(AA_VOLTAGE_FILTER_SIZE);
+    AA_voltage_queue = queue_create();
 #endif
 
 	getnstimeofday(&charger_time_start);
@@ -1473,7 +1601,7 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	debugfs_remove(low_batt_signal_file);
 	device_remove_file(dev, &dev_attr_chemistry);
 #if defined (CONFIG_TWONAV_AVENTURA)
-	queue_delete(voltage_queue);
+	queue_delete(AA_voltage_queue);
 #endif
 
 	return 0;
