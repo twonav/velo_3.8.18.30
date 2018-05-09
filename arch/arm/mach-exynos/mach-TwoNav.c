@@ -218,10 +218,10 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #define CYTTSP5_HID_DESC_REGISTER 1
 
-#define CY_VKEYS_X 720
-#define CY_VKEYS_Y 1280
-#define CY_MAXX 720
-#define CY_MAXY 1440
+#define CY_VKEYS_X 0
+#define CY_VKEYS_Y 0
+#define CY_MAXX 480
+#define CY_MAXY 800
 #define CY_MINX 0
 #define CY_MINY 0
 
@@ -293,14 +293,14 @@ static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 static const int16_t cyttsp5_abs[] = {
 	ABS_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
 	ABS_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
-	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
-	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
+	//ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
+	//ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
 	CY_IGNORE_VALUE, CY_ABS_MIN_W, CY_ABS_MAX_W, 0, 0,
-	ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0,
-	ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0,
-	ABS_MT_TOUCH_MINOR, 0, 255, 0, 0,
-	ABS_MT_ORIENTATION, -127, 127, 0, 0,
+	//ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0,
+	//ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0,
+	//ABS_MT_TOUCH_MINOR, 0, 255, 0, 0,
+	//ABS_MT_ORIENTATION, -127, 127, 0, 0,
 	ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0,
 	ABS_MT_DISTANCE, 0, 255, 0, 0,	/* Used with hover */ 
 };
