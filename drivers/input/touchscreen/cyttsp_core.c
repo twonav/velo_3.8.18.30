@@ -523,10 +523,15 @@ struct cyttsp *cyttsp_probe(const struct cyttsp_bus_ops *bus_ops,
 	struct input_dev *input_dev;
 	int error;
 
+	printk( "LDU: CYTTSP5 Start Probe";
+
+
 	if (!pdata || !pdata->name || irq <= 0) {
 		error = -EINVAL;
 		goto err_out;
 	}
+
+	printk( "LDU: CYTTSP5 Alloc Probe";
 
 	ts = kzalloc(sizeof(*ts) + xfer_buf_size, GFP_KERNEL);
 	input_dev = input_allocate_device();
@@ -535,11 +540,15 @@ struct cyttsp *cyttsp_probe(const struct cyttsp_bus_ops *bus_ops,
 		goto err_free_mem;
 	}
 
+	printk( "LDU: CYTTSP5 Contunue Probe";
+
 	ts->dev = dev;
 	ts->input = input_dev;
 	ts->pdata = dev->platform_data;
 	ts->bus_ops = bus_ops;
 	ts->irq = irq;
+	
+	printk( "LDU: CYTTSP IRQ is %d \n", irq);
 
 	init_completion(&ts->bl_ready);
 	snprintf(ts->phys, sizeof(ts->phys), "%s/input0", dev_name(dev));
@@ -554,8 +563,10 @@ struct cyttsp *cyttsp_probe(const struct cyttsp_bus_ops *bus_ops,
 	}
 
 	input_dev->name = pdata->name;
+	printk( "LDU: CYTTSP Input dev name: %s\n", pdata->name);
 	input_dev->phys = ts->phys;
-	input_dev->id.bustype = bus_ops->bustype;
+	printk( "LDU: CYTTSP Input dev bus: 0x%02x\n", bus_ops->bustype);
+	input_dev->id.bustype = BUS_I2C;
 	input_dev->dev.parent = ts->dev;
 
 	input_dev->open = cyttsp_open;

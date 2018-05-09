@@ -4955,11 +4955,15 @@ static int cyttsp5_device_access_probe(struct device *dev, void **data)
 	struct test_case_search *test_case_search_array;
 	int rc = 0;
 
+	printk ("LDU CYTTSP5 access probe: alloc");
+
 	dad = kzalloc(sizeof(*dad), GFP_KERNEL);
 	if (!dad) {
 		rc = -ENOMEM;
 		goto cyttsp5_device_access_probe_data_failed;
 	}
+
+	printk ("LDU CYTTSP5 access probe: configurations");
 
 	configurations =
 		kzalloc(sizeof(*configurations), GFP_KERNEL);
@@ -4968,6 +4972,8 @@ static int cyttsp5_device_access_probe(struct device *dev, void **data)
 		goto cyttsp5_device_access_probe_configs_failed;
 	}
 	dad->configs = configurations;
+
+	printk ("LDU CYTTSP5 access probe: info");
 
 	cmcp_info = kzalloc(sizeof(*cmcp_info), GFP_KERNEL);
 	if (!cmcp_info) {
@@ -4979,6 +4985,8 @@ static int cyttsp5_device_access_probe(struct device *dev, void **data)
 	cmcp_info->tx_num = tx_num;
 	cmcp_info->rx_num = rx_num;
 	cmcp_info->btn_num = btn_num;
+
+	printk ("LDU CYTTSP5 access probe: gfp");
 
 	result = kzalloc(sizeof(*result), GFP_KERNEL);
 	if (!result) {
@@ -5069,6 +5077,8 @@ static int cyttsp5_device_access_probe(struct device *dev, void **data)
 	dad->test_search_array = test_case_search_array;
 	dad->test_executed = 0;
 
+	printk ("LDU CYTTSP5 access probe: all loaded");
+
 	init_completion(&dad->builtin_cmcp_threshold_complete);
 
 	/* get sysinfo */
@@ -5088,6 +5098,8 @@ static int cyttsp5_device_access_probe(struct device *dev, void **data)
 	INIT_WORK(&dad->cmcp_threshold_update,
 		cyttsp5_parse_cmcp_threshold_builtin);
 	schedule_work(&dad->cmcp_threshold_update);
+
+	printk ("LDU CYTTSP5 access probe: SUCCESS!!!");
 
 	return 0;
 

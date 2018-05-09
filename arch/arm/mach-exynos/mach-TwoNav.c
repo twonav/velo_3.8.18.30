@@ -209,8 +209,9 @@ static struct usb3503_platform_data usb3503_pdata = {
 #ifdef CYTTSP5_USE_I2C
 	#define CYTTSP5_I2C_TCH_ADR 0x24
 	#define CYTTSP5_LDR_TCH_ADR 0x24
-	#define CYTTSP5_I2C_IRQ_GPIO 38 /* TBD */
-	#define CYTTSP5_I2C_RST_GPIO 37 /* TBD */
+	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4X12_GPM0(2) /* TBD */ // TODO: LDU
+	#define CYTTSP5_I2C_IRQ 	 450 
+	#define CYTTSP5_I2C_RST_GPIO EXYNOS4X12_GPM0(7) /* TBD */	// TODO: LDU
 #endif
 
 #ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
@@ -219,8 +220,8 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #define CY_VKEYS_X 720
 #define CY_VKEYS_Y 1280
-#define CY_MAXX 880
-#define CY_MAXY 1280
+#define CY_MAXX 720
+#define CY_MAXY 1440
 #define CY_MINX 0
 #define CY_MINY 0
 
@@ -261,7 +262,7 @@ static struct touch_settings cyttsp5_sett_btn_keys = {
 
 static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 	.irq_gpio = CYTTSP5_I2C_IRQ_GPIO,
-	.rst_gpio = CYTTSP5_I2C_RST_GPIO,
+	.rst_gpio = CYTTSP5_I2C_RST_GPIO,	
 	.hid_desc_register = CYTTSP5_HID_DESC_REGISTER,
 	.xres = cyttsp5_xres,
 	.init = cyttsp5_init,
@@ -290,6 +291,8 @@ static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 };
 
 static const int16_t cyttsp5_abs[] = {
+	ABS_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
+	ABS_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
 	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
@@ -299,7 +302,7 @@ static const int16_t cyttsp5_abs[] = {
 	ABS_MT_TOUCH_MINOR, 0, 255, 0, 0,
 	ABS_MT_ORIENTATION, -127, 127, 0, 0,
 	ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0,
-	ABS_MT_DISTANCE, 0, 255, 0, 0,	/* Used with hover */
+	ABS_MT_DISTANCE, 0, 255, 0, 0,	/* Used with hover */ 
 };
 
 struct touch_framework cyttsp5_framework = {
@@ -379,6 +382,19 @@ static void __init twonav_cyttsp5_init(void)
 {
 	/* Initialize muxes for GPIO pins */
 #ifdef CYTTSP5_USE_I2C
+	/* PCAP ATMEL interrupt configuration */ 
+	gpio_request_one(CYTTSP5_I2C_IRQ_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_IRQ");
+    s3c_gpio_cfgpin(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_SFN(0xf));     
+    s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
+
+/*
+	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_RST");
+    s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
+    s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
+    gpio_free(CYTTSP5_I2C_RST_GPIO);
+*/
+
+	// TODO: LDU -> init the gpios!!!
 	//omap_mux_init_gpio(CYTTSP5_I2C_RST_GPIO, OMAP_PIN_OUTPUT);
 	//omap_mux_init_gpio(CYTTSP5_I2C_IRQ_GPIO, OMAP_PIN_INPUT_PULLUP);
 #endif
@@ -557,6 +573,15 @@ static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
 
 static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+#ifdef CYTTSP5_USE_I2C
+	{
+		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
+		.irq =  CYTTSP5_I2C_IRQ_GPIO,
+		.platform_data = &_cyttsp5_platform_data,
+	},
+#endif
+#endif
 #if defined(CONFIG_TOUCHSCREEN_TSC2007)
         {
                 I2C_BOARD_INFO("tsc2007", 0x48),
@@ -605,15 +630,6 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 	},
 #endif
 
-#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
-#ifdef CYTTSP5_USE_I2C
-	{
-		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
-		.irq =  CYTTSP5_I2C_IRQ_GPIO,
-		.platform_data = &_cyttsp5_platform_data,
-	},
-#endif
-#endif
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
@@ -1367,6 +1383,16 @@ static void __init twonav_gpio_init(void)
 	s3c_gpio_setpull(EXYNOS4_GPF2(5), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ0(1), S3C_GPIO_PULL_UP);
 	s3c_gpio_setpull(EXYNOS4_GPJ1(1), S3C_GPIO_PULL_UP);
+
+/*********************************************************************/
+/*				CYPRESS FANNAL TOUCHSCREEN Init  					 */
+/*********************************************************************/	
+	twonav_cyttsp5_init();
+
+	int numInterrupt = s5p_register_gpio_interrupt(CYTTSP5_I2C_IRQ_GPIO); 
+    printk ("CYTTSP5 s5p num interrupt: %d\n", numInterrupt); 
+    twonav_i2c_devs1[0].irq = numInterrupt;
+
 }
 
 static void twonav_power_off(void)
@@ -1501,8 +1527,6 @@ static void __init twonav_machine_init(void)
 	exynos4_fimd0_gpio_setup_24bpp();
 #endif
 	init_button_irqs();
-
-	twonav_cyttsp5_init();
 
 	platform_add_devices(twonav_devices, ARRAY_SIZE(twonav_devices));
 
