@@ -634,31 +634,32 @@ static int ds2782_calculate_AA_weighted_voltage_average(int voltage_average, con
 	return weighted_average;
 }
 
+static int ds2782_dequeueVoltage (queue *AA_voltage_queue) {
+	int val;
+	int* removed_item = queue_dequeue(AA_voltage_queue);
+	if (removed_item) {
+		val = *removed_item;
+	}
+	else {
+		val = 0;
+	}
+	kfree(removed_item);
+
+	return val;
+}
+
 static int ds2782_enqueueVoltage (queue *AA_voltage_queue, int voltage_now) {
 	int removed_val;
 	int* newVal = kmalloc(sizeof(int), GFP_ATOMIC);
 	*newVal = voltage_now;
 
 	if (AA_voltage_queue->current_size >= AA_VOLTAGE_FILTER_SIZE) {
-		int* removed_item = queue_dequeue(AA_voltage_queue);
-		if (removed_val)
-			removed_val = *removed_item;
-		else
-			removed_val = 0;
-		kfree(removed_item);
+		int* removed_item = ds2782_dequeueVoltage(AA_voltage_queue);
 	}
 
 	queue_enqueue(AA_voltage_queue, newVal);
 
 	return removed_val;
-}
-
-static int ds2782_dequeueVoltage (queue *AA_voltage_queue) {
-	int* removed_item = queue_dequeue(AA_voltage_queue);
-	int val = *removed_item;
-	kfree(removed_item);
-
-	return val;
 }
 
 static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
