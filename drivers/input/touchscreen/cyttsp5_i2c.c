@@ -110,6 +110,28 @@ static int cyttsp5_i2c_write_read_specific(struct device *dev, u8 write_len,
 	return rc;
 }
 
+static inline int cyttsp5_i2c_check_device(struct i2c_client *client)
+{
+	s32 data;
+	u16 val;
+
+	data = i2c_smbus_read_word_data(client, 0x00);
+	if (data < 0) {
+		dev_err(&client->dev, "i2c io error: %d\n", data);
+		return data;
+	}
+
+	/* The protocol and raw data format from i2c interface:
+	 * S Addr Wr [A] Comm [A] S Addr Rd [A] [DataLow] A [DataHigh] NA P
+	 * Where DataLow has [D11-D4], DataHigh has [D3-D0 << 4 | Dummy 4bit].
+	 */
+	val = swab16(data) >> 4;
+
+	printk(KERN_INFO "cyttsp5_i2c_check_device data: 0x%x, val: 0x%x\n", data, val);
+
+	return val;
+}
+
 static struct cyttsp5_bus_ops cyttsp5_i2c_bus_ops = {
 	.bustype = BUS_I2C,
 	.read_default = cyttsp5_i2c_read_default,
@@ -136,6 +158,13 @@ static int cyttsp5_i2c_probe(struct i2c_client *client,
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(dev, "I2C functionality not Supported\n");
+		return -EIO;
+	}
+
+	int err;
+	err = cyttsp5_i2c_check_device(client);
+	if (err < 0) {
+		printk(KERN_ERR "Error getting cyttsp device.\n");
 		return -EIO;
 	}
 
