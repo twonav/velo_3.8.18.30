@@ -209,7 +209,7 @@ int cyttsp5_init(struct cyttsp5_core_platform_data *pdata,
 					__func__, rst_gpio);
 				gpio_free(rst_gpio);
 			} else {
-				/*rc = gpio_request(irq_gpio, NULL);
+				rc = gpio_request(irq_gpio, NULL);
 				if (rc < 0) {
 					gpio_free(irq_gpio);
 					rc = gpio_request(irq_gpio,
@@ -222,12 +222,12 @@ int cyttsp5_init(struct cyttsp5_core_platform_data *pdata,
 					gpio_free(rst_gpio);
 				} else {
 					gpio_direction_input(irq_gpio);
-				}*/
+				}
 			}
 		}
 	} else {
 		gpio_free(rst_gpio);
-		//gpio_free(irq_gpio);
+		gpio_free(irq_gpio);
 	}
 
 	dev_info(dev, "%s: INIT CYTTSP RST gpio=%d and IRQ gpio=%d r=%d\n",

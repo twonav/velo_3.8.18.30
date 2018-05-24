@@ -208,10 +208,9 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #ifdef CYTTSP5_USE_I2C
 	#define CYTTSP5_I2C_TCH_ADR 0x24
-	#define CYTTSP5_LDR_TCH_ADR 0x24
-	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4X12_GPM0(2) /* TBD */ // TODO: LDU
-	#define CYTTSP5_I2C_IRQ 	 450 
-	#define CYTTSP5_I2C_RST_GPIO EXYNOS4X12_GPM0(7) /* TBD */	// TODO: LDU
+	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4_GPX2(1) //EXYNOS4_GPX2(6)
+	#define CYTTSP5_I2C_IRQ 	 IRQ_EINT(17) //IRQ_EINT(22)
+	#define CYTTSP5_I2C_RST_GPIO EXYNOS4_GPX1(1)
 #endif
 
 #ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
@@ -386,17 +385,12 @@ static void __init twonav_cyttsp5_init(void)
 	gpio_request_one(CYTTSP5_I2C_IRQ_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_IRQ");
     s3c_gpio_cfgpin(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_SFN(0xf));     
     s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
+    gpio_free(CYTTSP5_I2C_IRQ_GPIO);
 
-/*
 	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_RST");
     s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
     s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
     gpio_free(CYTTSP5_I2C_RST_GPIO);
-*/
-
-	// TODO: LDU -> init the gpios!!!
-	//omap_mux_init_gpio(CYTTSP5_I2C_RST_GPIO, OMAP_PIN_OUTPUT);
-	//omap_mux_init_gpio(CYTTSP5_I2C_IRQ_GPIO, OMAP_PIN_INPUT_PULLUP);
 #endif
 #ifdef CYTTSP5_USE_SPI
 	//omap_mux_init_gpio(CYTTSP5_SPI_RST_GPIO, OMAP_PIN_OUTPUT);
@@ -573,15 +567,6 @@ static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
 
 static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
-#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
-#ifdef CYTTSP5_USE_I2C
-	{
-		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
-		.irq =  CYTTSP5_I2C_IRQ_GPIO,
-		.platform_data = &_cyttsp5_platform_data,
-	},
-#endif
-#endif
 #if defined(CONFIG_TOUCHSCREEN_TSC2007)
         {
                 I2C_BOARD_INFO("tsc2007", 0x48),
@@ -651,6 +636,15 @@ static struct 	platform_device 	gpio_device_i2c4 = {
 	.dev.platform_data = &i2c4_gpio_platdata,
 };
 static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+#ifdef CYTTSP5_USE_I2C
+	{
+		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
+		.irq =  CYTTSP5_I2C_IRQ,
+		.platform_data = &_cyttsp5_platform_data,
+	},
+#endif
+#endif
 #if defined(CONFIG_BATTERY_DS2782)
 	{
 		I2C_BOARD_INFO("ds2782", 0x34),
@@ -1388,10 +1382,6 @@ static void __init twonav_gpio_init(void)
 /*				CYPRESS FANNAL TOUCHSCREEN Init  					 */
 /*********************************************************************/	
 	twonav_cyttsp5_init();
-
-	int numInterrupt = s5p_register_gpio_interrupt(CYTTSP5_I2C_IRQ_GPIO); 
-    printk ("CYTTSP5 s5p num interrupt: %d\n", numInterrupt); 
-    twonav_i2c_devs1[0].irq = numInterrupt;
 
 }
 
