@@ -208,8 +208,8 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #ifdef CYTTSP5_USE_I2C
 	#define CYTTSP5_I2C_TCH_ADR 0x24
-	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4_GPX2(1) //EXYNOS4_GPX2(6)
-	#define CYTTSP5_I2C_IRQ 	 IRQ_EINT(17) //IRQ_EINT(22)
+	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4_GPX2(6) //EXYNOS4_GPX2(1)
+	#define CYTTSP5_I2C_IRQ 	 IRQ_EINT(22) //IRQ_EINT(17)
 	#define CYTTSP5_I2C_RST_GPIO EXYNOS4_GPX1(1)
 #endif
 
@@ -387,7 +387,7 @@ static void __init twonav_cyttsp5_init(void)
     s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
     gpio_free(CYTTSP5_I2C_IRQ_GPIO);
 
-	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_RST");
+	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_LOW, "TOUCH_RST");
     s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
     s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
     gpio_free(CYTTSP5_I2C_RST_GPIO);
