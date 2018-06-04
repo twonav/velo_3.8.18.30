@@ -294,8 +294,6 @@ static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 };
 
 static const int16_t cyttsp5_abs[] = {
-	/*ABS_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
-	ABS_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,*/
 	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
 	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
@@ -387,18 +385,14 @@ static void __init twonav_cyttsp5_init(void)
 #ifdef CYTTSP5_USE_I2C
 	/* PCAP ATMEL interrupt configuration */ 
 	gpio_request_one(CYTTSP5_I2C_IRQ_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_IRQ");
-    s3c_gpio_cfgpin(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_SFN(0xf));     
-    s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
-    gpio_free(CYTTSP5_I2C_IRQ_GPIO);
+	s3c_gpio_cfgpin(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_SFN(0xf));     
+	s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
+	gpio_free(CYTTSP5_I2C_IRQ_GPIO);
 
 	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_LOW, "TOUCH_RST");
-    s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
-    s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
-    gpio_free(CYTTSP5_I2C_RST_GPIO);
-#endif
-#ifdef CYTTSP5_USE_SPI
-	//omap_mux_init_gpio(CYTTSP5_SPI_RST_GPIO, OMAP_PIN_OUTPUT);
-	//omap_mux_init_gpio(CYTTSP5_SPI_IRQ_GPIO, OMAP_PIN_INPUT_PULLUP);
+	s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
+	s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
+	gpio_free(CYTTSP5_I2C_RST_GPIO);
 #endif
 
 #ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
