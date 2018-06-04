@@ -221,7 +221,8 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #define CYTTSP5_HID_DESC_REGISTER 1
 
-#define CY_VKEYS_X 480
+//Default values, need to be changed for velo/aventura
+#define CY_VKEYS_X 480 
 #define CY_VKEYS_Y 800
 #define CY_MAXX 480
 #define CY_MAXY 800
@@ -312,6 +313,7 @@ struct touch_framework cyttsp5_framework = {
 	.enable_vkeys = 0,
 };
 
+//Default values, need to be changed for velo/aventura
 static struct cyttsp5_mt_platform_data _cyttsp5_mt_platform_data = {
 	.frmwrk = &cyttsp5_framework,
 	.flags = CY_MT_FLAG_INV_X | CY_MT_FLAG_FLIP | CY_MT_FLAG_INV_Y,
