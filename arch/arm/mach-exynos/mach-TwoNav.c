@@ -244,14 +244,15 @@ struct tsc2007_platform_data tsc2007_info = {
 	/* max. resistance above which samples are ignored */
 	.max_rt		= 1200, // [#1] antes 1<<12
 
-	.poll_delay	= 20, /* delay (in ms) after pen-down event
-					     before polling starts */
-	.poll_period = 10,/* time (in ms) between samples */
+	.poll_delay	= 10, /* delay (in ms) after pen-down event before polling starts */
+	.poll_period = 10,/* time (in ms) between samples, it can arrive even at 5ms but too many events
+						 are generated and there is no visible increment in performance */
 
-	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 64, // [#2] antes 64
-	.fuzzy		= 64, // [#2] antes 64
-	.fuzzz		= 64,
+	/* fuzz factor for X, Y and pressure axes. This means that if there is a DOWN at (x0,y0) and then
+	 * there is another at (x1,y1) where x0-fuzzx <= x1 <= x0+fuzzx, it will be ignored. */
+	.fuzzx		= 32, // [#2] antes 64
+	.fuzzy		= 32, // [#2] antes 64
+	.fuzzz		= 32,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
 	.clear_penirq 		= tsc2007_clear_penirq,
