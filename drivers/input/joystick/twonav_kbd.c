@@ -72,14 +72,14 @@ MODULE_LICENSE("GPL");
 #define KEY_BOTTOM_RIGHT	0x08
 
 /* Joystick Debounce Filter */
-#define JOYSTICK_DEBOUNCE_FILTER_MS 150
+#define JOYSTICK_DEBOUNCE_FILTER_MS 200
 
 static unsigned long debounce_time_window = 0;
 static unsigned long last_release_event_time = 0;
 
 enum KeyStatus {
-	JOYSTICK_PRESSED = 0,
-	JOYSTICK_RELEASED = 1
+	RELEASED = 0,
+	PRESSED = 1
 };
 
 struct twonav_kbd_device {
@@ -159,9 +159,9 @@ static inline int twonav_kbd_xfer(struct twonav_kbd_device *kb, u8 cmd)
 	return val;
 }
 
-static int twonav_kbd_is_valid(int pressed) {
+static int twonav_kbd_debounce_filter(int pressed) {
 
-	if (pressed == JOYSTICK_RELEASED) {
+	if (pressed == RELEASED) {
 		last_release_event_time = jiffies;
 	}
 	else {
@@ -173,73 +173,73 @@ static int twonav_kbd_is_valid(int pressed) {
 	return 1;
 }
 
+static void twonav_kbd_process_joystick_event(struct input_dev *input_dev,
+										  const unsigned char joystick_status,
+										  const int joystick_event_type,
+										  int key_send_type)
+{
+	static int joystick_button_pressed = 0;
+	int press = ((joystick_status & joystick_event_type) != 0)?PRESSED:RELEASED;
+
+	if (joystick_button_pressed == 1 && press == 1) {
+		return;
+	}
+
+	if (twonav_kbd_debounce_filter(press) == 1) {
+		input_report_key(input_dev, key_send_type, press);
+	}
+	joystick_button_pressed = press;
+}
+
+static void twonav_kbd_process_key_event(struct input_dev *input_dev,
+									 const unsigned char keys_status,
+									 const int key_type,
+									 int key_send_type)
+{
+	int press = ((keys_status & key_type) != 0)?PRESSED:RELEASED;
+	input_report_key(input_dev, key_send_type, press);
+}
+
 static void twonav_kbd_send_evts(struct twonav_kbd_device * kb, int curr)
 {
 	static int oldVal = 0;
-	static int isEnterPressed = 0;
 	unsigned char js_curr = (curr >> 8) & 0xFF;
 	unsigned char ks_curr = (curr & 0xFF);
 	unsigned char joystick = (js_curr ^ ((oldVal >> 8) & 0xFF));
+	unsigned char joystick_status = (joystick & js_curr);
 	unsigned char keys = (ks_curr ^ (oldVal & 0xFF));
-	int press = 0;
-	struct i2c_client *client = kb->i2c_client;
+	unsigned char keys_status = (keys & ks_curr);
 
 	if (joystick) {
-		if (joystick & JOYSTICK_UP){
-			press = (((joystick & js_curr)& JOYSTICK_UP) != 0)?JOYSTICK_PRESSED:JOYSTICK_RELEASED;
-			if (twonav_kbd_is_valid(press) == 1) {
-				input_report_key(kb->input_dev, KEY_UP, press);
-			}
+		if (joystick & JOYSTICK_UP) {
+			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_UP, KEY_UP);
 		}
-		else if (joystick & JOYSTICK_DOWN){
-			press = (((joystick & js_curr)& JOYSTICK_DOWN) != 0)?JOYSTICK_PRESSED:JOYSTICK_RELEASED;
-			if (twonav_kbd_is_valid(press) == 1) {
-				input_report_key(kb->input_dev, KEY_DOWN, press);
-			}
+		else if (joystick & JOYSTICK_DOWN) {
+			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_DOWN, KEY_DOWN);
 		}
-		else if (joystick & JOYSTICK_LEFT){
-			press = (((joystick & js_curr)& JOYSTICK_LEFT) != 0)?JOYSTICK_PRESSED:JOYSTICK_RELEASED;
-			if (twonav_kbd_is_valid(press) == 1) {
-				input_report_key(kb->input_dev, KEY_LEFT, press);
-			}
-
+		else if (joystick & JOYSTICK_LEFT) {
+			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_LEFT, KEY_LEFT);
 		}
-		else if (joystick & JOYSTICK_RIGHT){
-			press = (((joystick & js_curr)& JOYSTICK_RIGHT) != 0)?JOYSTICK_PRESSED:JOYSTICK_RELEASED;
-			if (twonav_kbd_is_valid(press) == 1) {
-				input_report_key(kb->input_dev, KEY_RIGHT, press);
-			}
+		else if (joystick & JOYSTICK_RIGHT) {
+			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_RIGHT, KEY_RIGHT);
 		}
-		else if ((joystick & JOYSTICK_BTN) && ((js_curr & ~JOYSTICK_BTN) == 0 || isEnterPressed)){
-			press = (((joystick & js_curr)& JOYSTICK_BTN) != 0)?JOYSTICK_PRESSED:JOYSTICK_RELEASED;
-			if (twonav_kbd_is_valid(press) == 1) {
-				if ((js_curr & ~JOYSTICK_BTN) == 0) {
-					input_report_key(kb->input_dev, KEY_ENTER, press);
-					isEnterPressed = press;
-				} else if (isEnterPressed && !press){
-					input_report_key(kb->input_dev, KEY_ENTER, press);
-					isEnterPressed = press;
-				}
-			}
+		else if (joystick & JOYSTICK_BTN) {
+			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_BTN, KEY_ENTER);
 		}
 	}
 
 	if (keys) {
 		if (keys & KEY_TOP_LEFT){
-			press = (((keys & ks_curr)& KEY_TOP_LEFT) != 0)?1:0;
-			input_report_key(kb->input_dev, KEY_F3, press);
+			twonav_kbd_process_key_event(kb->input_dev, keys_status, KEY_TOP_LEFT, KEY_F3);
 		}
 		if (keys & KEY_TOP_RIGHT){
-			press = (((keys & ks_curr)& KEY_TOP_RIGHT) != 0)?1:0;
-			input_report_key(kb->input_dev, KEY_F4, press);
+			twonav_kbd_process_key_event(kb->input_dev, keys_status, KEY_TOP_RIGHT, KEY_F4);
 		}
 		if (keys & KEY_BOTTOM_LEFT){
-			press = (((keys & ks_curr)& KEY_BOTTOM_LEFT) != 0)?1:0;
-			input_report_key(kb->input_dev, KEY_F5, press);
+			twonav_kbd_process_key_event(kb->input_dev, keys_status, KEY_BOTTOM_LEFT, KEY_F5);
 		}
 		if (keys & KEY_BOTTOM_RIGHT){
-			press = (((keys & ks_curr)& KEY_BOTTOM_RIGHT) != 0)?1:0;
-			input_report_key(kb->input_dev, KEY_F6, press);
+			twonav_kbd_process_key_event(kb->input_dev, keys_status, KEY_BOTTOM_RIGHT, KEY_F6);
 		}
 	}
 
@@ -294,8 +294,6 @@ static irqreturn_t twonav_kbd_interrupt_process(int irq, void *dev_id)
 		} 
 		else if (!kb->stopped){
 			int val = 0; 
-			unsigned char keys = 0, joystick = 0;
-			struct i2c_client *client = kb->i2c_client;
 
 			//Read INT values
 			val = twonav_kbd_xfer(kb, JOYSTICK_INTERRUPT_FLAG);
@@ -422,13 +420,44 @@ static int twonav_kbd_configure_chip(struct twonav_kbd_device *twonav_kbd,
 	return 0;
 }
 
-static int twonav_kbd_probe(struct i2c_client *client,
-			 const struct i2c_device_id *id)
+static ssize_t twonav_kbd_debounce_show(struct device *dev,
+        								struct device_attribute *attr,
+										char *buf)
+{
+    return sprintf(buf, "%d\n", debounce_time_window);
+}
+
+static ssize_t twonav_kbd_debounce_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+	int err;
+	int value;
+
+	err = kstrtoint(buf, 10, &value);
+	if (err < 0) {
+		return err;
+	}
+
+	if (value > 0) {
+		debounce_time_window = msecs_to_jiffies(value);
+	}
+	else {
+		printk(KERN_INFO "twonav_kbd: invalid debounce value\n");
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(keyboard_debounce_ms, S_IRUGO | S_IWUSR, twonav_kbd_debounce_show,
+		twonav_kbd_debounce_store);
+
+static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct twonav_kbd_platform_data *pdata;
 	struct twonav_kbd_device *keyboard;
 	struct input_dev *input_dev;
 	int error;
+	struct device *dev = &client->dev;
 
 	last_release_event_time = jiffies;
 	debounce_time_window = msecs_to_jiffies(JOYSTICK_DEBOUNCE_FILTER_MS);
@@ -524,6 +553,10 @@ static int twonav_kbd_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, keyboard);
 
 	dev_notice(&client->dev, "Init twonav_kbd driver probe success\n");
+
+    // Register sysfs attribute chemistry
+    device_create_file(dev, &dev_attr_keyboard_debounce_ms);
+
 	return 0;
 
 err_free_irq:
@@ -538,11 +571,14 @@ err_free_mem:
 static int twonav_kbd_remove(struct i2c_client *client)
 {
 	struct twonav_kbd_device *twonav_kbd = i2c_get_clientdata(client);
+	struct device *dev = &client->dev;
 
 	free_irq(twonav_kbd->irq, twonav_kbd);
 
 	input_unregister_device(twonav_kbd->input_dev);
 	kfree(twonav_kbd);
+
+	device_remove_file(dev, &dev_attr_keyboard_debounce_ms);
 
 	return 0;
 }
