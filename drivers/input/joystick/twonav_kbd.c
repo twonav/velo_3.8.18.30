@@ -72,8 +72,8 @@ MODULE_LICENSE("GPL");
 #define KEY_BOTTOM_RIGHT	0x08
 
 /* Joystick Debounce Filter */
-#define JOYSTICK_ENTER_FILTER_MS 100
-#define JOYSTICK_DEBOUNCE_DELAY 50
+#define JOYSTICK_ENTER_FILTER_MS 200
+#define JOYSTICK_DEBOUNCE_DELAY 80
 
 static unsigned long enter_delay_time = 0;
 static unsigned long last_valid_event_time = 0;
