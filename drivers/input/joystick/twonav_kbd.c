@@ -37,6 +37,9 @@ MODULE_AUTHOR("Ignasi Serra <iserra@twonav.com>");
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL");
 
+#undef PREFIX
+#define PREFIX				"TN KEYBOARD: "
+
 /* registers Address*/
 #define IODIR_ADDR		0x00 //GPIO direction
 #define IPOL_ADDR		0x02 //GPIO polarity
@@ -104,9 +107,13 @@ struct twonav_kbd_device {
 	int	 (*get_pendown_state)(void);
 };
 
-void twonav_kbd_filter_send_delayed_joystick_up() {
-	input_report_key(keyboard_input_device, queue_event_type, RELEASED);
+void twonav_kdb_send_joystick_up(int key) {
+	input_report_key(keyboard_input_device, key, RELEASED);
 	input_sync(keyboard_input_device);
+}
+
+void twonav_kbd_filter_send_delayed_joystick_up() {
+	twonav_kdb_send_joystick_up(queue_event_type);
 
 	queue_event_type = 0;
 	joystick_active_button = 0;
@@ -120,7 +127,7 @@ void delayed_kbd_event_handler(struct delayed_work *work)
 			twonav_kbd_filter_send_delayed_joystick_up();
 		}
 		else {
-			printk(KERN_DEBUG "TN JOYSTICK: Event canceled from a rebound down\n");
+			pr_debug(PREFIX "Event canceled from a rebound down\n");
 		}
 	}
 }
@@ -201,7 +208,7 @@ static void twonav_kbd_filter_cancel_queued_up_event(int key_type) {
 		queue_event_type = 0;
 	}
 	else {
-		printk(KERN_DEBUG "TN JOYSTICK: invalid cancel key\n");
+		pr_debug(PREFIX "invalid cancel key :%d\n", key_type);
 	}
 }
 
@@ -216,14 +223,12 @@ static void twonav_kbd_process_joystick_event(struct input_dev *input_dev,
 											  int key_type)
 {
 	int press = ((joystick_status & joystick_event_type) != 0)?PRESSED:RELEASED;
-
-	printk(KERN_DEBUG "\n TN JOYSTICK EVENT:%d PRESS:%d\n"
-			          " Active key:%d"
-			          " queue_event_type:%d\n",
-					  key_type,
-					  press,
-					  joystick_active_button,
-					  queue_event_type);
+	pr_debug(PREFIX "Event:%d pressed:%d\n"
+			"Active key:%d queue_event_type:%d\n",
+			key_type,
+			press,
+			joystick_active_button,
+			queue_event_type);
 
 	if (press == PRESSED) {
 		if (joystick_active_button == 0) {
@@ -234,7 +239,7 @@ static void twonav_kbd_process_joystick_event(struct input_dev *input_dev,
 				twonav_kbd_filter_cancel_queued_up_event(key_type);
 			}
 			else {
-				printk(KERN_DEBUG "TN JOYSTICK: Ignore simultaneous down key:%d\n", key_type);
+				pr_debug(PREFIX "Ignore simultaneous down key:%d\n", key_type);
 			}
 		}
 	}
@@ -244,11 +249,11 @@ static void twonav_kbd_process_joystick_event(struct input_dev *input_dev,
 				twonav_kbd_filter_enqueue_joystick_up(key_type);
 			}
 			else {
-				printk(KERN_DEBUG "TN JOYSTICK: Ignore double up with no down in between\n");
+				pr_debug(PREFIX "Ignore double up with no down in between\n");
 			}
 		}
 		else {
-			printk(KERN_DEBUG "TN JOYSTICK: Ignore up key:%d with no down\n", key_type);
+			pr_debug(PREFIX "Ignore up key:%d with no down\n", key_type);
 		}
 	}
 }
@@ -271,7 +276,7 @@ static int twonav_kbd_is_enter_valid() {
 		is_valid = 1;
 	}
 	else {
-		printk(KERN_INFO "IGNORE FAST ENTER \n");
+		pr_debug(PREFIX "Ignore fast enter\n");
 	}
 	return is_valid;
 }
