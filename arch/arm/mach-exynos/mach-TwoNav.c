@@ -222,10 +222,17 @@ static struct usb3503_platform_data usb3503_pdata = {
 #define CYTTSP5_HID_DESC_REGISTER 1
 
 //Default values, need to be changed for velo/aventura
-#define CY_VKEYS_X 480 
-#define CY_VKEYS_Y 800
-#define CY_MAXX 480
-#define CY_MAXY 800
+#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	#define CY_VKEYS_X 480
+	#define CY_VKEYS_Y 640
+	#define CY_MAXX 480
+	#define CY_MAXY 640
+#else
+	#define CY_VKEYS_X 240
+	#define CY_VKEYS_Y 400
+	#define CY_MAXX 240
+	#define CY_MAXY 400
+#endif
 #define CY_MINX 0
 #define CY_MINY 0
 
