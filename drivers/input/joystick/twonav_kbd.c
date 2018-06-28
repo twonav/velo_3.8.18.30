@@ -37,6 +37,9 @@ MODULE_AUTHOR("Ignasi Serra <iserra@twonav.com>");
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL");
 
+#undef PREFIX
+#define PREFIX				"TN KEYBOARD: "
+
 /* registers Address*/
 #define IODIR_ADDR		0x00 //GPIO direction
 #define IPOL_ADDR		0x02 //GPIO polarity
@@ -72,15 +75,23 @@ MODULE_LICENSE("GPL");
 #define KEY_BOTTOM_RIGHT	0x08
 
 /* Joystick Debounce Filter */
-#define JOYSTICK_DEBOUNCE_FILTER_MS 200
+#define JOYSTICK_ENTER_FILTER_MS 200
+#define JOYSTICK_DEBOUNCE_DELAY 80
 
-static unsigned long debounce_time_window = 0;
-static unsigned long last_release_event_time = 0;
+static unsigned long enter_delay_time = 0;
+static unsigned long last_valid_event_time = 0;
 
 enum KeyStatus {
 	RELEASED = 0,
 	PRESSED = 1
 };
+
+static struct workqueue_struct *keyboard_workqueue;
+static unsigned long workqueue_debounce_delay = 0;
+struct input_dev *keyboard_input_device;
+
+static int queue_event_type = 0;
+static int joystick_active_button = 0;
 
 struct twonav_kbd_device {
 	struct input_dev *input_dev;
@@ -95,6 +106,33 @@ struct twonav_kbd_device {
 
 	int	 (*get_pendown_state)(void);
 };
+
+void twonav_kdb_send_joystick_up(int key) {
+	input_report_key(keyboard_input_device, key, RELEASED);
+	input_sync(keyboard_input_device);
+}
+
+void twonav_kbd_filter_send_delayed_joystick_up() {
+	twonav_kdb_send_joystick_up(queue_event_type);
+
+	queue_event_type = 0;
+	joystick_active_button = 0;
+	last_valid_event_time = jiffies;
+}
+
+void delayed_kbd_event_handler(struct delayed_work *work)
+{
+	if (work && keyboard_input_device) {
+		if (queue_event_type != 0) {
+			twonav_kbd_filter_send_delayed_joystick_up();
+		}
+		else {
+			pr_debug(PREFIX "Event canceled from a rebound down\n");
+		}
+	}
+}
+
+DECLARE_DELAYED_WORK(keyboard_delayed_work, delayed_kbd_event_handler);
 
 static int twonav_kbd_i2c_write(struct i2c_client *client,
 								uint8_t aregaddr,
@@ -159,36 +197,65 @@ static inline int twonav_kbd_xfer(struct twonav_kbd_device *kb, u8 cmd)
 	return val;
 }
 
-static int twonav_kbd_debounce_filter(int pressed) {
+static void twonav_kbd_filter_send_joystick_press(struct input_dev *input_dev, int key_type) {
+	last_valid_event_time = jiffies;
+	joystick_active_button = key_type;
+	input_report_key(input_dev, key_type, PRESSED);
+}
 
-	if (pressed == RELEASED) {
-		last_release_event_time = jiffies;
+static void twonav_kbd_filter_cancel_queued_up_event(int key_type) {
+	if (key_type == queue_event_type) {
+		queue_event_type = 0;
 	}
 	else {
-		unsigned long diff = jiffies - last_release_event_time;
-		if ( diff < debounce_time_window) {
-			return 0;
-		}
+		pr_debug(PREFIX "invalid cancel key :%d\n", key_type);
 	}
-	return 1;
+}
+
+static void twonav_kbd_filter_enqueue_joystick_up(int key_type) {
+	queue_event_type = key_type;
+	queue_delayed_work(keyboard_workqueue, &keyboard_delayed_work, workqueue_debounce_delay);
 }
 
 static void twonav_kbd_process_joystick_event(struct input_dev *input_dev,
-										  const unsigned char joystick_status,
-										  const int joystick_event_type,
-										  int key_send_type)
+										  	  const unsigned char joystick_status,
+											  const int joystick_event_type,
+											  int key_type)
 {
-	static int joystick_button_pressed = 0;
 	int press = ((joystick_status & joystick_event_type) != 0)?PRESSED:RELEASED;
+	pr_debug(PREFIX "Event:%d pressed:%d\n"
+			"Active key:%d queue_event_type:%d\n",
+			key_type,
+			press,
+			joystick_active_button,
+			queue_event_type);
 
-	if (joystick_button_pressed == 1 && press == 1) {
-		return;
+	if (press == PRESSED) {
+		if (joystick_active_button == 0) {
+			twonav_kbd_filter_send_joystick_press(input_dev, key_type);
+		}
+		else {
+			if (joystick_active_button == key_type) {
+				twonav_kbd_filter_cancel_queued_up_event(key_type);
+			}
+			else {
+				pr_debug(PREFIX "Ignore simultaneous down key:%d\n", key_type);
+			}
+		}
 	}
-
-	if (twonav_kbd_debounce_filter(press) == 1) {
-		input_report_key(input_dev, key_send_type, press);
+	else {
+		if (joystick_active_button == key_type) {
+			if (queue_event_type == 0) {
+				twonav_kbd_filter_enqueue_joystick_up(key_type);
+			}
+			else {
+				pr_debug(PREFIX "Ignore double up with no down in between\n");
+			}
+		}
+		else {
+			pr_debug(PREFIX "Ignore up key:%d with no down\n", key_type);
+		}
 	}
-	joystick_button_pressed = press;
 }
 
 static void twonav_kbd_process_key_event(struct input_dev *input_dev,
@@ -198,6 +265,19 @@ static void twonav_kbd_process_key_event(struct input_dev *input_dev,
 {
 	int press = ((keys_status & key_type) != 0)?PRESSED:RELEASED;
 	input_report_key(input_dev, key_send_type, press);
+}
+
+// Filter ENTER key: if it comes too fast after another key event
+static int twonav_kbd_is_enter_valid() {
+	int is_valid = 0;
+	unsigned long diff = jiffies - last_valid_event_time;
+	if ((joystick_active_button == KEY_ENTER) || (diff > enter_delay_time) ) {
+		is_valid = 1;
+	}
+	else {
+		pr_debug(PREFIX "Ignore fast enter\n");
+	}
+	return is_valid;
 }
 
 static void twonav_kbd_send_evts(struct twonav_kbd_device * kb, int curr)
@@ -224,7 +304,10 @@ static void twonav_kbd_send_evts(struct twonav_kbd_device * kb, int curr)
 			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_RIGHT, KEY_RIGHT);
 		}
 		else if (joystick & JOYSTICK_BTN) {
-			twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_BTN, KEY_ENTER);
+			int is_enter_valid = twonav_kbd_is_enter_valid();
+			if (is_enter_valid) {
+				twonav_kbd_process_joystick_event(kb->input_dev, joystick_status, JOYSTICK_BTN, KEY_ENTER);
+			}
 		}
 	}
 
@@ -424,7 +507,7 @@ static ssize_t twonav_kbd_debounce_show(struct device *dev,
         								struct device_attribute *attr,
 										char *buf)
 {
-    return sprintf(buf, "%d\n", debounce_time_window);
+    return sprintf(buf, "%d\n", workqueue_debounce_delay);
 }
 
 static ssize_t twonav_kbd_debounce_store(struct device *dev,
@@ -439,7 +522,7 @@ static ssize_t twonav_kbd_debounce_store(struct device *dev,
 	}
 
 	if (value > 0) {
-		debounce_time_window = msecs_to_jiffies(value);
+		workqueue_debounce_delay = msecs_to_jiffies(value);
 	}
 	else {
 		printk(KERN_INFO "twonav_kbd: invalid debounce value\n");
@@ -451,6 +534,37 @@ static ssize_t twonav_kbd_debounce_store(struct device *dev,
 static DEVICE_ATTR(keyboard_debounce_ms, S_IRUGO | S_IWUSR, twonav_kbd_debounce_show,
 		twonav_kbd_debounce_store);
 
+static ssize_t twonav_kbd_enter_delay_show(struct device *dev,
+        								struct device_attribute *attr,
+										char *buf)
+{
+    return sprintf(buf, "%d\n", enter_delay_time);
+}
+
+static ssize_t twonav_kbd_enter_delay_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+	int err;
+	int value;
+
+	err = kstrtoint(buf, 10, &value);
+	if (err < 0) {
+		return err;
+	}
+
+	if (value > 0) {
+		enter_delay_time = msecs_to_jiffies(value);
+	}
+	else {
+		printk(KERN_INFO "twonav_kbd: invalid enter delay value\n");
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(keyboard_enter_delay_ms, S_IRUGO | S_IWUSR, twonav_kbd_enter_delay_show,
+		twonav_kbd_enter_delay_store);
+
 static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct twonav_kbd_platform_data *pdata;
@@ -459,8 +573,10 @@ static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_i
 	int error;
 	struct device *dev = &client->dev;
 
-	last_release_event_time = jiffies;
-	debounce_time_window = msecs_to_jiffies(JOYSTICK_DEBOUNCE_FILTER_MS);
+	keyboard_workqueue = create_workqueue("keyboard_workqueue");
+	workqueue_debounce_delay = msecs_to_jiffies(JOYSTICK_DEBOUNCE_DELAY);
+	enter_delay_time = msecs_to_jiffies(JOYSTICK_ENTER_FILTER_MS);
+	last_valid_event_time = jiffies;
 
 	dev_notice(&client->dev, "twonav_kbd_probe!\n");
 	
@@ -502,6 +618,7 @@ static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_i
 	input_dev->close = twonav_kbd_close;
 
 	input_set_drvdata(input_dev, keyboard);
+	keyboard_input_device = input_dev;
 
 	error = twonav_kbd_configure_chip(keyboard, pdata);
 	if (error) {
@@ -554,8 +671,10 @@ static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_i
 
 	dev_notice(&client->dev, "Init twonav_kbd driver probe success\n");
 
-    // Register sysfs attribute chemistry
-    device_create_file(dev, &dev_attr_keyboard_debounce_ms);
+
+  // Register sysfs attributes
+  device_create_file(dev, &dev_attr_keyboard_debounce_ms);
+  device_create_file(dev, &dev_attr_keyboard_enter_delay_ms);
 
 	return 0;
 
@@ -572,6 +691,9 @@ static int twonav_kbd_remove(struct i2c_client *client)
 {
 	struct twonav_kbd_device *twonav_kbd = i2c_get_clientdata(client);
 	struct device *dev = &client->dev;
+
+	flush_workqueue( keyboard_workqueue );
+	destroy_workqueue( keyboard_workqueue );
 
 	free_irq(twonav_kbd->irq, twonav_kbd);
 
