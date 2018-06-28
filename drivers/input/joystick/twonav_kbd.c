@@ -267,7 +267,6 @@ static void twonav_kbd_process_key_event(struct input_dev *input_dev,
 	input_report_key(input_dev, key_send_type, press);
 }
 
-
 // Filter ENTER key: if it comes too fast after another key event
 static int twonav_kbd_is_enter_valid() {
 	int is_valid = 0;
@@ -672,9 +671,10 @@ static int twonav_kbd_probe(struct i2c_client *client, const struct i2c_device_i
 
 	dev_notice(&client->dev, "Init twonav_kbd driver probe success\n");
 
-    // Register sysfs attributes
-    device_create_file(dev, &dev_attr_keyboard_debounce_ms);
-    device_create_file(dev, &dev_attr_keyboard_enter_delay_ms);
+
+  // Register sysfs attributes
+  device_create_file(dev, &dev_attr_keyboard_debounce_ms);
+  device_create_file(dev, &dev_attr_keyboard_enter_delay_ms);
 
 	return 0;
 
