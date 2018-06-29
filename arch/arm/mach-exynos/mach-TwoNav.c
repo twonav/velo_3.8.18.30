@@ -323,7 +323,6 @@ struct touch_framework cyttsp5_framework = {
 //Default values, need to be changed for velo/aventura
 static struct cyttsp5_mt_platform_data _cyttsp5_mt_platform_data = {
 	.frmwrk = &cyttsp5_framework,
-	.flags = CY_MT_FLAG_INV_X | CY_MT_FLAG_FLIP | CY_MT_FLAG_INV_Y,
 	.inp_dev_name = CYTTSP5_MT_NAME,
 	.vkeys_x = CY_VKEYS_X,
 	.vkeys_y = CY_VKEYS_Y,
