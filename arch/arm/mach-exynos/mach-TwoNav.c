@@ -626,8 +626,8 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
 /* I2C4 bus GPIO-Bitbanging */
-#define		GPIO_I2C4_SDA	EXYNOS4_GPB(0)
-#define		GPIO_I2C4_SCL	EXYNOS4_GPB(1)
+#define		GPIO_I2C4_SDA	EXYNOS4_GPB(1)
+#define		GPIO_I2C4_SCL	EXYNOS4_GPB(0)
 static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
 	.sda_pin = GPIO_I2C4_SDA,
 	.scl_pin = GPIO_I2C4_SCL,
