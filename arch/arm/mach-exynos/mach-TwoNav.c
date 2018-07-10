@@ -454,7 +454,8 @@ struct tsc2007_platform_data tsc2007_info = {
 	/* max. resistance above which samples are ignored */
 	.max_rt		= 1200, // [#1] antes 1<<12
 
-	.poll_delay	= 10, /* delay (in ms) after pen-down event before polling starts */
+	.poll_delay	= 20, /* delay (in ms) after pen-down event before polling starts
+	 	 	 	 	 	 It needs to be 20ms to have a stable measurement */
 	.poll_period = 10,/* time (in ms) between samples, it can arrive even at 5ms but too many events
 						 are generated and there is no visible increment in performance */
 
