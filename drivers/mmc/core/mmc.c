@@ -961,7 +961,7 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 
 	/* Enable mmc sw reset function */
 	if(card->ext_csd.rst_n_function == 0) {
-		err = mmc_switch(card,
+		err = mmc_switch(card, 
 						 EXT_CSD_CMD_SET_NORMAL,
 		 				 EXT_CSD_RST_N_FUNCTION, 
 		 				 1, 
@@ -971,11 +971,11 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		}
 		else {
 			card->ext_csd.rst_n_function = 1;
-			pr_info("Enable mmc reset function OK\n");
+			pr_warning("Enable mmc reset function OK\n", err);
 		}
 	} 
 	else {
-		pr_info("mmc reset function enabled by default\n");
+		pr_warning("mmc reset function enabled by default\n");
 	}
 
 	/*

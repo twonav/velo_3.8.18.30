@@ -3,8 +3,10 @@
 
 struct ds278x_platform_data {
 	int rsns;
-	int gpio_enable;
-	int gpio_charging;
+	int gpio_enable_charger;
+	int gpio_pg;
+	int gpio_stat1;
+	int gpio_stat2;
 };
 
 #endif

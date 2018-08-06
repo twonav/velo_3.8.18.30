@@ -109,22 +109,26 @@ static inline int tsc2007_xfer(struct tsc2007 *tsc, u8 cmd)
 }
 
 // 2016-09-08 DNP TWON-13931: sleep de 10 ms para que se estabilice el valor
+// 2018-05-05 TPA ELK-32: sleeps are not needed, the hardware restriction is
+//                        controlled by setting poll_period at 10ms
+// 2018-06-28 TPA ELK-32: add a 2ms sleep to not stress the driver too much
+// 2018-07-10 TPA TWON-15865: adjust settings for calibration
 static void tsc2007_read_values(struct tsc2007 *tsc, struct ts_event *tc)
 {
 	/* y- still on; turn on only y+ (and ADC) */
 	tsc2007_xfer(tsc, READ_Y);
-	msleep(10);
 	tc->y = tsc2007_xfer(tsc, READ_Y);
+	msleep(3);
 
 	/* turn y- off, x+ on, then leave in lowpower */
 	tsc2007_xfer(tsc, READ_X);
-	msleep(10);
 	tc->x = tsc2007_xfer(tsc, READ_X);
+	msleep(3);
 
 	/* turn y+ off, x- on; we'll use formula #1 */
-	msleep(10);
 	tc->z1 = tsc2007_xfer(tsc, READ_Z1);
 	tc->z2 = tsc2007_xfer(tsc, READ_Z2);
+	msleep(3);
 
 	/* Prepare for next touch reading - power down ADC, enable PENIRQ */
 	tsc2007_xfer(tsc, PWRDOWN);
@@ -362,6 +366,12 @@ static int tsc2007_probe(struct i2c_client *client,
 
 	if (pdata->init_platform_hw)
 		pdata->init_platform_hw();
+
+	err = tsc2007_xfer(ts, PWRDOWN);
+	if (err < 0) {
+		dev_err(&client->dev, "irq %d busy?\n", ts->irq);
+		goto err_free_mem;
+	}
 
 	err = request_threaded_irq(ts->irq, tsc2007_hard_irq, tsc2007_soft_irq,
 				   IRQF_ONESHOT, client->dev.driver->name, ts);

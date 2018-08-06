@@ -74,6 +74,7 @@
 #include "pmic-77686.h"
 
 extern char *device_model;
+extern char *device_version;
 #define PS_HOLD_RESET	0x5200
 
 /*VELO INCLUDES*/
@@ -134,12 +135,16 @@ static struct s3c2410_uartcfg twonav_uartcfgs[] __initdata = {
 #include <linux/ds2782_battery.h>
 #define DS2786_RSNS    	20 /* Constant sense resistor value, mOhms */
 #define MAX8814_EN    	EXYNOS4X12_GPM3(1) /* Enable GPIO */
-#define CHARGING_LED    EXYNOS4X12_GPM3(0)
+#define MCP73833_CHARGE_MANAGER_PG    EXYNOS4X12_GPM3(0)
+#define MCP73833_CHARGE_MANAGER_STAT1	EXYNOS4X12_GPM3(6)
+#define MCP73833_CHARGE_MANAGER_STAT2	EXYNOS4X12_GPM4(3)
 
 struct ds278x_platform_data ds278x_pdata = {
 	.rsns = DS2786_RSNS,
-	.gpio_enable = MAX8814_EN,
-	.gpio_charging = CHARGING_LED,
+	.gpio_enable_charger = MAX8814_EN,
+	.gpio_pg = MCP73833_CHARGE_MANAGER_PG,
+	.gpio_stat1 = MCP73833_CHARGE_MANAGER_STAT1,
+	.gpio_stat2 = MCP73833_CHARGE_MANAGER_STAT2,
 };
 #endif
 /*FAN54040 CONFIGURATION PLATDATA*/
@@ -199,6 +204,256 @@ static struct usb3503_platform_data usb3503_pdata = {
 #endif
 /*END OF USB 3505 SMC CCOnfiguration*/
 
+/*CYTTSP5 Capacitive Touchscreen Configuration*/
+
+/* cyttsp */
+#include <linux/cyttsp5_core.h>
+#include <linux/cyttsp5_platform.h>
+
+#define CYTTSP5_USE_I2C
+
+#ifdef CYTTSP5_USE_I2C
+	#define CYTTSP5_I2C_TCH_ADR 0x24
+	#define CYTTSP5_I2C_IRQ_GPIO EXYNOS4_GPX2(6) //EXYNOS4_GPX2(1)
+	#define CYTTSP5_I2C_IRQ 	 IRQ_EINT(22) //IRQ_EINT(17)
+	#define CYTTSP5_I2C_RST_GPIO EXYNOS4_GPX1(1)
+#endif
+
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+
+#define CYTTSP5_HID_DESC_REGISTER 1
+
+//Default values, need to be changed for velo/aventura
+#define CY_VKEYS_X_BIG 480
+#define CY_VKEYS_Y_BIG 640
+#define CY_MAXX_BIG 480
+#define CY_MAXY_BIG 640
+#define CY_VKEYS_X_SMALL 240
+#define CY_VKEYS_Y_SMALL 400
+#define CY_MAXX_SMALL 240
+#define CY_MAXY_SMALL 400
+
+#define CY_MINX 0
+#define CY_MINY 0
+
+#define CY_ABS_MIN_X CY_MINX
+#define CY_ABS_MIN_Y CY_MINY
+#define CY_ABS_MAX_X_BIG CY_MAXX_BIG
+#define CY_ABS_MAX_Y_BIG CY_MAXY_BIG
+#define CY_ABS_MAX_X_SMALL CY_MAXX_SMALL
+#define CY_ABS_MAX_Y_SMALL CY_MAXY_SMALL
+#define CY_ABS_MIN_P 0
+#define CY_ABS_MAX_P 255
+#define CY_ABS_MIN_W 0
+#define CY_ABS_MAX_W 255
+#define CY_PROXIMITY_MIN_VAL	0
+#define CY_PROXIMITY_MAX_VAL	1
+
+#define CY_ABS_MIN_T 0
+
+#define CY_ABS_MAX_T 15
+
+/* Button to keycode conversion */
+static u16 cyttsp5_btn_keys[] = {
+	/* use this table to map buttons to keycodes (see input.h) */
+	KEY_HOMEPAGE,		/* 172 */ /* Previously was KEY_HOME (102) */
+				/* New Android versions use KEY_HOMEPAGE */
+	KEY_MENU,		/* 139 */
+	KEY_BACK,		/* 158 */
+	KEY_SEARCH,		/* 217 */
+	KEY_VOLUMEDOWN,		/* 114 */
+	KEY_VOLUMEUP,		/* 115 */
+	KEY_CAMERA,		/* 212 */
+	KEY_POWER		/* 116 */
+};
+
+static struct touch_settings cyttsp5_sett_btn_keys = {
+	.data = (uint8_t *)&cyttsp5_btn_keys[0],
+	.size = ARRAY_SIZE(cyttsp5_btn_keys),
+	.tag = 0,
+};
+
+static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
+	.irq_gpio = CYTTSP5_I2C_IRQ_GPIO,
+	.rst_gpio = CYTTSP5_I2C_RST_GPIO,	
+	.hid_desc_register = CYTTSP5_HID_DESC_REGISTER,
+	.xres = cyttsp5_xres,
+	.init = cyttsp5_init,
+	.power = cyttsp5_power,
+	.detect = cyttsp5_detect,
+	.irq_stat = cyttsp5_irq_stat,
+	.sett = {
+		NULL,	/* Reserved */
+		NULL,	/* Command Registers */
+		NULL,	/* Touch Report */
+		NULL,	/* Parade Data Record */
+		NULL,	/* Test Record */
+		NULL,	/* Panel Configuration Record */
+		NULL,	/* &cyttsp5_sett_param_regs, */
+		NULL,	/* &cyttsp5_sett_param_size, */
+		NULL,	/* Reserved */
+		NULL,	/* Reserved */
+		NULL,	/* Operational Configuration Record */
+		NULL, /* &cyttsp5_sett_ddata, *//* Design Data Record */
+		NULL, /* &cyttsp5_sett_mdata, *//* Manufacturing Data Record */
+		NULL,	/* Config and Test Registers */
+		&cyttsp5_sett_btn_keys,	/* button-to-keycode table */
+	},
+	.flags = CY_CORE_FLAG_RESTORE_PARAMETERS,
+	.easy_wakeup_gesture = CY_CORE_EWG_NONE,
+};
+
+static const int16_t cyttsp5_abs_small[] = {
+	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X_SMALL, 0, 0,
+	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y_SMALL, 0, 0,
+	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
+	CY_IGNORE_VALUE, CY_ABS_MIN_W, CY_ABS_MAX_W, 0, 0,
+	ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0,
+	ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0,
+	ABS_MT_TOUCH_MINOR, 0, 255, 0, 0,
+	ABS_MT_ORIENTATION, -127, 127, 0, 0,
+	ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0,
+	ABS_MT_DISTANCE, 0, 255, 0, 0,	/* Used with hover */ 
+};
+
+static const int16_t cyttsp5_abs_big[] = {
+	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X_BIG, 0, 0,
+	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y_BIG, 0, 0,
+	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
+	CY_IGNORE_VALUE, CY_ABS_MIN_W, CY_ABS_MAX_W, 0, 0,
+	ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0,
+	ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0,
+	ABS_MT_TOUCH_MINOR, 0, 255, 0, 0,
+	ABS_MT_ORIENTATION, -127, 127, 0, 0,
+	ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0,
+	ABS_MT_DISTANCE, 0, 255, 0, 0,	/* Used with hover */ 
+};
+
+struct touch_framework cyttsp5_framework_small = {
+	.abs = (uint16_t *)&cyttsp5_abs_small[0],
+	.size = ARRAY_SIZE(cyttsp5_abs_small),
+	.enable_vkeys = 0,
+};
+
+struct touch_framework cyttsp5_framework_big = {
+	.abs = (uint16_t *)&cyttsp5_abs_big[0],
+	.size = ARRAY_SIZE(cyttsp5_abs_big),
+	.enable_vkeys = 0,
+};
+
+//Default values, need to be changed for velo/aventura
+static struct cyttsp5_mt_platform_data _cyttsp5_mt_platform_data_small = {
+	.frmwrk = &cyttsp5_framework_small,
+	.inp_dev_name = CYTTSP5_MT_NAME,
+	.vkeys_x = CY_VKEYS_X_SMALL,
+	.vkeys_y = CY_VKEYS_Y_SMALL,
+};
+
+static struct cyttsp5_mt_platform_data _cyttsp5_mt_platform_data_big = {
+	.frmwrk = &cyttsp5_framework_big,
+	.inp_dev_name = CYTTSP5_MT_NAME,
+	.vkeys_x = CY_VKEYS_X_BIG,
+	.vkeys_y = CY_VKEYS_Y_BIG,
+};
+
+static struct cyttsp5_btn_platform_data _cyttsp5_btn_platform_data = {
+	.inp_dev_name = CYTTSP5_BTN_NAME,
+};
+
+static const int16_t cyttsp5_prox_abs[] = {
+	ABS_DISTANCE, CY_PROXIMITY_MIN_VAL, CY_PROXIMITY_MAX_VAL, 0, 0,
+};
+
+struct touch_framework cyttsp5_prox_framework = {
+	.abs = (uint16_t *)&cyttsp5_prox_abs[0],
+	.size = ARRAY_SIZE(cyttsp5_prox_abs),
+};
+
+static struct cyttsp5_proximity_platform_data
+		_cyttsp5_proximity_platform_data = {
+	.frmwrk = &cyttsp5_prox_framework,
+	.inp_dev_name = CYTTSP5_PROXIMITY_NAME,
+};
+
+static struct cyttsp5_platform_data _cyttsp5_platform_data_small = {
+	.core_pdata = &_cyttsp5_core_platform_data,
+	.mt_pdata = &_cyttsp5_mt_platform_data_small,
+	.loader_pdata = &_cyttsp5_loader_platform_data,
+	.btn_pdata = &_cyttsp5_btn_platform_data,
+	.prox_pdata = &_cyttsp5_proximity_platform_data,
+};
+
+static struct cyttsp5_platform_data _cyttsp5_platform_data_big = {
+	.core_pdata = &_cyttsp5_core_platform_data,
+	.mt_pdata = &_cyttsp5_mt_platform_data_big,
+	.loader_pdata = &_cyttsp5_loader_platform_data,
+	.btn_pdata = &_cyttsp5_btn_platform_data,
+	.prox_pdata = &_cyttsp5_proximity_platform_data,
+};
+
+static ssize_t cyttsp5_virtualkeys_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf,
+		__stringify(EV_KEY) ":"
+		__stringify(KEY_BACK) ":1360:90:160:180:"
+		__stringify(EV_KEY) ":"
+		__stringify(KEY_MENU) ":1360:270:160:180:"
+		__stringify(EV_KEY) ":"
+		__stringify(KEY_HOMEPAGE) ":1360:450:160:180:"
+		__stringify(EV_KEY) ":"
+		__stringify(KEY_SEARCH) ":1360:630:160:180\n");
+}
+
+static struct kobj_attribute cyttsp5_virtualkeys_attr = {
+	.attr = {
+		.name = "virtualkeys.cyttsp5_mt",
+		.mode = S_IRUGO,
+	},
+	.show = &cyttsp5_virtualkeys_show,
+};
+
+static struct attribute *cyttsp5_properties_attrs[] = {
+	&cyttsp5_virtualkeys_attr.attr,
+	NULL
+};
+
+static struct attribute_group cyttsp5_properties_attr_group = {
+	.attrs = cyttsp5_properties_attrs,
+};
+#endif /* !CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT */
+
+static void __init twonav_cyttsp5_init(void)
+{
+	/* Initialize muxes for GPIO pins */
+#ifdef CYTTSP5_USE_I2C
+	/* PCAP ATMEL interrupt configuration */ 
+	gpio_request_one(CYTTSP5_I2C_IRQ_GPIO, GPIOF_OUT_INIT_HIGH, "TOUCH_IRQ");
+	s3c_gpio_cfgpin(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_SFN(0xf));     
+	s3c_gpio_setpull(CYTTSP5_I2C_IRQ_GPIO, S3C_GPIO_PULL_UP); 
+	gpio_free(CYTTSP5_I2C_IRQ_GPIO);
+
+	gpio_request_one(CYTTSP5_I2C_RST_GPIO, GPIOF_OUT_INIT_LOW, "TOUCH_RST");
+	s3c_gpio_cfgpin(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_OUTPUT );
+	s3c_gpio_setpull(CYTTSP5_I2C_RST_GPIO, S3C_GPIO_PULL_NONE);
+	gpio_free(CYTTSP5_I2C_RST_GPIO);
+#endif
+
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+	struct kobject *properties_kobj;
+	int ret = 0;
+
+	properties_kobj = kobject_create_and_add("board_properties", NULL);
+	if (properties_kobj)
+		ret = sysfs_create_group(properties_kobj,
+				&cyttsp5_properties_attr_group);
+	if (!properties_kobj || ret)
+		pr_err("%s: failed to create board_properties\n", __func__);
+#endif
+}
+
+/*End of CYTTSP5 Capacitive Touchscreen Configuration*/
+
 /*touchscreen config tsc2007 XE_INT22*/
 #if defined(CONFIG_TOUCHSCREEN_TSC2007) || defined(CONFIG_TOUCHSCREEN_TSC2007_MODULE)
 #include <linux/i2c/tsc2007.h>
@@ -239,16 +494,18 @@ struct tsc2007_platform_data tsc2007_info = {
 	.x_plate_ohms	= 265, /* must be non-zero value */
 	.y_plate_ohms	= 680, /* must be non-zero value */
 	/* max. resistance above which samples are ignored */
-	.max_rt		= 1200, // [#1] antes 1<<12
+	.max_rt		= 900, // [#1] antes 1<<12
 
-	.poll_delay	= 20, /* delay (in ms) after pen-down event
-					     before polling starts */
-	.poll_period = 10,/* time (in ms) between samples */
+	.poll_delay	= 25, /* delay (in ms) after pen-down event before polling starts
+	 	 	 	 	 	 It needs to be 20ms to have a stable measurement */
+	.poll_period = 10,/* time (in ms) between samples, it can arrive even at 5ms but too many events
+						 are generated and there is no visible increment in performance */
 
-	/* fuzz factor for X, Y and pressure axes */
-	.fuzzx		= 64, // [#2] antes 64
-	.fuzzy		= 64, // [#2] antes 64
-	.fuzzz		= 64,
+	/* fuzz factor for X, Y and pressure axes. This means that if there is a DOWN at (x0,y0) and then
+	 * there is another at (x1,y1) where x0-fuzzx <= x1 <= x0+fuzzx, it will be ignored. */
+	.fuzzx		= 32, // [#2] antes 64
+	.fuzzy		= 32, // [#2] antes 64
+	.fuzzz		= 32,
 
 	.get_pendown_state	= tsc2007_get_pendown_state,
 	.clear_penirq 		= tsc2007_clear_penirq,
@@ -405,6 +662,7 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 
 	},
 #endif
+
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
@@ -425,7 +683,17 @@ static struct 	platform_device 	gpio_device_i2c4 = {
 	.id  	= 4,    // adepter number
 	.dev.platform_data = &i2c4_gpio_platdata,
 };
-static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
+
+static struct i2c_board_info twonav_i2c_devs4_small[] __initdata = {
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+#ifdef CYTTSP5_USE_I2C
+	{
+		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
+		.irq =  CYTTSP5_I2C_IRQ,
+		.platform_data = &_cyttsp5_platform_data_small,
+	},
+#endif
+#endif
 #if defined(CONFIG_BATTERY_DS2782)
 	{
 		I2C_BOARD_INFO("ds2782", 0x34),
@@ -448,6 +716,40 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 	 },
 #endif
 };
+
+static struct i2c_board_info twonav_i2c_devs4_big[] __initdata = {
+#ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
+#ifdef CYTTSP5_USE_I2C
+	{
+		I2C_BOARD_INFO(CYTTSP5_I2C_NAME, CYTTSP5_I2C_TCH_ADR),
+		.irq =  CYTTSP5_I2C_IRQ,
+		.platform_data = &_cyttsp5_platform_data_big,
+	},
+#endif
+#endif
+#if defined(CONFIG_BATTERY_DS2782)
+	{
+		I2C_BOARD_INFO("ds2782", 0x34),
+		.platform_data  = &ds278x_pdata,
+	},
+#endif
+#if defined(CONFIG_FAN54040)
+/**/
+	{
+		I2C_BOARD_INFO("fan54040", 0x6B),
+		.platform_data  = &tsc2007_info,
+		.irq		= VELO_FAN_INT,/*xeint8 // GPM3CON0 CHAGE STATUS // GPM3CON1 DISABLE CHARGE*/
+	},
+#endif
+#if defined(CONFIG_SENSOR_MPU9250)
+	{
+	     I2C_BOARD_INFO("mpu9250", 0x68),
+         .irq = (IH_GPIO_BASE + MPUIRQ_GPIO),
+	     .platform_data = &gyro_platform_data,
+	 },
+#endif
+};
+
 
 #if defined(CONFIG_TWONAV_TESTER)
 /* I2C5 bus GPIO-Bitbanging */
@@ -878,12 +1180,12 @@ static int lcd_cfg_gpio(void)
 		if((strcmp(device_model, "velo")!=0)) //All except Velo
 		{
 			/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
-			gpio_free(EXYNOS4X12_GPM3(6));
+			gpio_free(EXYNOS4X12_GPM3(6)); // STAT1 CHARGING
 			s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
 			s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
 			gpio_free(EXYNOS4X12_GPM3(6));
 
-			gpio_free(EXYNOS4X12_GPM4(3));
+			gpio_free(EXYNOS4X12_GPM4(3)); // STAT2 CHARGED
 			s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
 			s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
 			gpio_free(EXYNOS4X12_GPM4(3));
@@ -1179,6 +1481,14 @@ static void __init twonav_gpio_init(void)
         gpio_free(EXYNOS4_GPK0(2));
 
 /*********************************************************************/
+/*				MMC RESET CONFIGURATION								 */
+/*********************************************************************/
+    gpio_request_one(EXYNOS4_GPK0(2), GPIOF_OUT_INIT_HIGH, "MMC_RSTN");
+        s3c_gpio_cfgpin(EXYNOS4_GPK0(2), S3C_GPIO_OUTPUT);
+        s3c_gpio_setpull(EXYNOS4_GPK0(2), S3C_GPIO_PULL_NONE);
+        gpio_free(EXYNOS4_GPK0(2));
+
+/*********************************************************************/
 /*				BUTTONS CONFIGURATION								 */
 /*********************************************************************/
 	s3c_gpio_setpull(EXYNOS4X12_GPM3(7), S3C_GPIO_PULL_UP);
@@ -1192,6 +1502,11 @@ static void __init twonav_gpio_init(void)
 /*********************************************************************/
 	s3c_gpio_cfgall_range(EXYNOS4X12_GPM4(0), 2,
 			      S3C_GPIO_SFN(2), S3C_GPIO_PULL_UP);
+/*********************************************************************/
+/*				CYPRESS FANNAL TOUCHSCREEN Init  					 */
+/*********************************************************************/	
+	twonav_cyttsp5_init();
+
 }
 
 static void twonav_power_off(void)
@@ -1223,12 +1538,13 @@ static void mmc_reset(void) {
     }
     else {
     	set_mmc_RST_n_value(0);
-    	msleep(10);
+		msleep(10);
     	set_mmc_RST_n_value(1);
-    	msleep(250);
+		msleep(250);
 		gpio_free(EXYNOS4_GPK0(2));
-		pr_info("pulse_mmc_reset success\n");
-    }
+    	
+    	pr_info("pulse_mmc_reset success\n");
+	}
 }
 
 static void set_rtc_alarm(void) {
@@ -1259,17 +1575,16 @@ static void set_rtc_alarm(void) {
 }
 
 static int twonav_reboot_notifier(struct notifier_block *this, unsigned long code, void *_cmd) {
-	pr_info("TwoNav-reboot: Notifier called\n");
+	pr_info("twonav_device: Notifier called -> code: %d\n", code);
 
 	__raw_writel(0, S5P_INFORM4);
-    // eMMC HW_RST  
-	if(code == SYS_RESTART) {
+	if (code == SYS_RESTART){
 		mmc_reset();
 		set_rtc_alarm();
 		writel(PS_HOLD_RESET, S5P_PS_HOLD_CONTROL);
 	}
-	    
-    return NOTIFY_DONE;
+	
+	return NOTIFY_DONE;
 }	
 
 static struct notifier_block twonav_reboot_notifier_nb = {
@@ -1291,9 +1606,20 @@ static void __init twonav_machine_init(void)
 
 	i2c_register_board_info(1, twonav_i2c_devs1,
 				ARRAY_SIZE(twonav_i2c_devs1));
-
-	i2c_register_board_info(4, twonav_i2c_devs4,
-				ARRAY_SIZE(twonav_i2c_devs4));
+	if((device_model != NULL) && (device_model[0] != '\0'))
+	{
+		if((strcmp(device_model, "aventura")==0) || (strcmp(device_model, "trail")==0)
+				|| (strcmp(device_model, "base_big")==0))
+		{
+			i2c_register_board_info(4, twonav_i2c_devs4_big,
+					ARRAY_SIZE(twonav_i2c_devs4_big));
+		}
+		else
+		{
+			i2c_register_board_info(4, twonav_i2c_devs4_small,
+					ARRAY_SIZE(twonav_i2c_devs4_small));
+		}
+	}
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
 	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
