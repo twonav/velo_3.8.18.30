@@ -41,6 +41,7 @@
 #include <linux/uaccess.h>
 
 #include <linux/queue.h>
+#include <linux/delay.h>
 
 struct dentry *low_batt_signal_file;
 int pid = 0;
@@ -49,11 +50,14 @@ struct timespec charger_time_start;
 // MCPP73833 charge manager related
 #define N_STABLE_STAT_VALUES 3
 #define EOC_PERIOD_CHECK 5
+int mcp73833_power_good = 0;
 int mcp73833_end_of_charge = 0;
 int mcp73833_charging = -1; // STAT1
 int mcp73833_charged = -1; // STAT2
 int mcp73833_n_stat1_stable_values = 0;
 int mcp73833_n_stat2_stable_values = 0;
+
+#define RECHARGE_THRESHOLD 95
 
 // AA battery related
 #define AA_CAPACITY_EQUAL_MEASUREMENTS 5
@@ -73,9 +77,10 @@ enum BatteryChemistry {
 };
 
 enum BatteryStatus {
-	LEARN_COMPLETE = 0,
-	NEW_BATTERY =1, // (unknown state)
-	LEARN_CYCLE_INCOMPLETE = 2,
+	NEW_BATTERY = 0,
+	LEARN_COMPLETE = 1,
+	FULL_CHARGE_DETECTED = 2,
+	NO_KNOWN_POINT_REACHED = 3,
 };
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
@@ -303,7 +308,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xDB //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x40 //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A//0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -349,7 +354,7 @@ struct ds278x_battery_ops {
 	int (*get_battery_rsac)(struct ds278x_info *info, int *rsac);
 	int (*get_battery_rarc)(struct ds278x_info *info, int *rarc);
 	int (*get_battery_rsrc)(struct ds278x_info *info, int *rsrc);
-	int (*get_battery_new)(struct ds278x_info *info, int *new_batt);
+	int (*get_battery_status)(struct ds278x_info *info, int *new_batt);
 	int (*get_battery_rsns)(struct ds278x_info *info, int *rsns);
 	int (*get_battery_learning)(struct ds278x_info *info, int *learning);
 	int (*get_battery_charge_full)(struct ds278x_info *info, int *full);
@@ -364,7 +369,7 @@ struct ds278x_info {
 	int id;
 	int rsns;
 	int gpio_enable_charger;
-	int new_battery;
+	int battery_status;
 	int gpio_charge_manager_pg;
 	int gpio_charge_manager_stat1;
 	int gpio_charge_manager_stat2;
@@ -713,13 +718,18 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 		return err;
 	*capacity = raw;
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	if (mcp73833_end_of_charge == 0 && mcp73833_charging == 1) { // if we are still charging
-		if (*capacity == 100 && fully_charged == 0) {
-			*capacity = 99;
-		}
-	}
-#endif
+	/** In case of an overestimation of capacity %, 100% can be achieved
+	 *  earlier but still current will be entering. So, if power is
+	 *  connected and capacity reaches 100 but we are still charging
+	 *  (fully_charged=0) instead of showing 100% we will show 99
+	 **/
+	#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+		if ((mcp73833_power_good == 1) &&
+			(*capacity == 100) &&
+			(fully_charged == 0)) {
+	 	 		*capacity = 99;
+			}
+	#endif
 
 	return 0;
 }
@@ -779,9 +789,9 @@ static int ds2782_get_rsrc(struct ds278x_info *info, int *capacity)
 	return 0;
 }
 
-static int ds2782_get_new_battery(struct ds278x_info *info, int *new_batt)
+static int ds2782_get_battery_status(struct ds278x_info *info, int *batt_status)
 {
-	*new_batt = info->new_battery;
+	*batt_status = info->battery_status;
 	return 0;
 }
 
@@ -916,8 +926,8 @@ static int ds278x_battery_get_property(struct power_supply *psy,
 		ret = info->ops->get_battery_rsrc(info, &val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_NEW_BATTERY:
-		ret = info->ops->get_battery_new(info, &val->intval);
+	case POWER_SUPPLY_PROP_BATTERY_STATUS:
+		ret = info->ops->get_battery_status(info, &val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_RSNS:
@@ -964,7 +974,7 @@ static enum power_supply_property ds278x_battery_props[] = {
 	POWER_SUPPLY_PROP_CAPACITY_RSRC,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_RSNS,
-	POWER_SUPPLY_PROP_NEW_BATTERY,
+	POWER_SUPPLY_PROP_BATTERY_STATUS,
 	POWER_SUPPLY_PROP_LEARNING,
 };
 
@@ -992,7 +1002,7 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 		.get_battery_rsac	  = ds2782_get_rsac,
 		.get_battery_rarc	  = ds2782_get_rarc,
 		.get_battery_rsrc	  = ds2782_get_rsrc,
-		.get_battery_new      = ds2782_get_new_battery,
+		.get_battery_status   = ds2782_get_battery_status,
 		.get_battery_rsns     = ds2782_get_rsns,
 		.get_battery_learning = ds2782_get_learning,
 		.get_battery_charge_full 	  = ds2782_get_charge_full,
@@ -1005,48 +1015,19 @@ static struct ds278x_battery_ops ds278x_ops[] = {
 	}
 };
 
-static int ds2782_detect_new_battery(struct i2c_client *client)
+static int ds2782_detect_battery_status(struct i2c_client *client)
 {
-     // 0 : battery with learn cycle complete
-     // 1 : new battery (unknown state)
-     // 2 : battery without complete learn cycle
-	int rsns;
-	int battery_condition;
-	rsns = i2c_smbus_read_byte_data(client, DS2782_REG_RSNSP);
-	if (rsns > 0) {
-		int learn_complete = i2c_smbus_read_byte_data(client, DS2782_Register_LearnComplete);
-		if (learn_complete) {
-			battery_condition = LEARN_COMPLETE;
-		}
-		else {
-			battery_condition = LEARN_CYCLE_INCOMPLETE;
-		}
-	}
-	else {
-		// Reset learn flag when new battery is detected
-		i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, 0x00);
-		battery_condition = NEW_BATTERY; // new battery
-	}
-	return battery_condition;
+	/** To detect a newly inserted battery we take advantage of the following behavior:
+	 *  Registers 0x20-0x37 are cleared to 0x00 when a battery is removed. So once we
+	 *  configure the chip we set register 0x20 to a value. If the value becomes 0x00
+	 *  we know that the battery has been removed.
+	 * Once battery is configured it passes from state NEW_BATTERY(0 or 0x00) to NO_KNOWN_POINT_REACHED
+	 * If the battery is removed DS2782_Register_LearnComplete bit is cleared to 0 (==NEW_BATTERY)
+	 * So once a battery is configured it will always have this bit set to a value > 0.
+	 */
+	int battery_status = i2c_smbus_read_byte_data(client, DS2782_Register_LearnComplete);
+	return battery_status;
 }
-
-/*
-static int ds278x_battery_estimate_capacity_from_voltage(struct i2c_client *client)
-{
-	// We need to set registers ACR LSB y MSB. MSB must be set first
-	u8 value;
-	// 1. ACR (LSB MSB)
-	value = 0x02;
-	i2c_smbus_write_byte_data(client, DS2782_ACR_MSB, value);
-	value = 0x00;
-	i2c_smbus_write_byte_data(client, DS2782_ACR_LSB, value);
-	// 4. AS
-	value = 0x80;//0x79;
-	i2c_smbus_write_byte_data(client, DS2782_AS, value);
-
-	return 0;
-}
-*/
 
 static void ds2782_autodetect_battery_type(struct i2c_client *client) {
 	s16 raw;
@@ -1070,22 +1051,20 @@ static void ds2782_autodetect_battery_type(struct i2c_client *client) {
 	i2c_smbus_write_byte_data(client, DS2782_Register_Chemistry, chemistry);
 }
 
-static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
+static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 {
-	*new_battery = ds2782_detect_new_battery(client);
-
-	if (!new_battery)
-		return 0;
-
-	printk(KERN_INFO "NEW BATTERY\n");
-
 	#if defined (CONFIG_TWONAV_AVENTURA)
 		ds2782_autodetect_battery_type(client);
 	#endif
 
-	// Configure the IC only if new battery detected;
+	*batt_status = ds2782_detect_battery_status(client);
+
+	if (*batt_status != NEW_BATTERY) { // No need to configure DS2782 again
+		return 0;
+	}
+
 	// Values extracted from the DS2782K Test kit
-	// IMPORTANT: First capacity estimation is done outside kernel
+	// IMPORTANT: Capacity estimation is done outside kernel
 
 	printk(KERN_INFO "I2C Write: DS2782_EEPROM_CONTROL[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_CONTROL, (long unsigned int)DS2782_EEPROM_CONTROL_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, DS2782_EEPROM_CONTROL_VALUE); // 0x60
@@ -1166,6 +1145,9 @@ static int ds2782_battery_init(struct i2c_client *client, int* new_battery)
 	//printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE);
 	//i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
 
+	i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, NO_KNOWN_POINT_REACHED);
+	*batt_status = NO_KNOWN_POINT_REACHED;
+
 	return 0;
 }
 
@@ -1183,9 +1165,14 @@ int check_learn_complete(struct ds278x_info *info)
 
 	full_charge_flag = raw >> 7 & 0x01;
 	fully_charged = full_charge_flag;
+	if ((info->battery_status == NO_KNOWN_POINT_REACHED) && (fully_charged == 1)) {
+		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, FULL_CHARGE_DETECTED);
+		info->battery_status = FULL_CHARGE_DETECTED;
+	}
 
-	if (info->new_battery == 0)
+	if ((info->battery_status == NEW_BATTERY) || (info->battery_status == NO_KNOWN_POINT_REACHED)) {
 		return 0;
+	}
 
 	learn_flag = raw >> 4 & 0x01;
 	active_empty_flag = raw >> 6 & 0x01;
@@ -1204,9 +1191,8 @@ int check_learn_complete(struct ds278x_info *info)
 
 	if (learning && full_charge_flag)
 	{
-		printk(KERN_INFO "DS2782 LEARN COMPLETE");
-		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, 0x01); // 0x20
-		info->new_battery = LEARN_COMPLETE;
+		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, LEARN_COMPLETE);
+		info->battery_status = LEARN_COMPLETE;
 	}
 
 	return 0;
@@ -1223,14 +1209,23 @@ void enable_charger(int gpio)
 
 void disable_charger(int gpio)
 {
-	printk("MAX8814 disavle charge\n");
+	printk("MAX8814 disable charge\n");
 	gpio_request_one(gpio, GPIOF_DIR_OUT, "MAX8814_EN");
 	gpio_set_value(gpio,1);
 	gpio_free(gpio);
 	charger_enabled = 0;
 }
 
-void max8814_reset_every_3_hours(struct ds278x_info *info, int current_uA) {
+void max8814_reset_charger(struct ds278x_info *info) {
+	printk("MAX8814 reset charger\n");
+	gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
+	gpio_set_value(info->gpio_enable_charger,1);
+	msleep(1); // without this sleep reset is not triggered
+	gpio_set_value(info->gpio_enable_charger,0);
+	gpio_free(info->gpio_enable_charger);
+}
+
+void mcp73833_reset_charger_timer_every_3_hours(struct ds278x_info *info, int current_uA) {
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	struct timespec charger_time_now;
 	int diff;
@@ -1239,11 +1234,7 @@ void max8814_reset_every_3_hours(struct ds278x_info *info, int current_uA) {
 
 	if (diff >= 10800) { // Reset charger timer every 3 hours
 		if (current_uA > 0 && charger_enabled == 1) {
-			printk("Reseting MAX8814 charge timer\n");
-			gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
-			gpio_set_value(info->gpio_enable_charger,1);
-			gpio_set_value(info->gpio_enable_charger,0);
-			gpio_free(info->gpio_enable_charger);
+			max8814_reset_charger(info);
 		}
 		charger_time_start = charger_time_now;
 	}
@@ -1325,30 +1316,57 @@ int mcp73833_time_to_check_eoc() {
 	return 1;
 }
 
-void mcp73833_detect_end_of_charge(struct ds278x_info *info) {
+void mcp73833_send_fault_event(struct ds278x_info *info) {
+	char *envp[2];
+	envp[0] = "EVENT=mcp73833fault";
+	envp[1] = NULL;
+	kobject_uevent_env(&(info->client->dev.kobj),KOBJ_CHANGE, envp);
+}
+
+int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	int power_good = gpio_get_value(info->gpio_charge_manager_pg);
-	if (power_good == 0) {
-		return;
+	mcp73833_power_good = gpio_get_value(info->gpio_charge_manager_pg);
+	if (mcp73833_power_good == 0) {
+		return 0;
 	}
 
 	int is_time_to_check_eoc = mcp73833_time_to_check_eoc();
 	if (is_time_to_check_eoc == 0) {
-		return;
+		return 0;
 	}
 
 	int end_of_charge_previous_value = mcp73833_end_of_charge;
 	int stat1_stable = mcp73833_read_stat1(info);
 	int stat2_stable = mcp73833_read_stat2(info);
+
 	if ((stat1_stable == 1) && (stat2_stable ==1)) {
 		mcp73833_end_of_charge = (mcp73833_charged == 1) && (mcp73833_charging == 0);
 		if ((mcp73833_end_of_charge == 1) &&
-			(end_of_charge_previous_value != mcp73833_end_of_charge))
-		{
-			mcp73833_send_end_of_charge_event(info);
+			(end_of_charge_previous_value != mcp73833_end_of_charge)) {
+			return 1;
+		}
+
+		if ((mcp73833_charged == 0) && (mcp73833_charging == 0)) {
+			// Advice user space because charger is in Standby / Timer Fault / Temperature Fault mode
+			mcp73833_send_fault_event(info);
 		}
 	}
+	return 0;
 #endif
+}
+
+static int ds2782_reset_full_charge_flag(struct ds278x_info *info) {
+	// Full charge flag is reset if % < 90% or if there is a write on the ACR register
+	// In this case we write the same value to the MSB of the ACR register
+	int err;
+	u8 raw;
+	err = ds278x_read_reg(info, DS2782_ACR_MSB, &raw);
+	if (err) {
+		return err;
+	}
+
+	i2c_smbus_write_byte_data(info->client, DS2782_ACR_MSB, raw);
+	return 0;
 }
 
 int check_if_discharge(struct ds278x_info *info)
@@ -1410,7 +1428,7 @@ int check_if_discharge(struct ds278x_info *info)
 	}
 	else
 	{
-		if(capacity <= 95 && !charger_enabled)
+		if(capacity <= RECHARGE_THRESHOLD && !charger_enabled)
 		{
 			enable_charger(info->gpio_enable_charger);
 		}
@@ -1418,8 +1436,18 @@ int check_if_discharge(struct ds278x_info *info)
 #endif
 
 #if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	max8814_reset_every_3_hours(info, current_uA);
-	mcp73833_detect_end_of_charge(info);
+	mcp73833_reset_charger_timer_every_3_hours(info, current_uA);
+	int eoc_transition = mcp73833_detect_end_of_charge_transition(info);
+	if ((eoc_transition == 1) && (capacity < 100)) { // Send EOC message only if capacity is not 100
+		mcp73833_send_end_of_charge_event(info);
+	}
+
+	// MCP73833 recharge threshold is 94% of Vreg(4.2V/4.35V)=3.948V/4.089V, which corresponds to a
+	// capacity % less than 85%. For this reason we will manually set a recharge threshold
+	if ((fully_charged == 1) && (mcp73833_end_of_charge == 1) && (capacity <= RECHARGE_THRESHOLD)) {
+		max8814_reset_charger(info);
+		ds2782_reset_full_charge_flag(info);
+	}
 #endif
 
 	// CHECK_LEARN_CYCLE_COMPLETE
@@ -1476,10 +1504,10 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	struct ds278x_info *info;
 	int ret;
 	int num;
-	int new_battery;
+	int batt_status;
 
 	/* Initialize battery registers if not set */
-	ret = ds2782_battery_init(client, &new_battery);
+	ret = ds2782_battery_init(client, &batt_status);
 	if (ret) {
 		goto fail_register;
 	}
@@ -1538,7 +1566,7 @@ static int ds278x_battery_probe(struct i2c_client *client,
 		printk(KERN_INFO "Charger Disabled\n");
 	}
 
-	info->new_battery = new_battery;
+	info->battery_status = batt_status;
 
 	i2c_set_clientdata(client, info);
 	info->client = client;
