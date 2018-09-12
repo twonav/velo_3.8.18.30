@@ -1428,7 +1428,7 @@ int check_if_discharge(struct ds278x_info *info)
 	}
 	else
 	{
-		if(capacity <= RECHARGE_THRESHOLD && !charger_enabled)
+		if((capacity <= RECHARGE_THRESHOLD) && (charger_enabled == 0))
 		{
 			enable_charger(info->gpio_enable_charger);
 		}
