@@ -194,7 +194,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(time_to_full_avg),
 	POWER_SUPPLY_ATTR(type),
 	POWER_SUPPLY_ATTR(scope),
-	POWER_SUPPLY_ATTR(new_battery),
+	POWER_SUPPLY_ATTR(battery_status),
 	POWER_SUPPLY_ATTR(learning),
 	/* Properties of type `const char *' */
 	POWER_SUPPLY_ATTR(model_name),
