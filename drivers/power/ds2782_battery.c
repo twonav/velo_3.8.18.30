@@ -144,6 +144,7 @@ static const struct file_operations my_fops = {
 struct task_struct *task;
 int charger_enabled = 0;
 int learning = 0;
+int charge_termination_flag = 0;
 int fully_charged = 0;
 
 #define DS2782_REG_Status	0x01
@@ -721,12 +722,12 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	/** In case of an overestimation of capacity %, 100% can be achieved
 	 *  earlier but still current will be entering. So, if power is
 	 *  connected and capacity reaches 100 but we are still charging
-	 *  (fully_charged=0) instead of showing 100% we will show 99
+	 *  (charge_termination_flag=0) instead of showing 100% we will show 99
 	 **/
 	#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 		if ((mcp73833_power_good == 1) &&
 			(*capacity == 100) &&
-			(fully_charged == 0)) {
+			(charge_termination_flag == 0)) {
 	 	 		*capacity = 99;
 			}
 	#endif
@@ -1154,8 +1155,8 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 int check_learn_complete(struct ds278x_info *info)
 {
 	int learn_flag;
-	int full_charge_flag;
 	int active_empty_flag;
+	int capacity;
 	int err;
 	u8 raw;
 
@@ -1163,9 +1164,19 @@ int check_learn_complete(struct ds278x_info *info)
 	if (err)
 		return err;
 
-	full_charge_flag = raw >> 7 & 0x01;
-	fully_charged = full_charge_flag;
-	if ((info->battery_status == NO_KNOWN_POINT_REACHED) && (fully_charged == 1)) {
+	// DS2782 full charge flag stays on until capacity falls bellow 90%
+	// so the battery is considered fully charged when capacity is 100% and
+	// DS2782 full charge flag on
+	charge_termination_flag = raw >> 7 & 0x01;
+	info->ops->get_battery_capacity(info, &capacity);
+	if ((charge_termination_flag == 1) && (capacity == 100)) {
+		fully_charged = 1;
+	}
+	else {
+		fully_charged = 0;
+	}
+
+	if ((info->battery_status == NO_KNOWN_POINT_REACHED) && (charge_termination_flag == 1)) {
 		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, FULL_CHARGE_DETECTED);
 		info->battery_status = FULL_CHARGE_DETECTED;
 	}
@@ -1189,7 +1200,7 @@ int check_learn_complete(struct ds278x_info *info)
 		learning = 1;
 	}
 
-	if (learning && full_charge_flag)
+	if (learning && charge_termination_flag)
 	{
 		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, LEARN_COMPLETE);
 		info->battery_status = LEARN_COMPLETE;
@@ -1444,7 +1455,7 @@ int check_if_discharge(struct ds278x_info *info)
 
 	// MCP73833 recharge threshold is 94% of Vreg(4.2V/4.35V)=3.948V/4.089V, which corresponds to a
 	// capacity % less than 85%. For this reason we will manually set a recharge threshold
-	if ((fully_charged == 1) && (mcp73833_end_of_charge == 1) && (capacity <= RECHARGE_THRESHOLD)) {
+	if ((charge_termination_flag == 1) && (mcp73833_end_of_charge == 1) && (capacity <= RECHARGE_THRESHOLD)) {
 		max8814_reset_charger(info);
 		ds2782_reset_full_charge_flag(info);
 	}
