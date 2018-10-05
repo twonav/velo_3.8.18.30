@@ -80,7 +80,8 @@ enum BatteryStatus {
 	NEW_BATTERY = 0,
 	LEARN_COMPLETE = 1,
 	FULL_CHARGE_DETECTED = 2,
-	NO_KNOWN_POINT_REACHED = 3,
+	NEW_BATTERY_CONFIGURED = 3,
+	CAPACITY_ESTIMATED = 4,
 };
 
 static ssize_t write_pid(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
@@ -1022,7 +1023,7 @@ static int ds2782_detect_battery_status(struct i2c_client *client)
 	 *  Registers 0x20-0x37 are cleared to 0x00 when a battery is removed. So once we
 	 *  configure the chip we set register 0x20 to a value. If the value becomes 0x00
 	 *  we know that the battery has been removed.
-	 * Once battery is configured it passes from state NEW_BATTERY(0 or 0x00) to NO_KNOWN_POINT_REACHED
+	 * Once battery is configured it passes from state NEW_BATTERY(0 or 0x00) to NEW_BATTERY_CONFIGURED
 	 * If the battery is removed DS2782_Register_LearnComplete bit is cleared to 0 (==NEW_BATTERY)
 	 * So once a battery is configured it will always have this bit set to a value > 0.
 	 */
@@ -1146,16 +1147,24 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 	//printk(KERN_INFO "I2C Write: DS2782_Register_Command[0x%04lx] = (0x%04lx)\n", DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE);
 	//i2c_smbus_write_byte_data(client, DS2782_Register_Command, DS2782_Register_Command_Recal_Read_VALUE); // 0xFE
 
-	i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, NO_KNOWN_POINT_REACHED);
-	*batt_status = NO_KNOWN_POINT_REACHED;
+	i2c_smbus_write_byte_data(client, DS2782_Register_LearnComplete, NEW_BATTERY_CONFIGURED);
+	*batt_status = NEW_BATTERY_CONFIGURED;
 
 	return 0;
 }
 
+void set_battery_status(struct ds278x_info *info, int status)
+{
+	if (info->battery_status == LEARN_COMPLETE || info->battery_status == status) {
+		return;
+	}
+
+	i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, status);
+	info->battery_status = status;
+}
+
 int check_learn_complete(struct ds278x_info *info)
 {
-	int learn_flag;
-	int active_empty_flag;
 	int capacity;
 	int err;
 	u8 raw;
@@ -1176,34 +1185,14 @@ int check_learn_complete(struct ds278x_info *info)
 		fully_charged = 0;
 	}
 
-	if ((info->battery_status == NO_KNOWN_POINT_REACHED) && (charge_termination_flag == 1)) {
-		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, FULL_CHARGE_DETECTED);
-		info->battery_status = FULL_CHARGE_DETECTED;
-	}
-
-	if ((info->battery_status == NEW_BATTERY) || (info->battery_status == NO_KNOWN_POINT_REACHED)) {
-		return 0;
-	}
-
-	learn_flag = raw >> 4 & 0x01;
-	active_empty_flag = raw >> 6 & 0x01;
-	/*
-	printk(KERN_INFO "DS2782 learn flag: :%i\n", learn_flag);
-	printk(KERN_INFO "DS2782 full_charge flag: :%i\n", full_charge_flag);
-	printk(KERN_INFO "DS2782 active_empty flag: :%i\n", active_empty_flag);
-	printk(KERN_INFO "DS2782 learning: :%i\n", learning);
-	printk(KERN_INFO "DS2782 learn complete: :%i\n", learn_complete);
-	*/
-
-	if (learn_flag)
+	if (charge_termination_flag == 1)
 	{
-		learning = 1;
+		set_battery_status(info, FULL_CHARGE_DETECTED);
 	}
 
-	if (learning && charge_termination_flag)
-	{
-		i2c_smbus_write_byte_data(info->client, DS2782_Register_LearnComplete, LEARN_COMPLETE);
-		info->battery_status = LEARN_COMPLETE;
+	learning = raw >> 4 & 0x01;
+	if (learning && charge_termination_flag) {
+		set_battery_status(info, LEARN_COMPLETE);
 	}
 
 	return 0;
