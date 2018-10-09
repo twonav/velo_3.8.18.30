@@ -247,7 +247,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x54 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x4D //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
@@ -278,7 +278,7 @@ int fully_charged = 0;
 	#define DS2782_EEPROM_AC_MSB_VALUE 				0x64 //0x62
 	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
 	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x3A //0x65
+	#define DS2782_EEPROM_IMIN_VALUE 				0x4D //0x65
 	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
 	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
 	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
