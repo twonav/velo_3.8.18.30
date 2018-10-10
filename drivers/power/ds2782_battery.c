@@ -1053,7 +1053,7 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 			DS2782_EEPROM_AC_MSB_VALUE 			 = 0x1E;
 			DS2782_EEPROM_AC_LSB_VALUE 			 = 0x00;
 			DS2782_EEPROM_VCHG_VALUE 			 = 0xDB;
-			DS2782_EEPROM_IMIN_VALUE 			 = 0x3A;
+			DS2782_EEPROM_IMIN_VALUE 			 = 0x40;
 			DS2782_EEPROM_VAE_VALUE 			 = 0x9A;
 			DS2782_EEPROM_IAE_VALUE 			 = 0x10;
 			DS2782_EEPROM_ActiveEmpty_VALUE 	 = 0x08;
