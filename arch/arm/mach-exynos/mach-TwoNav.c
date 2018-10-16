@@ -1472,13 +1472,6 @@ static void __init twonav_gpio_init(void)
         s3c_gpio_setpull(EXYNOS4_GPX2(7), S3C_GPIO_PULL_NONE);
         gpio_free(EXYNOS4_GPX2(7));
 */
-/*********************************************************************/
-/*				MMC RESET CONFIGURATION								 */
-/*********************************************************************/
-    gpio_request_one(EXYNOS4_GPK0(2), GPIOF_OUT_INIT_HIGH, "MMC_RSTN");
-        s3c_gpio_cfgpin(EXYNOS4_GPK0(2), S3C_GPIO_OUTPUT);
-        s3c_gpio_setpull(EXYNOS4_GPK0(2), S3C_GPIO_PULL_NONE);
-        gpio_free(EXYNOS4_GPK0(2));
 
 /*********************************************************************/
 /*				MMC RESET CONFIGURATION								 */
