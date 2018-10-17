@@ -1540,6 +1540,7 @@ int check_if_discharge(struct ds278x_info *info)
 				}
 				AA_timer_count = AA_timer_count +1;
 				return 0; // Exit if AAA batteries are installed
+			}
 		}
 	}
 
