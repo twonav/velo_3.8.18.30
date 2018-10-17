@@ -1059,9 +1059,12 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 		ds2782_autodetect_battery_type(client);
 	#endif
 
-	*batt_status = ds2782_detect_battery_status(client);
+	// Values that need to be set regardless of previous configuration
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IMIN, (long unsigned int)DS2782_EEPROM_IMIN_VALUE);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, DS2782_EEPROM_IMIN_VALUE); // 0x65 Charge termination current
 
-	if (*batt_status != NEW_BATTERY) { // No need to configure DS2782 again
+	*batt_status = ds2782_detect_battery_status(client);
+	if (*batt_status != NEW_BATTERY) { // No need to re-configure DS2782 again
 		return 0;
 	}
 
@@ -1080,8 +1083,7 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 
 	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VCHG[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VCHG, (long unsigned int)DS2782_EEPROM_VCHG_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, DS2782_EEPROM_VCHG_VALUE); //4.2 charging voltage// 0x64
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IMIN, (long unsigned int)DS2782_EEPROM_IMIN_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, DS2782_EEPROM_IMIN_VALUE); //16.5mA minimal charge current// 0x65
+
 
 	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VAE, (long unsigned int)DS2782_EEPROM_VAE_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, DS2782_EEPROM_VAE_VALUE); //3.0 minimum voltage// 0x66
