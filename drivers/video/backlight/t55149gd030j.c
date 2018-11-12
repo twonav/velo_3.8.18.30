@@ -61,6 +61,7 @@ struct t55149gd030j {
 
 static int t55149gd030j_spi_write_word(struct t55149gd030j *lcd, int cmd, int data)
 {
+	printk(KERN_INFO "t55149gd030j_spi_write_word\n");
 	u8 buf[3];
 	struct spi_message msg;
 
@@ -81,6 +82,7 @@ static int t55149gd030j_spi_write_word(struct t55149gd030j *lcd, int cmd, int da
 static int t55149gd030j_spi_write(struct t55149gd030j *lcd, int address,
 	int command)
 {
+	printk(KERN_INFO "t55149gd030j_spi_write\n");
 	int ret = 0;
 
 	ret = t55149gd030j_spi_write_word(lcd, 0x70, address);
@@ -97,6 +99,7 @@ static int t55149gd030j_spi_write(struct t55149gd030j *lcd, int address,
 static int t55149gd030j_panel_send_sequence(struct t55149gd030j *lcd,
 	const unsigned short *wbuf)
 {
+	printk(KERN_INFO "t55149gd030j_panel_send_sequence\n");
 	int ret = 0, i = 0;
 
 	while ((wbuf[i] & DEFMASK) != ENDDEF) {
@@ -116,6 +119,7 @@ static int t55149gd030j_panel_send_sequence(struct t55149gd030j *lcd,
 static int _t55149gd030j_gamma_ctl(struct t55149gd030j *lcd,
 	const unsigned int *gamma)
 {
+	printk(KERN_INFO "_t55149gd030j_gamma_ctl\n");
 	unsigned int i = 0;
 	int ret = 0;
 
@@ -135,6 +139,7 @@ gamma_err:
 
 static int t55149gd030j_gamma_ctl(struct t55149gd030j *lcd, int brightness)
 {
+	printk(KERN_INFO "t55149gd030j_gamma_ctl\n");
 	int ret = 0;
 	int gamma = 0;
 
@@ -160,6 +165,7 @@ extern int t55149gd030j_reset();
 #else
 static int t55149gd030j_reset()
 {
+	printk(KERN_INFO "t55149gd030j_reset\n");
 	int err = 0;
 	
 	
@@ -184,12 +190,14 @@ static int t55149gd030j_reset()
 
 static void t55149gd030j_set_ID(int id_val)
 {
+	printk(KERN_INFO "t55149gd030j_set_ID\n");
 	//LCD IM0 signal assigned to GPX2[0]
 	gpio_set_value(EXYNOS4_GPX2(0), id_val & 0x1); //SPI ID
 }
 
 static void t55149gd030j_set_rgbmode()
 {
+	printk(KERN_INFO "t55149gd030j_set_rgbmode\n");
 	//LCD IM1 signal assigned to GPX1[7]
 	gpio_set_value(EXYNOS4_GPX1(7), 1); //RGB mode
 	t55149gd030j_set_ID(1);
@@ -197,6 +205,7 @@ static void t55149gd030j_set_rgbmode()
 
 static void t55149gd030j_set_spimode()
 {
+	printk(KERN_INFO "t55149gd030j_set_spimode\n");
 	//LCD IM1 signal assigned to GPX1[7]
 	gpio_set_value(EXYNOS4_GPX1(7), 0); //SPI mode 
 	t55149gd030j_set_ID(0);
@@ -205,6 +214,7 @@ static void t55149gd030j_set_spimode()
 
 static void t55149gd030j_disable_RGBLines(void)
 {
+	printk(KERN_INFO "t55149gd030j_disable_RGBLines\n");
 	s3c_gpio_cfgall_range(EXYNOS4_GPF0(0), 8, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
 	s3c_gpio_cfgall_range(EXYNOS4_GPF1(0), 8, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
 	s3c_gpio_cfgall_range(EXYNOS4_GPF2(0), 5, S3C_GPIO_SFN(0), S3C_GPIO_PULL_DOWN);
@@ -230,6 +240,7 @@ static void t55149gd030j_enable_RGBLines()
 
 static int t55149gd030j_ldi_init(struct t55149gd030j *lcd)
 {
+	printk(KERN_INFO "t55149gd030j_ldi_init\n");
 	int ret, i;
 	const unsigned short *init_seq[] = {
 		SEQ_SETTING,
@@ -249,6 +260,7 @@ static int t55149gd030j_ldi_init(struct t55149gd030j *lcd)
 
 static int t55149gd030j_ldi_enable(struct t55149gd030j *lcd)
 {
+	printk(KERN_INFO "t55149gd030j_ldi_enable\n");
 	int ret, i;
 	const unsigned short *init_seq[] = {
 		//SEQ_STAND_BY_OFF,
@@ -266,6 +278,7 @@ static int t55149gd030j_ldi_enable(struct t55149gd030j *lcd)
 
 static int t55149gd030j_ldi_disable(struct t55149gd030j *lcd)
 {
+	printk(KERN_INFO "t55149gd030j_ldi_disable\n");
 	int ret, i;
 
 	const unsigned short *init_seq[] = {
@@ -284,6 +297,7 @@ static int t55149gd030j_ldi_disable(struct t55149gd030j *lcd)
 
 static int t55149gd030j_power_on(struct t55149gd030j *lcd)
 {
+	printk(KERN_INFO "t55149gd030j_power_on\n");
 	int ret = 0;
 	int line_pos;
 	struct lcd_platform_data *pd = NULL;
@@ -389,6 +403,7 @@ static int t55149gd030j_power_on(struct t55149gd030j *lcd)
 
 static int t55149gd030j_power_off(struct t55149gd030j *lcd)
 {
+	printk(KERN_INFO "t55149gd030j_power_off\n");
 	int ret = 0;
 	struct lcd_platform_data *pd = NULL;
 
@@ -417,6 +432,8 @@ static int t55149gd030j_power_off(struct t55149gd030j *lcd)
 
 static int t55149gd030j_power(struct t55149gd030j *lcd, int power)
 {
+	printk(KERN_INFO "t55149gd030j_power: %d\n", power);
+
 	int ret = 0;
 
 	if (POWER_IS_ON(power) && !POWER_IS_ON(lcd->power))
@@ -432,6 +449,7 @@ static int t55149gd030j_power(struct t55149gd030j *lcd, int power)
 
 static int t55149gd030j_get_power(struct lcd_device *ld)
 {
+	printk(KERN_INFO "t55149gd030j_get_power\n");
 	struct t55149gd030j *lcd = lcd_get_data(ld);
 
 	return lcd->power;
@@ -439,6 +457,7 @@ static int t55149gd030j_get_power(struct lcd_device *ld)
 
 static int t55149gd030j_set_power(struct lcd_device *ld, int power)
 {
+	printk(KERN_INFO "t55149gd030j_set_power: %d\n", power);
 	struct t55149gd030j *lcd = lcd_get_data(ld);
 
 	if (power != FB_BLANK_UNBLANK && power != FB_BLANK_POWERDOWN &&
@@ -452,11 +471,13 @@ static int t55149gd030j_set_power(struct lcd_device *ld, int power)
 
 static int t55149gd030j_get_brightness(struct backlight_device *bd)
 {
+	printk(KERN_INFO "t55149gd030j_get_brightness\n");
 	return bd->props.brightness;
 }
 
 static int t55149gd030j_set_brightness(struct backlight_device *bd)
 {
+	printk(KERN_INFO "t55149gd030j_set_brightness\n");
 	int ret = 0;
 	int brightness = bd->props.brightness;
 	struct t55149gd030j *lcd = dev_get_drvdata(&bd->dev);
@@ -492,6 +513,7 @@ unsigned int before_power;
 
 static void t55149gd030j_early_suspend(struct early_suspend *handler)
 {
+	printk(KERN_INFO "t55149gd030j_early_suspend\n");
 	struct t55149gd030j *lcd = NULL;
 
 	lcd = container_of(handler, struct t55149gd030j, early_suspend);
@@ -503,6 +525,7 @@ static void t55149gd030j_early_suspend(struct early_suspend *handler)
 
 static void t55149gd030j_late_resume(struct early_suspend *handler)
 {
+	printk(KERN_INFO "t55149gd030j_late_resume\n");
 	struct t55149gd030j *lcd = NULL;
 
 	lcd = container_of(handler, struct t55149gd030j, early_suspend);
@@ -516,6 +539,7 @@ static void t55149gd030j_late_resume(struct early_suspend *handler)
 
 static int __refdata t55149gd030j_probe(struct spi_device *spi)
 {
+	printk(KERN_INFO "t55149gd030j_probe\n");
 	int ret = 0;
 	struct t55149gd030j *lcd = NULL;
 	struct lcd_device *ld = NULL;
@@ -597,6 +621,7 @@ out_free_lcd:
 
 static int t55149gd030j_remove(struct spi_device *spi)
 {
+	printk(KERN_INFO "t55149gd030j_remove\n");
 	struct t55149gd030j *lcd = dev_get_drvdata(&spi->dev);
 
 	t55149gd030j_power(lcd, FB_BLANK_POWERDOWN);
@@ -612,6 +637,7 @@ unsigned int before_power;
 
 static int t55149gd030j_suspend(struct spi_device *spi, pm_message_t mesg)
 {
+	printk(KERN_INFO "t55149gd030j_suspend\n");
 	int ret = 0;
 	struct t55149gd030j *lcd = dev_get_drvdata(&spi->dev);
 
@@ -630,6 +656,7 @@ static int t55149gd030j_suspend(struct spi_device *spi, pm_message_t mesg)
 
 static int t55149gd030j_resume(struct spi_device *spi)
 {
+	printk(KERN_INFO "t55149gd030j_resume\n");
 	int ret = 0;
 	struct t55149gd030j *lcd = dev_get_drvdata(&spi->dev);
 
@@ -655,6 +682,7 @@ static int t55149gd030j_resume(struct spi_device *spi)
 
 static void t55149gd030j_shutdown(struct spi_device *spi)
 {
+	printk(KERN_INFO "t55149gd030j_shutdown\n");
 	struct t55149gd030j *lcd = dev_get_drvdata(&spi->dev);
 
 	t55149gd030j_power(lcd, FB_BLANK_POWERDOWN);
