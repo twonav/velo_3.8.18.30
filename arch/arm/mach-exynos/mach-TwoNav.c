@@ -967,7 +967,6 @@ static struct platform_device twonav_tmu = {
 
 static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
-	printk(KERN_INFO "T55149GD030J_lcd_power_on: %d\n", enable);
 	if (enable) {
 		gpio_set_value(EXYNOS4_GPF0(2),1);
 	} else {
