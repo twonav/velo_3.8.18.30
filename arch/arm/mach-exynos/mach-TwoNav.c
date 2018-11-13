@@ -708,7 +708,6 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
-	printk(KERN_INFO "lcd_t55149gd030j_set_power: %d", power);
 	if (power) {
 		gpio_set_value(EXYNOS4_GPF0(2),1);
 	} else {
