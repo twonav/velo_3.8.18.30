@@ -15,7 +15,6 @@
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/i2c.h>
-#include <linux/i2c-gpio.h>
 #include <linux/i2c/pca953x.h>
 #include <linux/input.h>
 #include <linux/rtc.h>
@@ -626,23 +625,6 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 };
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
-/* I2C4 bus GPIO-Bitbanging */
-#define		GPIO_I2C4_SDA	EXYNOS4_GPB(0)
-#define		GPIO_I2C4_SCL	EXYNOS4_GPB(1)
-static struct 	i2c_gpio_platform_data 	i2c4_gpio_platdata = {
-	.sda_pin = GPIO_I2C4_SDA,
-	.scl_pin = GPIO_I2C4_SCL,
-	.udelay  = 5,
-	.sda_is_open_drain = 0,
-	.scl_is_open_drain = 0,
-	.scl_is_output_only = 0
-};
-
-static struct 	platform_device 	gpio_device_i2c4 = {
-	.name 	= "i2c-gpio",
-	.id  	= 4,    // adepter number
-	.dev.platform_data = &i2c4_gpio_platdata,
-};
 static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 #ifndef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT
 #ifdef CYTTSP5_USE_I2C
@@ -727,11 +709,11 @@ static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
 				   unsigned int power)
 {
 	if (power) {
-		gpio_set_value(EXYNOS4X12_GPM1(5),1);
+		gpio_set_value(EXYNOS4_GPF0(2),1);
 	} else {
-		gpio_set_value(EXYNOS4X12_GPM1(5),0);
+		gpio_set_value(EXYNOS4_GPF0(2),0);
 	}
-	gpio_free(EXYNOS4X12_GPM1(5));
+	gpio_free(EXYNOS4_GPF0(2));
 
 }
 
@@ -984,11 +966,10 @@ static struct platform_device twonav_tmu = {
 
 static int lcd_power_on(struct lcd_device *ld, int enable)
 {	
-	
 	if (enable) {
-		gpio_set_value(EXYNOS4X12_GPM1(5),1);
+		gpio_set_value(EXYNOS4_GPF0(2),1);
 	} else {
-		gpio_set_value(EXYNOS4X12_GPM1(5),0);
+		gpio_set_value(EXYNOS4_GPF0(2),0);
 	}
 
 	return 1;
@@ -1104,23 +1085,17 @@ static int lcd_cfg_gpio(void)
 
 static int reset_lcd(struct lcd_device *ld)
 {
-	int err = 0;
-	
-	lcd_cfg_gpio();
-	
 	printk("LCD reset***!!!!**********\n");
 	
-	gpio_set_value(EXYNOS4_GPC1(2), 1);
-	mdelay(10);
-
 	gpio_set_value(EXYNOS4_GPC1(2), 0);
 	mdelay(10);
 
 	gpio_set_value(EXYNOS4_GPC1(2), 1);
+	mdelay(10);
 
 	//gpio_free(EXYNOS4_GPC1(2));
 
-	return err;
+	return 0;
 }
 
 static struct lcd_platform_data t55149gd030j_platform_data = {
@@ -1128,6 +1103,8 @@ static struct lcd_platform_data t55149gd030j_platform_data = {
 	.power_on		= lcd_power_on,
 	.lcd_enabled		= 0,
 	.reset_delay		= 100,	/* 100ms */
+	.power_on_delay		= 100,	/* 100ms */
+	.power_off_delay	= 100,	/* 100ms */
 };
 
 #define		LCD_BUS_NUM	1
@@ -1181,7 +1158,7 @@ static struct platform_device *twonav_devices[] __initdata = {
 	&s3c_device_hsmmc3,
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&gpio_device_i2c4,
+	&s3c_device_i2c4,
 #if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
         &twonav_w1_device,
 #endif
@@ -1273,6 +1250,8 @@ static void __init twonav_gpio_init(void)
 {
 //	/* Peripheral power enable (P3V3) */
 //	gpio_request_one(EXYNOS4_GPA1(1), GPIOF_OUT_INIT_HIGH, "p3v3_en");
+
+	lcd_cfg_gpio();
 
 	//Aventua/Trail ST
 	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
@@ -1492,10 +1471,10 @@ static void __init twonav_machine_init(void)
 				ARRAY_SIZE(twonav_i2c_devs0));
 
 	s3c_i2c1_set_platdata(NULL);
-
 	i2c_register_board_info(1, twonav_i2c_devs1,
 				ARRAY_SIZE(twonav_i2c_devs1));
 
+	s3c_i2c4_set_platdata(NULL);
 	i2c_register_board_info(4, twonav_i2c_devs4,
 				ARRAY_SIZE(twonav_i2c_devs4));
 	
