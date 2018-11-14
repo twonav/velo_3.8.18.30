@@ -1223,6 +1223,21 @@ void disable_charger(int gpio)
 	charger_enabled = 0;
 }
 
+static int ds2782_reset_full_charge_flag(struct ds278x_info *info) {
+	// Full charge flag is reset if % < 90% or if there is a write on the ACR register
+	// In this case we write the same value to the MSB of the ACR register
+	int err;
+	u8 raw;
+	err = ds278x_read_reg(info, DS2782_ACR_MSB, &raw);
+	if (err) {
+		return err;
+	}
+
+	i2c_smbus_write_byte_data(info->client, DS2782_ACR_MSB, raw);
+	return 0;
+}
+
+#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 void max8814_reset_charger(struct ds278x_info *info) {
 	printk("MAX8814 reset charger\n");
 	gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
@@ -1239,22 +1254,8 @@ int mcp73833_get_time_diff(struct timespec *start_time, struct timespec *time_no
 	return diff;
 }
 
-static int ds2782_reset_full_charge_flag(struct ds278x_info *info) {
-	// Full charge flag is reset if % < 90% or if there is a write on the ACR register
-	// In this case we write the same value to the MSB of the ACR register
-	int err;
-	u8 raw;
-	err = ds278x_read_reg(info, DS2782_ACR_MSB, &raw);
-	if (err) {
-		return err;
-	}
-
-	i2c_smbus_write_byte_data(info->client, DS2782_ACR_MSB, raw);
-	return 0;
-}
-
 void mcp73833_check_power_good(struct ds278x_info *info) {
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+
 	mcp73833_power_good_previous_value = mcp73833_power_good;
 	mcp73833_power_good = gpio_get_value(info->gpio_charge_manager_pg);
 
@@ -1272,11 +1273,9 @@ void mcp73833_check_power_good(struct ds278x_info *info) {
 			mcp73833_n_stat2_stable_values = 0;
 		}
 	}
-#endif
 }
 
 void mcp73833_reset_charger_timer_every_3_hours(struct ds278x_info *info, int current_uA) {
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	if (mcp73833_power_good) {
 		if ((charger_enabled == 1) &&
 			(current_uA > 0) &&
@@ -1291,11 +1290,9 @@ void mcp73833_reset_charger_timer_every_3_hours(struct ds278x_info *info, int cu
 			}
 		}
 	}
-#endif
 }
 
 int mcp73833_end_of_charge_reset(struct ds278x_info *info, int current_uA) {
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	// MCP73833 recharge threshold is 94% of Vreg(4.2V/4.35V)=3.948V/4.089V, which corresponds to a
 	// capacity % less than 85%.
 	// On reaching EOC if there is a residual current (Aventura/Trail: -5mA), which leads to slow battery drain,
@@ -1315,7 +1312,6 @@ int mcp73833_end_of_charge_reset(struct ds278x_info *info, int current_uA) {
 			eoc_time_start = time_now;
 		}
 	}
-#endif
 }
 
 int mcp73833_read_stat1(struct ds278x_info *info)
@@ -1401,7 +1397,6 @@ void mcp73833_send_fault_event(struct ds278x_info *info) {
 }
 
 int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 	if (mcp73833_power_good == 0)  {
 		return 0;
 	}
@@ -1430,8 +1425,8 @@ int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
 		}
 	}
 	return 0;
-#endif
 }
+#endif
 
 int check_if_discharge(struct ds278x_info *info)
 {
