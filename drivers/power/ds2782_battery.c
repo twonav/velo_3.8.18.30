@@ -1249,7 +1249,7 @@ void max8814_reset_charger(struct ds278x_info *info) {
 
 int mcp73833_get_time_diff(struct timespec *start_time, struct timespec *time_now) {
 	int diff;
-	getnstimeofday(time_now);
+	getrawmonotonic(time_now);
 	diff = time_now->tv_sec - start_time->tv_sec;
 	return diff;
 }
@@ -1262,7 +1262,7 @@ void mcp73833_check_power_good(struct ds278x_info *info) {
 	if (mcp73833_power_good != mcp73833_power_good_previous_value) {
 		if (mcp73833_power_good) {
 			// Cable plugged - init charging timer
-			getnstimeofday(&charging_time_start);
+			getrawmonotonic(&charging_time_start);
 		}
 		else {
 			// Cable unplugged - reset charger variables
@@ -1414,7 +1414,7 @@ int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
 		mcp73833_end_of_charge = (mcp73833_charged == 1) && (mcp73833_charging == 0);
 		if (end_of_charge_previous_value != mcp73833_end_of_charge) {
 			if (mcp73833_end_of_charge == 1) {
-				getnstimeofday(&eoc_time_start);
+				getrawmonotonic(&eoc_time_start);
 				return 1;
 			}
 		}
