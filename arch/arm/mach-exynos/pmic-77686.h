@@ -765,13 +765,13 @@ static struct regulator_consumer_supply ldo26_consumer_77686 =
 static struct regulator_init_data max77686_ldo26_data = {
 	.constraints	= {
 		.name		= "LDO26 3V.HIGH_3V0",
-		.min_uV		= 3000000,
-		.max_uV		= 3000000,
+		.min_uV		= 1800000,
+		.max_uV		= 1800000,
 		.apply_uV	= 1,
 		.always_on	= 1,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 		.state_mem	= {
-			.uV		= 3000000,
+			.uV		= 1800000,
 			.enabled = 1,
 		},
 	},
