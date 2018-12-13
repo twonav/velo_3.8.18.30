@@ -122,8 +122,15 @@ fi
 cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_zImage
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
 cp -r /home/$HOMEUSERFOLDER/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
-dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..
-dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
+
+
+if [ $UBUNTU_VERSION -ge 18 ]; then
+	dpkg-deb -b -Zgzip /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..
+	dpkg-deb -b -Zgzip /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
+else
+	dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..
+	dpkg --build /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-headers-$kernel_name ..
+fi
 
 echo "**** STEP 7 END ****"
 
