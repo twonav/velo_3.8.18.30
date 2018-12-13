@@ -982,9 +982,9 @@ static int lcd_cfg_gpio(void)
 	
 	printk("lcd_cfg_gpio()***!!!!**********\n");	
 	/*Power control*/
-	gpio_free(EXYNOS4_GPD0(2));
-	gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
-	gpio_free(EXYNOS4_GPD0(2));
+	//gpio_free(EXYNOS4_GPD0(2));
+	//gpio_request_one(EXYNOS4_GPD0(2), GPIOF_OUT_INIT_HIGH, "BACKLIGHT");
+	//gpio_free(EXYNOS4_GPD0(2));
 
 	/* LCD _CS */
 	gpio_free(EXYNOS4_GPB(5));
