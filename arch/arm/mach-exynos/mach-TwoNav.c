@@ -73,8 +73,12 @@
 #include "pmic-77686.h"
 
 extern char *tn_velo_ver;
-extern char *tn_device;
 extern char *tn_hwtype;
+
+extern bool tn_is_aventura;
+extern bool tn_is_velo;
+extern bool tn_is_horizon;
+extern bool tn_is_trail;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -1403,12 +1407,12 @@ static int __init twonav_devices_populate(void) {
 	twonav_devices[n_devs++] = &tps611xx;
 	twonav_devices[n_devs++] = &s3c_device_hsmmc0;
 
-	if(tn_hwtype != NULL) {
-		if(strstr(tn_hwtype, "aventura") || strstr(tn_hwtype, "horizon")) {
-			printk("LDU: Adding specific s3c_device_hsmmc2 for device %s\n", tn_hwtype);
-			twonav_devices[n_devs++] = &s3c_device_hsmmc2;
-		}
+	
+	if(tn_is_aventura || tn_is_horizon) {
+		printk("LDU: Adding specific s3c_device_hsmmc2 for tn devices with removable batteries");
+		twonav_devices[n_devs++] = &s3c_device_hsmmc2;
 	}
+
 
 	twonav_devices[n_devs++] = &s3c_device_hsmmc3;
 	twonav_devices[n_devs++] = &s3c_device_i2c0;
@@ -1479,13 +1483,9 @@ static int __init twonav_devices_populate(void) {
 static void __init twonav_machine_init(void)
 {
 	int n_devs = 0;
+	
 	if(tn_velo_ver != NULL) 	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
 	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
-	if(tn_device != NULL) 		printk(KERN_INFO "mach: twonav tn_device version: %s\n", tn_device);
-
-	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
-	printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
-	printk(KERN_INFO "mach: twonav tn_device version: %s\n", tn_device);
 
 	twonav_gpio_init();
 

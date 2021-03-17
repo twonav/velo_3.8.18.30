@@ -24,7 +24,14 @@
 static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
+
 extern char *tn_hwtype;
+extern bool tn_is_aventura;
+extern bool tn_is_velo;
+extern bool tn_is_horizon;
+extern bool tn_is_trail;
+extern bool tn_is_twonav;
+extern bool tn_is_os;
 
 /* logo's are marked __initdata. Use __init_refok to tell
  * modpost that it is intended that this function uses data
@@ -33,8 +40,6 @@ extern char *tn_hwtype;
 const struct linux_logo * __init_refok fb_find_logo(int depth)
 {
 	const struct linux_logo *logo = NULL;
-	bool isBig = false;
-	bool isTwoNav = false;
 
 	printk(KERN_INFO "Logo: Logo Module Init");
 
@@ -78,20 +83,15 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 #endif
 
 #ifdef CONFIG_LOGO_TWONAV_CLUT224
-		/* TwoNav logo for big screens (Aventura, trail) */
-		if(tn_hwtype != NULL) {
-			isBig = (strstr(tn_hwtype, "aventura") || strstr(tn_hwtype, "trail"));
-			isTwoNav = strstr(tn_hwtype, "twonav");
-				
-			if(isBig) {
-				if(isTwoNav) logo = &logo_twonav_big_clut224;
-				else		 logo = &logo_os_big_clut224;
-			}
-			else {
-				if(isTwoNav) logo = &logo_twonav_small_clut224;
-				else		 logo = &logo_os_small_clut224;		
-			}	
-		}
+	/* TwoNav logo for big screens (Aventura, trail) */		
+	if(tn_is_aventura || tn_is_trail) {
+		if(tn_is_twonav) logo = &logo_twonav_big_clut224;
+		else		 logo = &logo_os_big_clut224;
+	}
+	else {
+		if(tn_is_twonav) logo = &logo_twonav_small_clut224;
+		else		 logo = &logo_os_small_clut224;		
+	}			
 #endif
 
 #ifdef CONFIG_LOGO_TWONAV_SMALL_CLUT224

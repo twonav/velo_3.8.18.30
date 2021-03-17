@@ -107,8 +107,14 @@ extern void tc_init(void);
 bool early_boot_irqs_disabled __read_mostly;
 
 char *tn_velo_ver = NULL;
-char *tn_device = NULL;
 char *tn_hwtype = NULL;
+
+bool tn_is_aventura = false;
+bool tn_is_velo = false;
+bool tn_is_horizon = false;
+bool tn_is_trail = false;
+bool tn_is_twonav = false;
+bool tn_is_os = false;
 
 enum system_states system_state __read_mostly;
 EXPORT_SYMBOL(system_state);
@@ -266,16 +272,26 @@ static int __init pass_bootoption(char *param, char *val, const char *unused, in
 		printk(KERN_INFO "main: twonav velo_ver: %s\n",val);
 	}
 
-	if(strcmp(param, "device")==0)
-	{
-		tn_device = val;
-		printk(KERN_INFO "main: twonav device: %s\n",val);
-	}
-
 	if(strcmp(param, "hwtype")==0)
 	{
 		tn_hwtype = val;
 		printk(KERN_INFO "main: twonav hw type: %s\n",val);
+
+		if(strstr(tn_hwtype, "velo"))			tn_is_velo = true;
+		else if(strstr(tn_hwtype, "horizon"))	tn_is_horizon = true;
+		else if(strstr(tn_hwtype, "trail"))		tn_is_trail = true;
+		else if(strstr(tn_hwtype, "aventura"))	tn_is_aventura = true;
+		else {
+			printk(KERN_INFO "main: no matching Twonav device type. Assigning velo\n");
+			tn_is_velo = true;
+		}
+
+		if(strstr(tn_hwtype, "twonav-"))	tn_is_twonav = true;
+		else if(strstr(tn_hwtype, "os-"))	tn_is_os = true;
+		else {
+			printk(KERN_INFO "main: no matching Twonav device brand. Assigning twonav\n");
+			tn_is_twonav = true;
+		}
 	}
 
 	repair_env_string(param, val, unused, all);
@@ -555,6 +571,17 @@ asmlinkage void __init start_kernel(void)
 	parse_args("Booting kernel", static_command_line, __start___param,
 		   __stop___param - __start___param,
 		   -1, -1, &INIT_PASS_FUNCTION);
+
+	if(!(tn_is_aventura || tn_is_velo || tn_is_horizon || tn_is_trail)) {
+		tn_is_velo = true;
+		printk(KERN_INFO "No twonav device was detected on bootparams. Using velo");
+	}
+	if(!(tn_is_twonav || tn_is_os)) {
+		tn_is_twonav = true;
+		printk(KERN_INFO "No twonav brand was detected on bootparams. Using twonav");
+	}
+
+
 
 	jump_label_init();
 
