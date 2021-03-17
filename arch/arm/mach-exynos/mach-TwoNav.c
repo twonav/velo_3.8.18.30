@@ -72,7 +72,9 @@
 #include "common.h"
 #include "pmic-77686.h"
 
-extern char *device_version;
+extern char *tn_velo_ver;
+extern char *tn_device;
+extern char *tn_hwtype;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -1459,7 +1461,9 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 
 static void __init twonav_machine_init(void)
 {
-	printk(KERN_INFO "device version: %s\n", device_version);
+	if(tn_velo_ver != NULL) 	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
+	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
+	if(tn_device != NULL) 		printk(KERN_INFO "mach: twonav tn_device version: %s\n", tn_device);
 
 	twonav_gpio_init();
 
