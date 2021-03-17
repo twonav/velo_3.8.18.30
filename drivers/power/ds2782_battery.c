@@ -43,6 +43,8 @@
 #include <linux/queue.h>
 #include <linux/delay.h>
 
+extern char* tn_hwtype;
+
 struct dentry *low_batt_signal_file;
 int pid = 0;
 struct timespec charging_time_start;
@@ -1562,6 +1564,8 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	int ret;
 	int num;
 	int batt_status;
+
+	printk("LDU: ds278x_battery_probe init for %s", tn_hwtype);
 
 	/* Initialize battery registers if not set */
 	ret = ds2782_battery_init(client, &batt_status);
