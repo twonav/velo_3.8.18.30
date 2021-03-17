@@ -796,27 +796,27 @@ static struct platform_device twonav_gpio_keys = {
 	},
 };
 
-void init_button_irqs(void)
-	{
-		/*
-			Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
-			Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
-		*/
+static void __init init_button_irqs(void)
+{
+	/*
+		Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
+		Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
+	*/
 
-		int numero_de_irq=-1;
+	int numero_de_irq=-1;
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
 
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
-	}
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+}
 /*END OF GPIO KEYS KEYBOARD*/ 		
 
 #if defined(CONFIG_SND_SOC_HKDK_MAX98090)
