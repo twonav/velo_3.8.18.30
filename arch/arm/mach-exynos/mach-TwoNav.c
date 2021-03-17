@@ -1151,74 +1151,10 @@ static struct platform_device twonav_lcd_spi = {
 };
 #endif
 
-static struct platform_device *twonav_devices[] __initdata = {
-	&tps611xx,
-	&s3c_device_hsmmc0,
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-	&s3c_device_hsmmc2,
-#endif
-	&s3c_device_hsmmc3,
-	&s3c_device_i2c0,
-	&s3c_device_i2c1,
-	&s3c_device_i2c4,
-#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
-        &twonav_w1_device,
-#endif
-	&s3c_device_rtc,
-	&s3c_device_usb_hsotg,
-	&s3c_device_wdt,
-	&s5p_device_ehci,
-#ifdef CONFIG_SND_SAMSUNG_I2S
-	&exynos4_device_i2s0,
-#endif
-	&s5p_device_fimc0,
-	&s5p_device_fimc1,
-	&s5p_device_fimc2,
-	&s5p_device_fimc3,
-	&s5p_device_fimc_md,
-	&s5p_device_fimd0,
-	&s5p_device_mfc,
-	&s5p_device_mfc_l,
-	&s5p_device_mfc_r,
-	&s5p_device_g2d,
-	&s5p_device_jpeg,
-	&mali_gpu_device,
-#if defined(CONFIG_S5P_DEV_TV)
-	&s5p_device_hdmi,
-	&s5p_device_cec,
-	&s5p_device_i2c_hdmiphy,
-	&s5p_device_mixer,
-	&hdmi_fixed_voltage,
-#endif
-	&exynos4_device_ohci,
-//	&exynos_device_dwmci,
-//	&twonav_leds_gpio,
-#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	&twonav_lcd_t55149gd030j,
-#endif
-	&twonav_gpio_keys,
-	&samsung_asoc_idma,
-#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
-	&hardkernel_audio_device,
-#endif
-#if defined(CONFIG_EXYNOS_THERMAL)
-	&twonav_tmu,
-#endif
-#if defined(CONFIG_TWONAV_OTHERS_PWM_BL)
-	&s3c_device_timer[1],
-	&twonav_pwm_bl,
-#endif
+#define TWONAV_NUM_MAX_DEVICES		41
 
-#if defined(CONFIG_LCD_T55149GD030J)
-	&twonav_lcd_spi,
-#else
-	&s3c64xx_device_spi1,
-#endif
-#if defined(CONFIG_USB_EXYNOS_SWITCH)
-	&s5p_device_usbswitch,
-#endif
-};
-
+static struct platform_device *twonav_devices[TWONAV_NUM_MAX_DEVICES] __initdata;
+	
 #if defined(CONFIG_S5P_DEV_TV)
 static struct s5p_platform_cec hdmi_cec_data __initdata = {
 
@@ -1459,11 +1395,97 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 	.notifier_call = twonav_reboot_notifier,
 };
 
+static int __init twonav_devices_populate(void) {
+	int n_devs = 0;
+
+	if(tn_hwtype != NULL)	printk("LDU: Populating devices for device %s\n", tn_hwtype);
+
+	twonav_devices[n_devs++] = &tps611xx;
+	twonav_devices[n_devs++] = &s3c_device_hsmmc0;
+
+	if(tn_hwtype != NULL) {
+		if(strstr(tn_hwtype, "aventura") || strstr(tn_hwtype, "horizon")) {
+			printk("LDU: Adding specific s3c_device_hsmmc2 for device %s\n", tn_hwtype);
+			twonav_devices[n_devs++] = &s3c_device_hsmmc2;
+		}
+	}
+
+	twonav_devices[n_devs++] = &s3c_device_hsmmc3;
+	twonav_devices[n_devs++] = &s3c_device_i2c0;
+	twonav_devices[n_devs++] = &s3c_device_i2c1;
+	twonav_devices[n_devs++] = &s3c_device_i2c4;
+	#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
+	    twonav_devices[ndevs++] = &twonav_w1_device;
+	#endif
+	twonav_devices[n_devs++] = &s3c_device_rtc;
+	twonav_devices[n_devs++] = &s3c_device_usb_hsotg;
+	twonav_devices[n_devs++] = &s3c_device_wdt;
+	twonav_devices[n_devs++] = &s5p_device_ehci;
+	#ifdef CONFIG_SND_SAMSUNG_I2S
+		twonav_devices[n_devs++] = &exynos4_device_i2s0;
+	#endif
+	twonav_devices[n_devs++] = &s5p_device_fimc0;
+	twonav_devices[n_devs++] = &s5p_device_fimc1;
+	twonav_devices[n_devs++] = &s5p_device_fimc2;
+	twonav_devices[n_devs++] = &s5p_device_fimc3;
+	twonav_devices[n_devs++] = &s5p_device_fimc_md;
+	twonav_devices[n_devs++] = &s5p_device_fimd0;
+	twonav_devices[n_devs++] = &s5p_device_mfc;
+	twonav_devices[n_devs++] = &s5p_device_mfc_l;
+	twonav_devices[n_devs++] = &s5p_device_mfc_r;
+	twonav_devices[n_devs++] = &s5p_device_g2d;
+	twonav_devices[n_devs++] = &s5p_device_jpeg;
+	twonav_devices[n_devs++] = &mali_gpu_device;
+	#if defined(CONFIG_S5P_DEV_TV)
+		twonav_devices[n_devs++] = &s5p_device_hdmi;
+		twonav_devices[n_devs++] = &s5p_device_cec;
+		twonav_devices[n_devs++] = &s5p_device_i2c_hdmiphy;
+		twonav_devices[n_devs++] = &s5p_device_mixer;
+		twonav_devices[n_devs++] = &hdmi_fixed_voltage;
+	#endif
+	twonav_devices[n_devs++] = &exynos4_device_ohci;
+//	&exynos_device_dwmci,
+//	&twonav_leds_gpio,
+	#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
+		twonav_devices[n_devs++] = &twonav_lcd_t55149gd030j;
+	#endif
+	twonav_devices[n_devs++] = &twonav_gpio_keys;
+	twonav_devices[n_devs++] = &samsung_asoc_idma;
+	#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
+		twonav_devices[n_devs++] = &hardkernel_audio_device;
+	#endif
+	#if defined(CONFIG_EXYNOS_THERMAL)
+		twonav_devices[n_devs++] = &twonav_tmu;
+	#endif
+	#if defined(CONFIG_TWONAV_OTHERS_PWM_BL)
+		twonav_devices[n_devs++] = &s3c_device_timer[1];
+		twonav_devices[n_devs++] = &twonav_pwm_bl;
+	#endif
+
+	#if defined(CONFIG_LCD_T55149GD030J)
+		twonav_devices[n_devs++] = &twonav_lcd_spi;
+	#else
+		twonav_devices[n_devs++] = &s3c64xx_device_spi1;
+	#endif
+	#if defined(CONFIG_USB_EXYNOS_SWITCH)
+		twonav_devices[n_devs++] = &s5p_device_usbswitch;
+	#endif
+
+	printk("LDU: Num total devices: %d out of max %d for device %s\n", n_devs, TWONAV_NUM_MAX_DEVICES, tn_hwtype);
+
+	return n_devs;
+}
+
 static void __init twonav_machine_init(void)
 {
+	int n_devs = 0;
 	if(tn_velo_ver != NULL) 	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
 	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
 	if(tn_device != NULL) 		printk(KERN_INFO "mach: twonav tn_device version: %s\n", tn_device);
+
+	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
+	printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
+	printk(KERN_INFO "mach: twonav tn_device version: %s\n", tn_device);
 
 	twonav_gpio_init();
 
@@ -1509,7 +1531,10 @@ static void __init twonav_machine_init(void)
 #endif
 	init_button_irqs();
 
-	platform_add_devices(twonav_devices, ARRAY_SIZE(twonav_devices));
+
+
+	n_devs = twonav_devices_populate();
+	platform_add_devices(twonav_devices, n_devs);
 
 	register_reboot_notifier(&twonav_reboot_notifier_nb);
 
