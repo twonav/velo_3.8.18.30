@@ -226,25 +226,13 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #define CYTTSP5_HID_DESC_REGISTER 1
 
-//Default values, need to be changed for velo/aventura
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	#define CY_VKEYS_X 480
-	#define CY_VKEYS_Y 640
-	#define CY_MAXX 480
-	#define CY_MAXY 640
-#else
-	#define CY_VKEYS_X 240
-	#define CY_VKEYS_Y 400
-	#define CY_MAXX 240
-	#define CY_MAXY 400
-#endif
-#define CY_MINX 0
-#define CY_MINY 0
 
-#define CY_ABS_MIN_X CY_MINX
-#define CY_ABS_MIN_Y CY_MINY
-#define CY_ABS_MAX_X CY_MAXX
-#define CY_ABS_MAX_Y CY_MAXY
+#define CY_VKEYS_X 240
+#define CY_VKEYS_Y 400
+#define CY_ABS_MIN_X 0
+#define CY_ABS_MIN_Y 0
+#define CY_ABS_MAX_X 240
+#define CY_ABS_MAX_Y 400
 #define CY_ABS_MIN_P 0
 #define CY_ABS_MAX_P 255
 #define CY_ABS_MIN_W 0
@@ -306,7 +294,7 @@ static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 	.easy_wakeup_gesture = CY_CORE_EWG_NONE,
 };
 
-static const int16_t cyttsp5_abs[] = {
+static int16_t cyttsp5_abs[] = {
 	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
 	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
@@ -390,10 +378,33 @@ static struct attribute *cyttsp5_properties_attrs[] = {
 static struct attribute_group cyttsp5_properties_attr_group = {
 	.attrs = cyttsp5_properties_attrs,
 };
+
+static void __init twonav_modify_cyttsp5_platform_data(void) {
+	printk("LDU: Modify touch bounds for %s\n", tn_hwtype);
+
+	if(tn_is_aventura || tn_is_trail) 
+	{
+		int pos_max_x = 2;
+		int pos_max_y = 7;
+
+		int16_t vkeys_x = 480;
+		int16_t vkeys_y = 640;
+		int16_t max_x = 480;
+		int16_t max_y = 640;
+		
+		cyttsp5_abs[pos_max_x] = max_x;
+		cyttsp5_abs[pos_max_y] = max_y;
+		_cyttsp5_mt_platform_data.vkeys_x = vkeys_x,
+		_cyttsp5_mt_platform_data.vkeys_y = vkeys_y;		
+	}
+}
+
 #endif /* !CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT */
 
 static void __init twonav_cyttsp5_init(void)
 {
+	twonav_modify_cyttsp5_platform_data();
+	
 	/* Initialize muxes for GPIO pins */
 #ifdef CYTTSP5_USE_I2C
 	/* PCAP ATMEL interrupt configuration */ 
