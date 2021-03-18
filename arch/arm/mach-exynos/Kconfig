@@ -547,7 +547,7 @@ config MACH_TWONAV
 choice 
 	depends on MACH_TWONAV
 	prompt "Select your TwoNav Product"
-	default TWONAV_VELO
+	default TWONAV_UNIFIED
 
 	config TWONAV_VELO
 		bool "Enable Support for Velo"
@@ -563,6 +563,10 @@ choice
 
 	config TWONAV_TRAIL
 		bool "Enable Support for Trail"
+		depends on MACH_TWONAV
+
+	config TWONAV_UNIFIED
+		bool "Enable Support for all twonav-2017 products"
 		depends on MACH_TWONAV
 
 endchoice
