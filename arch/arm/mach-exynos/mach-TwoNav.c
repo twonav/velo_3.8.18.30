@@ -589,31 +589,70 @@ static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 #endif
 };
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
+#define MAX_TWONAV_I2C1_DEVS		4
 
-static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
+static struct i2c_board_info twonav_i2c_devs1[MAX_TWONAV_I2C1_DEVS] __initdata;
+
+
 #if defined(CONFIG_TOUCHSCREEN_TSC2007)
-        {
-                I2C_BOARD_INFO("tsc2007", 0x48),
-                .platform_data  = &tsc2007_info,
-                .irq            = IRQ_EINT(22),
-        },
+	static struct i2c_board_info twonav_i2c_tsc2007 =
+	{
+		I2C_BOARD_INFO("tsc2007", 0x48),
+		.platform_data  = &tsc2007_info,
+		.irq            = IRQ_EINT(22),
+	};
 #endif
   	
 #if defined(CONFIG_JOYSTICK_TWONAV_KBD)
-        {
-            I2C_BOARD_INFO("twonav_kbd", 0x20),
-            .platform_data  = &twonav_kbd_info,
-            .irq            = IRQ_EINT(14),
-        },
+	static struct i2c_board_info twonav_i2c_kbd =
+	{
+		I2C_BOARD_INFO("twonav_kbd", 0x20),
+		.platform_data  = &twonav_kbd_info,
+		.irq            = IRQ_EINT(14),
+	};
 #endif
 
 #if defined(CONFIG_SND_SOC_MAX98090)
+	static struct i2c_board_info twonav_i2c_max98090 =
 	{
 		I2C_BOARD_INFO("max98090", (0x20>>1)),
 		.platform_data  = &max98090,
 		.irq		= IRQ_EINT(0),
-	},
+	};
 #endif
+
+#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
+	static struct i2c_board_info twonav_i2c_max44005 =
+	{
+		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
+		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
+
+	};
+#endif
+
+static int __init twonav_populate_i2c1_devs(void) {
+	int n_devs = 0;
+
+#if defined(CONFIG_TOUCHSCREEN_TSC2007)
+	twonav_i2c_devs1[n_devs++] = twonav_i2c_tsc2007;
+#endif
+
+#if defined(CONFIG_JOYSTICK_TWONAV_KBD)
+	if(tn_is_trail || tn_is_aventura) {
+		twonav_i2c_devs1[n_devs++] = twonav_i2c_kbd;
+	}
+#endif
+
+#if defined(CONFIG_SND_SOC_MAX98090)
+	if(tn_is_trail || tn_is_aventura) {
+		twonav_i2c_devs1[n_devs++] = twonav_i2c_max98090;
+	}
+#endif
+
+#if defined(CONFIG_SND_SOC_MAX98090)	
+	twonav_i2c_devs1[n_devs++] = twonav_i2c_max44005;	
+#endif
+
 
 	/*UNCOMMENT WHEN READY*/
 //#if defined(CONFIG_TMP103_SENSOR)
@@ -631,15 +670,14 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 //	},
 //#endif
 	/*UNCOMMENT WHEN READY*/
-#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
-	{
-		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
-		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
 
-	},
-#endif
+	if(tn_hwtype != NULL)
+		printk("LDU: Num total i2c1 devices: %d out of max %d for device %s\n", n_devs, MAX_TWONAV_I2C1_DEVS, tn_hwtype);
 
-};
+	return n_devs;
+}
+
+
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
 static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
@@ -1503,7 +1541,8 @@ static int __init twonav_devices_populate(void) {
 		twonav_devices[n_devs++] = &s5p_device_usbswitch;
 	#endif
 
-	printk("LDU: Num total devices: %d out of max %d for device %s\n", n_devs, TWONAV_NUM_MAX_DEVICES, tn_hwtype);
+	if(tn_hwtype)
+		printk("LDU: Num total devices: %d out of max %d for device %s\n", n_devs, TWONAV_NUM_MAX_DEVICES, tn_hwtype);
 
 	return n_devs;
 }
@@ -1511,6 +1550,7 @@ static int __init twonav_devices_populate(void) {
 static void __init twonav_machine_init(void)
 {
 	int n_devs = 0;
+	int n_devs_i2c1 = 0;
 	
 	if(tn_velo_ver != NULL) 	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
 	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
@@ -1526,8 +1566,10 @@ static void __init twonav_machine_init(void)
 				ARRAY_SIZE(twonav_i2c_devs0));
 
 	s3c_i2c1_set_platdata(NULL);
+
+	n_devs_i2c1 = twonav_populate_i2c1_devs();
 	i2c_register_board_info(1, twonav_i2c_devs1,
-				ARRAY_SIZE(twonav_i2c_devs1));
+				n_devs_i2c1);
 
 	s3c_i2c4_set_platdata(NULL);
 	i2c_register_board_info(4, twonav_i2c_devs4,
