@@ -4,28 +4,7 @@
 #include<linux/sched.h>
 #include <asm/uaccess.h>
 
-#if defined CONFIG_LOGO_OS_SMALL_CLUT224 || defined CONFIG_LOGO_OS_BIG_CLUT224
-	#if defined CONFIG_TWONAV_VELO
-		static const char* tn_hwtype = "os-velo-2017";
-	#elif defined CONFIG_TWONAV_HORIZON
-		static const char* tn_hwtype = "os-horizon-2017";
-	#elif defined CONFIG_TWONAV_TRAIL
-		static const char* tn_hwtype = "os-trail-2017";
-	#else
-		static const char* tn_hwtype = "os-aventura-2017";
-	#endif 
-#else
-	#if defined CONFIG_TWONAV_VELO
-		static const char* tn_hwtype = "twonav-velo-2017";
-	#elif defined CONFIG_TWONAV_HORIZON
-		static const char* tn_hwtype = "twonav-horizon-2017";
-	#elif defined CONFIG_TWONAV_TRAIL
-		static const char* tn_hwtype = "twonav-trail-2017";
-	#else
-		static const char* tn_hwtype = "twonav-aventura-2017";
-	#endif 
-#endif
-
+extern char* tn_hwtype;
 
 static int len, temp;
 
