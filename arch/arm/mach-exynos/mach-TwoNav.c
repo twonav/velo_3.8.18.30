@@ -675,30 +675,29 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 #endif
 };
 
-/*Define VELO display with DRM */
+/*Define Twonav display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
-	.panel = {
-		.timing = {
-			.left_margin 	= 40,
-			.right_margin 	= 24,
-			.upper_margin 	= 7,
-			.lower_margin 	= 5,
-			.hsync_len 	= 32,
-			.vsync_len 	= 5,
-			.xres 		= 480,
-			.yres 		= 640,
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_trail_aventura = {
+		.panel = {
+			.timing = {
+				.left_margin 	= 40,
+				.right_margin 	= 24,
+				.upper_margin 	= 7,
+				.lower_margin 	= 5,
+				.hsync_len 	= 32,
+				.vsync_len 	= 5,
+				.xres 		= 480,
+				.yres 		= 640,
+			},
 		},
-	},
-	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
-	.default_win 	= 0,
-	.bpp 		= 32,
+		.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+		.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
+		.default_win 	= 0,
+		.bpp 		= 32,
 	};
 
-#else
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_velo_horizon = {
 		.panel = {
 			.timing = {
 				.left_margin 	= 9,
@@ -720,37 +719,36 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 		.default_win 	= 0,
 		.bpp 		= 24,
 	};
-#endif
 	
-static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
-				   unsigned int power)
-{
-	if (power) {
-		gpio_set_value(EXYNOS4_GPF0(2),1);
-	} else {
-		gpio_set_value(EXYNOS4_GPF0(2),0);
+	static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
+					   unsigned int power)
+	{
+		if (power) {
+			gpio_set_value(EXYNOS4_GPF0(2),1);
+		} else {
+			gpio_set_value(EXYNOS4_GPF0(2),0);
+		}
+		gpio_free(EXYNOS4_GPF0(2));
+
 	}
-	gpio_free(EXYNOS4_GPF0(2));
 
-}
+	static struct plat_lcd_data twonav_lcd_t55149gd030j_data = {
+		.set_power	= lcd_t55149gd030j_set_power,
+		
+	};
 
-static struct plat_lcd_data twonav_lcd_t55149gd030j_data = {
-	.set_power	= lcd_t55149gd030j_set_power,
-	
-};
-
-static struct platform_device twonav_lcd_t55149gd030j = {
-	.name	= "platform-lcd",
-	.dev	= {
-		.parent		= &s5p_device_fimd0.dev,
-		.platform_data	= &twonav_lcd_t55149gd030j_data,
-	},
-};
+	static struct platform_device twonav_lcd_t55149gd030j = {
+		.name	= "platform-lcd",
+		.dev	= {
+			.parent		= &s5p_device_fimd0.dev,
+			.platform_data	= &twonav_lcd_t55149gd030j_data,
+		},
+	};
 #endif
 /*END OF Define VELO display with DRM */
 
 /* GPIO KEYS KEYBOARD*/
-static struct gpio_keys_button twonav_gpio_keys_tables[] = {
+static struct gpio_keys_button twonav_gpio_keys_tables_velo_horizon[] = {
 	{
 		.code			= KEY_F1,
 		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
@@ -765,8 +763,6 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-
-#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
 		.code			= KEY_F3,
 		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
@@ -781,12 +777,29 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-#endif
 };
 
+static struct gpio_keys_button twonav_gpio_keys_tables_trail_aventura[] = {
+	{
+		.code			= KEY_F1,
+		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
+		.desc			= "KEY_POWER",
+		.type			= EV_KEY,
+		.active_low		= 0,
+	},
+	{
+		.code			= KEY_F2,
+		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
+		.desc			= "TL_BUTTON",
+		.type			= EV_KEY,
+		.active_low		= 1,
+	},
+};
+
+
 static struct gpio_keys_platform_data twonav_gpio_keys_data = {
-	.buttons	= twonav_gpio_keys_tables,
-	.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables),
+	.buttons	= twonav_gpio_keys_tables_velo_horizon,
+	.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables_velo_horizon),
 };
 
 static struct platform_device twonav_gpio_keys = {
@@ -795,6 +808,13 @@ static struct platform_device twonav_gpio_keys = {
 		.platform_data	= &twonav_gpio_keys_data,
 	},
 };
+
+static void __init twonav_set_keys() {
+	if(tn_is_aventura || tn_is_trail) {
+		twonav_gpio_keys_data.buttons	= twonav_gpio_keys_tables_trail_aventura;
+		twonav_gpio_keys_data.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables_trail_aventura);
+	}
+}
 
 static void __init init_button_irqs(void)
 {
@@ -906,14 +926,12 @@ static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
 };
 
 /* SDCARD */
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
 	.max_width	= 4,
 	.host_caps	= MMC_CAP_4_BIT_DATA |
 			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type	= S3C_SDHCI_CD_NONE,
 };
-#endif
 
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
@@ -1082,20 +1100,19 @@ static int lcd_cfg_gpio(void)
 	s3c_gpio_setpull(EXYNOS4_GPX2(0), S3C_GPIO_PULL_NONE);
 	gpio_free(EXYNOS4_GPX2(0));
 	gpio_set_value(EXYNOS4_GPX2(0), 0); //SPI ID
-	
+		
+	if(tn_is_horizon || tn_is_trail || tn_is_aventura) {
+		/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
+		gpio_free(EXYNOS4X12_GPM3(6)); // STAT1 CHARGING
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
+		s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM3(6));
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
-	gpio_free(EXYNOS4X12_GPM3(6)); // STAT1 CHARGING
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM3(6));
-
-	gpio_free(EXYNOS4X12_GPM4(3)); // STAT2 CHARGED
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM4(3));
-#endif
+		gpio_free(EXYNOS4X12_GPM4(3)); // STAT2 CHARGED
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(3));
+	}
 
 	return 1;
 }
@@ -1207,11 +1224,11 @@ static void __init twonav_gpio_init(void)
 	lcd_cfg_gpio();
 
 	//Aventua/Trail ST
-	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	if(tn_is_aventura || tn_is_trail) {	
 		gpio_free(EXYNOS4X12_GPM0(3));
 		gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
 		gpio_free(EXYNOS4X12_GPM0(3));
-	#endif
+	}
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
@@ -1499,6 +1516,7 @@ static void __init twonav_machine_init(void)
 	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
 
 	twonav_gpio_init();
+	twonav_set_keys();
 
 	/* Register power off function */
 	pm_power_off = twonav_power_off;
@@ -1517,9 +1535,11 @@ static void __init twonav_machine_init(void)
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
 	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
-#endif
+
+	if(tn_is_aventura || tn_is_horizon) {
+		s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+	}
+
 	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
 //	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
@@ -1537,12 +1557,15 @@ static void __init twonav_machine_init(void)
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
 
 #if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
+	if(tn_is_aventura || tn_is_trail) {
+		s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_trail_aventura;
+	}
+	else {
+		s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_velo_horizon;
+	}
 	exynos4_fimd0_gpio_setup_24bpp();
 #endif
 	init_button_irqs();
-
-
 
 	n_devs = twonav_devices_populate();
 	platform_add_devices(twonav_devices, n_devs);
