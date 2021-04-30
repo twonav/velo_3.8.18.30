@@ -72,7 +72,13 @@
 #include "common.h"
 #include "pmic-77686.h"
 
-extern char *device_version;
+extern char *tn_velo_ver;
+extern char *tn_hwtype;
+
+extern bool tn_is_aventura;
+extern bool tn_is_velo;
+extern bool tn_is_horizon;
+extern bool tn_is_trail;
 
 /*VELO INCLUDES*/
 #include <linux/pwm_backlight.h>
@@ -220,25 +226,13 @@ static struct usb3503_platform_data usb3503_pdata = {
 
 #define CYTTSP5_HID_DESC_REGISTER 1
 
-//Default values, need to be changed for velo/aventura
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	#define CY_VKEYS_X 480
-	#define CY_VKEYS_Y 640
-	#define CY_MAXX 480
-	#define CY_MAXY 640
-#else
-	#define CY_VKEYS_X 240
-	#define CY_VKEYS_Y 400
-	#define CY_MAXX 240
-	#define CY_MAXY 400
-#endif
-#define CY_MINX 0
-#define CY_MINY 0
 
-#define CY_ABS_MIN_X CY_MINX
-#define CY_ABS_MIN_Y CY_MINY
-#define CY_ABS_MAX_X CY_MAXX
-#define CY_ABS_MAX_Y CY_MAXY
+#define CY_VKEYS_X 240
+#define CY_VKEYS_Y 400
+#define CY_ABS_MIN_X 0
+#define CY_ABS_MIN_Y 0
+#define CY_ABS_MAX_X 240
+#define CY_ABS_MAX_Y 400
 #define CY_ABS_MIN_P 0
 #define CY_ABS_MAX_P 255
 #define CY_ABS_MIN_W 0
@@ -300,7 +294,7 @@ static struct cyttsp5_core_platform_data _cyttsp5_core_platform_data = {
 	.easy_wakeup_gesture = CY_CORE_EWG_NONE,
 };
 
-static const int16_t cyttsp5_abs[] = {
+static int16_t cyttsp5_abs[] = {
 	ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0,
 	ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0,
 	ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0,
@@ -384,10 +378,33 @@ static struct attribute *cyttsp5_properties_attrs[] = {
 static struct attribute_group cyttsp5_properties_attr_group = {
 	.attrs = cyttsp5_properties_attrs,
 };
+
+static void __init twonav_modify_cyttsp5_platform_data(void) {
+	printk("LDU: Modify touch bounds for %s\n", tn_hwtype);
+
+	if(tn_is_aventura || tn_is_trail) 
+	{
+		int pos_max_x = 2;
+		int pos_max_y = 7;
+
+		int16_t vkeys_x = 480;
+		int16_t vkeys_y = 640;
+		int16_t max_x = 480;
+		int16_t max_y = 640;
+		
+		cyttsp5_abs[pos_max_x] = max_x;
+		cyttsp5_abs[pos_max_y] = max_y;
+		_cyttsp5_mt_platform_data.vkeys_x = vkeys_x,
+		_cyttsp5_mt_platform_data.vkeys_y = vkeys_y;		
+	}
+}
+
 #endif /* !CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP5_DEVICETREE_SUPPORT */
 
 static void __init twonav_cyttsp5_init(void)
 {
+	twonav_modify_cyttsp5_platform_data();
+	
 	/* Initialize muxes for GPIO pins */
 #ifdef CYTTSP5_USE_I2C
 	/* PCAP ATMEL interrupt configuration */ 
@@ -572,31 +589,70 @@ static struct i2c_board_info twonav_i2c_devs0[] __initdata = {
 #endif
 };
 /*END OF Devices Conected on I2C BUS 0 LISTED ABOVE*/
+#define MAX_TWONAV_I2C1_DEVS		4
 
-static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
+static struct i2c_board_info twonav_i2c_devs1[MAX_TWONAV_I2C1_DEVS] __initdata;
+
+
 #if defined(CONFIG_TOUCHSCREEN_TSC2007)
-        {
-                I2C_BOARD_INFO("tsc2007", 0x48),
-                .platform_data  = &tsc2007_info,
-                .irq            = IRQ_EINT(22),
-        },
+	static struct i2c_board_info twonav_i2c_tsc2007 =
+	{
+		I2C_BOARD_INFO("tsc2007", 0x48),
+		.platform_data  = &tsc2007_info,
+		.irq            = IRQ_EINT(22),
+	};
 #endif
   	
 #if defined(CONFIG_JOYSTICK_TWONAV_KBD)
-        {
-            I2C_BOARD_INFO("twonav_kbd", 0x20),
-            .platform_data  = &twonav_kbd_info,
-            .irq            = IRQ_EINT(14),
-        },
+	static struct i2c_board_info twonav_i2c_kbd =
+	{
+		I2C_BOARD_INFO("twonav_kbd", 0x20),
+		.platform_data  = &twonav_kbd_info,
+		.irq            = IRQ_EINT(14),
+	};
 #endif
 
 #if defined(CONFIG_SND_SOC_MAX98090)
+	static struct i2c_board_info twonav_i2c_max98090 =
 	{
 		I2C_BOARD_INFO("max98090", (0x20>>1)),
 		.platform_data  = &max98090,
 		.irq		= IRQ_EINT(0),
-	},
+	};
 #endif
+
+#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
+	static struct i2c_board_info twonav_i2c_max44005 =
+	{
+		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
+		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
+
+	};
+#endif
+
+static int __init twonav_populate_i2c1_devs(void) {
+	int n_devs = 0;
+
+#if defined(CONFIG_TOUCHSCREEN_TSC2007)
+	twonav_i2c_devs1[n_devs++] = twonav_i2c_tsc2007;
+#endif
+
+#if defined(CONFIG_JOYSTICK_TWONAV_KBD)
+	if(tn_is_trail || tn_is_aventura) {
+		twonav_i2c_devs1[n_devs++] = twonav_i2c_kbd;
+	}
+#endif
+
+#if defined(CONFIG_SND_SOC_MAX98090)
+	if(tn_is_trail || tn_is_aventura) {
+		twonav_i2c_devs1[n_devs++] = twonav_i2c_max98090;
+	}
+#endif
+
+#if defined(CONFIG_SND_SOC_MAX98090)	
+	twonav_i2c_devs1[n_devs++] = twonav_i2c_max44005;	
+#endif
+
 
 	/*UNCOMMENT WHEN READY*/
 //#if defined(CONFIG_TMP103_SENSOR)
@@ -614,15 +670,14 @@ static struct i2c_board_info twonav_i2c_devs1[] __initdata = {
 //	},
 //#endif
 	/*UNCOMMENT WHEN READY*/
-#if defined(CONFIG_SENSORS_MAX44005)  // ambient light sensor 
-	{
-		I2C_BOARD_INFO("max44005", 0x88), /*Write: 0x88 Read: 0x89*/
-		.platform_data  = &max44005_driver, /*CONFIG PDATA*/
 
-	},
-#endif
+	if(tn_hwtype != NULL)
+		printk("LDU: Num total i2c1 devices: %d out of max %d for device %s\n", n_devs, MAX_TWONAV_I2C1_DEVS, tn_hwtype);
 
-};
+	return n_devs;
+}
+
+
 /*END OF Devices Conected on I2C BUS 1 LISTED ABOVE*/
 
 static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
@@ -658,30 +713,29 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 #endif
 };
 
-/*Define VELO display with DRM */
+/*Define Twonav display with DRM */
 #if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
-	.panel = {
-		.timing = {
-			.left_margin 	= 40,
-			.right_margin 	= 24,
-			.upper_margin 	= 7,
-			.lower_margin 	= 5,
-			.hsync_len 	= 32,
-			.vsync_len 	= 5,
-			.xres 		= 480,
-			.yres 		= 640,
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_trail_aventura = {
+		.panel = {
+			.timing = {
+				.left_margin 	= 40,
+				.right_margin 	= 24,
+				.upper_margin 	= 7,
+				.lower_margin 	= 5,
+				.hsync_len 	= 32,
+				.vsync_len 	= 5,
+				.xres 		= 480,
+				.yres 		= 640,
+			},
 		},
-	},
-	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
-	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
-	.default_win 	= 0,
-	.bpp 		= 32,
+		.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+		.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC | VIDCON1_INV_VCLK,
+		.default_win 	= 0,
+		.bpp 		= 32,
 	};
 
-#else
-	static struct exynos_drm_fimd_pdata drm_fimd_pdata = {
+
+	static struct exynos_drm_fimd_pdata drm_fimd_pdata_velo_horizon = {
 		.panel = {
 			.timing = {
 				.left_margin 	= 9,
@@ -703,37 +757,36 @@ static struct i2c_board_info twonav_i2c_devs4[] __initdata = {
 		.default_win 	= 0,
 		.bpp 		= 24,
 	};
-#endif
 	
-static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
-				   unsigned int power)
-{
-	if (power) {
-		gpio_set_value(EXYNOS4_GPF0(2),1);
-	} else {
-		gpio_set_value(EXYNOS4_GPF0(2),0);
+	static void lcd_t55149gd030j_set_power(struct plat_lcd_data *pd,
+					   unsigned int power)
+	{
+		if (power) {
+			gpio_set_value(EXYNOS4_GPF0(2),1);
+		} else {
+			gpio_set_value(EXYNOS4_GPF0(2),0);
+		}
+		gpio_free(EXYNOS4_GPF0(2));
+
 	}
-	gpio_free(EXYNOS4_GPF0(2));
 
-}
+	static struct plat_lcd_data twonav_lcd_t55149gd030j_data = {
+		.set_power	= lcd_t55149gd030j_set_power,
+		
+	};
 
-static struct plat_lcd_data twonav_lcd_t55149gd030j_data = {
-	.set_power	= lcd_t55149gd030j_set_power,
-	
-};
-
-static struct platform_device twonav_lcd_t55149gd030j = {
-	.name	= "platform-lcd",
-	.dev	= {
-		.parent		= &s5p_device_fimd0.dev,
-		.platform_data	= &twonav_lcd_t55149gd030j_data,
-	},
-};
+	static struct platform_device twonav_lcd_t55149gd030j = {
+		.name	= "platform-lcd",
+		.dev	= {
+			.parent		= &s5p_device_fimd0.dev,
+			.platform_data	= &twonav_lcd_t55149gd030j_data,
+		},
+	};
 #endif
 /*END OF Define VELO display with DRM */
 
 /* GPIO KEYS KEYBOARD*/
-static struct gpio_keys_button twonav_gpio_keys_tables[] = {
+static struct gpio_keys_button twonav_gpio_keys_tables_velo_horizon[] = {
 	{
 		.code			= KEY_F1,
 		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
@@ -748,8 +801,6 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-
-#if defined(CONFIG_TWONAV_VELO) || defined(CONFIG_TWONAV_HORIZON)
 	{
 		.code			= KEY_F3,
 		.gpio			= EXYNOS4_GPJ1(1), /* VELO FRONT BUTTON BR */
@@ -764,12 +815,29 @@ static struct gpio_keys_button twonav_gpio_keys_tables[] = {
 		.type			= EV_KEY,
 		.active_low		= 1,
 	},
-#endif
 };
 
+static struct gpio_keys_button twonav_gpio_keys_tables_trail_aventura[] = {
+	{
+		.code			= KEY_F1,
+		.gpio			= EXYNOS4X12_GPM3(7),	/* VELO SIDE BUTTON TR POWERON */
+		.desc			= "KEY_POWER",
+		.type			= EV_KEY,
+		.active_low		= 0,
+	},
+	{
+		.code			= KEY_F2,
+		.gpio			= EXYNOS4_GPF2(5), // VELO SIDE BUTTON TL
+		.desc			= "TL_BUTTON",
+		.type			= EV_KEY,
+		.active_low		= 1,
+	},
+};
+
+
 static struct gpio_keys_platform_data twonav_gpio_keys_data = {
-	.buttons	= twonav_gpio_keys_tables,
-	.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables),
+	.buttons	= twonav_gpio_keys_tables_velo_horizon,
+	.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables_velo_horizon),
 };
 
 static struct platform_device twonav_gpio_keys = {
@@ -779,27 +847,34 @@ static struct platform_device twonav_gpio_keys = {
 	},
 };
 
-void init_button_irqs(void)
-	{
-		/*
-			Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
-			Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
-		*/
-
-		int numero_de_irq=-1;
-
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
-
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
-
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
-
-		numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
-		printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+static void __init twonav_set_keys() {
+	if(tn_is_aventura || tn_is_trail) {
+		twonav_gpio_keys_data.buttons	= twonav_gpio_keys_tables_trail_aventura;
+		twonav_gpio_keys_data.nbuttons	= ARRAY_SIZE(twonav_gpio_keys_tables_trail_aventura);
 	}
+}
+
+static void __init init_button_irqs(void)
+{
+	/*
+		Number of irqs is limited by S5P_GPIOINT_GROUP_COUNT in arch/arm/plat-samsung/include/plat/irqs.h
+		Using s5p_register_gpio_interrupt(), 8 irqs are allocated (for the full 8 gpios of the chip), like defined in S5P_GPIOINT_GROUP_SIZE
+	*/
+
+	int numero_de_irq=-1;
+
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4X12_GPM3(7));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPF2(5));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ0(1));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+
+	numero_de_irq=s5p_register_gpio_interrupt(EXYNOS4_GPJ1(1));
+	printk("twonav_gpio_keys_tables: irq %d\n",numero_de_irq);
+}
 /*END OF GPIO KEYS KEYBOARD*/ 		
 
 #if defined(CONFIG_SND_SOC_HKDK_MAX98090)
@@ -889,14 +964,12 @@ static struct s3c_sdhci_platdata twonav_hsmmc0_pdata __initdata = {
 };
 
 /* SDCARD */
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
 static struct s3c_sdhci_platdata twonav_hsmmc2_pdata __initdata = {
 	.max_width	= 4,
 	.host_caps	= MMC_CAP_4_BIT_DATA |
 			MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED,
 	.cd_type	= S3C_SDHCI_CD_NONE,
 };
-#endif
 
 /* WIFI SDIO */
 static struct s3c_sdhci_platdata twonav_hsmmc3_pdata __initdata = {
@@ -1065,20 +1138,19 @@ static int lcd_cfg_gpio(void)
 	s3c_gpio_setpull(EXYNOS4_GPX2(0), S3C_GPIO_PULL_NONE);
 	gpio_free(EXYNOS4_GPX2(0));
 	gpio_set_value(EXYNOS4_GPX2(0), 0); //SPI ID
-	
+		
+	if(tn_is_horizon || tn_is_trail || tn_is_aventura) {
+		/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
+		gpio_free(EXYNOS4X12_GPM3(6)); // STAT1 CHARGING
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
+		s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM3(6));
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
-	/* MCP73833 CHARGER GPM3CON(6) GPM4CON(3) */
-	gpio_free(EXYNOS4X12_GPM3(6)); // STAT1 CHARGING
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(6), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM3(6), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM3(6));
-
-	gpio_free(EXYNOS4X12_GPM4(3)); // STAT2 CHARGED
-	s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
-	s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
-	gpio_free(EXYNOS4X12_GPM4(3));
-#endif
+		gpio_free(EXYNOS4X12_GPM4(3)); // STAT2 CHARGED
+		s3c_gpio_cfgpin(EXYNOS4X12_GPM4(3), S3C_GPIO_INPUT);
+		s3c_gpio_setpull(EXYNOS4X12_GPM4(3), S3C_GPIO_PULL_NONE);
+		gpio_free(EXYNOS4X12_GPM4(3));
+	}
 
 	return 1;
 }
@@ -1149,74 +1221,10 @@ static struct platform_device twonav_lcd_spi = {
 };
 #endif
 
-static struct platform_device *twonav_devices[] __initdata = {
-	&tps611xx,
-	&s3c_device_hsmmc0,
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-	&s3c_device_hsmmc2,
-#endif
-	&s3c_device_hsmmc3,
-	&s3c_device_i2c0,
-	&s3c_device_i2c1,
-	&s3c_device_i2c4,
-#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
-        &twonav_w1_device,
-#endif
-	&s3c_device_rtc,
-	&s3c_device_usb_hsotg,
-	&s3c_device_wdt,
-	&s5p_device_ehci,
-#ifdef CONFIG_SND_SAMSUNG_I2S
-	&exynos4_device_i2s0,
-#endif
-	&s5p_device_fimc0,
-	&s5p_device_fimc1,
-	&s5p_device_fimc2,
-	&s5p_device_fimc3,
-	&s5p_device_fimc_md,
-	&s5p_device_fimd0,
-	&s5p_device_mfc,
-	&s5p_device_mfc_l,
-	&s5p_device_mfc_r,
-	&s5p_device_g2d,
-	&s5p_device_jpeg,
-	&mali_gpu_device,
-#if defined(CONFIG_S5P_DEV_TV)
-	&s5p_device_hdmi,
-	&s5p_device_cec,
-	&s5p_device_i2c_hdmiphy,
-	&s5p_device_mixer,
-	&hdmi_fixed_voltage,
-#endif
-	&exynos4_device_ohci,
-//	&exynos_device_dwmci,
-//	&twonav_leds_gpio,
-#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	&twonav_lcd_t55149gd030j,
-#endif
-	&twonav_gpio_keys,
-	&samsung_asoc_idma,
-#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
-	&hardkernel_audio_device,
-#endif
-#if defined(CONFIG_EXYNOS_THERMAL)
-	&twonav_tmu,
-#endif
-#if defined(CONFIG_TWONAV_OTHERS_PWM_BL)
-	&s3c_device_timer[1],
-	&twonav_pwm_bl,
-#endif
+#define TWONAV_NUM_MAX_DEVICES		41
 
-#if defined(CONFIG_LCD_T55149GD030J)
-	&twonav_lcd_spi,
-#else
-	&s3c64xx_device_spi1,
-#endif
-#if defined(CONFIG_USB_EXYNOS_SWITCH)
-	&s5p_device_usbswitch,
-#endif
-};
-
+static struct platform_device *twonav_devices[TWONAV_NUM_MAX_DEVICES] __initdata;
+	
 #if defined(CONFIG_S5P_DEV_TV)
 static struct s5p_platform_cec hdmi_cec_data __initdata = {
 
@@ -1254,11 +1262,11 @@ static void __init twonav_gpio_init(void)
 	lcd_cfg_gpio();
 
 	//Aventua/Trail ST
-	#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_TRAIL)
+	if(tn_is_aventura || tn_is_trail) {	
 		gpio_free(EXYNOS4X12_GPM0(3));
 		gpio_request_one(EXYNOS4X12_GPM0(3), GPIOF_OUT_INIT_HIGH, "AVENTURA_ST");
 		gpio_free(EXYNOS4X12_GPM0(3));
-	#endif
+	}
 
 	/* Power on/off button */
 	s3c_gpio_cfgpin(EXYNOS4X12_GPM3(7), S3C_GPIO_SFN(0xF));	/* VELO SIDE BUTTON TR POWERON */
@@ -1457,11 +1465,98 @@ static struct notifier_block twonav_reboot_notifier_nb = {
 	.notifier_call = twonav_reboot_notifier,
 };
 
+static int __init twonav_devices_populate(void) {
+	int n_devs = 0;
+
+	if(tn_hwtype != NULL)	printk("LDU: Populating devices for device %s\n", tn_hwtype);
+
+	twonav_devices[n_devs++] = &tps611xx;
+	twonav_devices[n_devs++] = &s3c_device_hsmmc0;
+
+	
+	if(tn_is_aventura || tn_is_horizon) {
+		printk("LDU: Adding specific s3c_device_hsmmc2 for tn devices with removable batteries");
+		twonav_devices[n_devs++] = &s3c_device_hsmmc2;
+	}
+
+
+	twonav_devices[n_devs++] = &s3c_device_hsmmc3;
+	twonav_devices[n_devs++] = &s3c_device_i2c0;
+	twonav_devices[n_devs++] = &s3c_device_i2c1;
+	twonav_devices[n_devs++] = &s3c_device_i2c4;
+	#if defined(CONFIG_W1_MASTER_GPIO) || defined(CONFIG_W1_MASTER_GPIO_MODULE)
+	    twonav_devices[ndevs++] = &twonav_w1_device;
+	#endif
+	twonav_devices[n_devs++] = &s3c_device_rtc;
+	twonav_devices[n_devs++] = &s3c_device_usb_hsotg;
+	twonav_devices[n_devs++] = &s3c_device_wdt;
+	twonav_devices[n_devs++] = &s5p_device_ehci;
+	#ifdef CONFIG_SND_SAMSUNG_I2S
+		twonav_devices[n_devs++] = &exynos4_device_i2s0;
+	#endif
+	twonav_devices[n_devs++] = &s5p_device_fimc0;
+	twonav_devices[n_devs++] = &s5p_device_fimc1;
+	twonav_devices[n_devs++] = &s5p_device_fimc2;
+	twonav_devices[n_devs++] = &s5p_device_fimc3;
+	twonav_devices[n_devs++] = &s5p_device_fimc_md;
+	twonav_devices[n_devs++] = &s5p_device_fimd0;
+	twonav_devices[n_devs++] = &s5p_device_mfc;
+	twonav_devices[n_devs++] = &s5p_device_mfc_l;
+	twonav_devices[n_devs++] = &s5p_device_mfc_r;
+	twonav_devices[n_devs++] = &s5p_device_g2d;
+	twonav_devices[n_devs++] = &s5p_device_jpeg;
+	twonav_devices[n_devs++] = &mali_gpu_device;
+	#if defined(CONFIG_S5P_DEV_TV)
+		twonav_devices[n_devs++] = &s5p_device_hdmi;
+		twonav_devices[n_devs++] = &s5p_device_cec;
+		twonav_devices[n_devs++] = &s5p_device_i2c_hdmiphy;
+		twonav_devices[n_devs++] = &s5p_device_mixer;
+		twonav_devices[n_devs++] = &hdmi_fixed_voltage;
+	#endif
+	twonav_devices[n_devs++] = &exynos4_device_ohci;
+//	&exynos_device_dwmci,
+//	&twonav_leds_gpio,
+	#if defined(CONFIG_LCD_T55149GD030J) && defined(CONFIG_DRM_EXYNOS_FIMD)
+		twonav_devices[n_devs++] = &twonav_lcd_t55149gd030j;
+	#endif
+	twonav_devices[n_devs++] = &twonav_gpio_keys;
+	twonav_devices[n_devs++] = &samsung_asoc_idma;
+	#if defined(CONFIG_SND_SOC_HKDK_MAX98090)
+		twonav_devices[n_devs++] = &hardkernel_audio_device;
+	#endif
+	#if defined(CONFIG_EXYNOS_THERMAL)
+		twonav_devices[n_devs++] = &twonav_tmu;
+	#endif
+	#if defined(CONFIG_TWONAV_OTHERS_PWM_BL)
+		twonav_devices[n_devs++] = &s3c_device_timer[1];
+		twonav_devices[n_devs++] = &twonav_pwm_bl;
+	#endif
+
+	#if defined(CONFIG_LCD_T55149GD030J)
+		twonav_devices[n_devs++] = &twonav_lcd_spi;
+	#else
+		twonav_devices[n_devs++] = &s3c64xx_device_spi1;
+	#endif
+	#if defined(CONFIG_USB_EXYNOS_SWITCH)
+		twonav_devices[n_devs++] = &s5p_device_usbswitch;
+	#endif
+
+	if(tn_hwtype)
+		printk("LDU: Num total devices: %d out of max %d for device %s\n", n_devs, TWONAV_NUM_MAX_DEVICES, tn_hwtype);
+
+	return n_devs;
+}
+
 static void __init twonav_machine_init(void)
 {
-	printk(KERN_INFO "device version: %s\n", device_version);
+	int n_devs = 0;
+	int n_devs_i2c1 = 0;
+	
+	if(tn_velo_ver != NULL) 	printk(KERN_INFO "mach: twonav velo_ver version: %s\n", tn_velo_ver);
+	if(tn_hwtype != NULL) 		printk(KERN_INFO "mach: twonav hwtype version: %s\n", tn_hwtype);
 
 	twonav_gpio_init();
+	twonav_set_keys();
 
 	/* Register power off function */
 	pm_power_off = twonav_power_off;
@@ -1471,8 +1566,10 @@ static void __init twonav_machine_init(void)
 				ARRAY_SIZE(twonav_i2c_devs0));
 
 	s3c_i2c1_set_platdata(NULL);
+
+	n_devs_i2c1 = twonav_populate_i2c1_devs();
 	i2c_register_board_info(1, twonav_i2c_devs1,
-				ARRAY_SIZE(twonav_i2c_devs1));
+				n_devs_i2c1);
 
 	s3c_i2c4_set_platdata(NULL);
 	i2c_register_board_info(4, twonav_i2c_devs4,
@@ -1480,9 +1577,11 @@ static void __init twonav_machine_init(void)
 	
 /*SDIO_HCI CONFIGURATION ARRAY*/
 	s3c_sdhci0_set_platdata(&twonav_hsmmc0_pdata);
-#if defined(CONFIG_TWONAV_AVENTURA) || defined(CONFIG_TWONAV_HORIZON)
-	s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
-#endif
+
+	if(tn_is_aventura || tn_is_horizon) {
+		s3c_sdhci2_set_platdata(&twonav_hsmmc2_pdata);
+	}
+
 	s3c_sdhci3_set_platdata(&twonav_hsmmc3_pdata);
 
 //	exynos4_setup_dwmci_cfg_gpio(NULL, MMC_BUS_WIDTH_4);
@@ -1500,12 +1599,18 @@ static void __init twonav_machine_init(void)
 	spi_register_board_info(spi1_board_info, ARRAY_SIZE(spi1_board_info));
 
 #if defined(CONFIG_LCD_T55149GD030J) && !defined(CONFIG_TWONAV_OTHERS) && defined(CONFIG_DRM_EXYNOS_FIMD)
-	s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata;
+	if(tn_is_aventura || tn_is_trail) {
+		s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_trail_aventura;
+	}
+	else {
+		s5p_device_fimd0.dev.platform_data = &drm_fimd_pdata_velo_horizon;
+	}
 	exynos4_fimd0_gpio_setup_24bpp();
 #endif
 	init_button_irqs();
 
-	platform_add_devices(twonav_devices, ARRAY_SIZE(twonav_devices));
+	n_devs = twonav_devices_populate();
+	platform_add_devices(twonav_devices, n_devs);
 
 	register_reboot_notifier(&twonav_reboot_notifier_nb);
 

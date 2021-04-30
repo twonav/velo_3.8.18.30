@@ -24,7 +24,14 @@
 static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
-extern char *device;
+
+extern char *tn_hwtype;
+extern bool tn_is_aventura;
+extern bool tn_is_velo;
+extern bool tn_is_horizon;
+extern bool tn_is_trail;
+extern bool tn_is_twonav;
+extern bool tn_is_os;
 
 /* logo's are marked __initdata. Use __init_refok to tell
  * modpost that it is intended that this function uses data
@@ -34,7 +41,11 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 {
 	const struct linux_logo *logo = NULL;
 
-	printk(KERN_INFO "Logo: %s\n", device);
+	printk(KERN_INFO "Logo: Logo Module Init");
+
+	if(tn_hwtype != NULL) {
+		printk(KERN_INFO "Logo: %s\n", tn_hwtype);
+	}
 
 	if (nologo)
 		return NULL;
@@ -71,24 +82,31 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_linux_clut224;
 #endif
 
-#ifdef CONFIG_LOGO_TWONAV_BIG_CLUT224
-		/* TwoNav logo for big screens (Aventura, trail) */
-		logo = &logo_twonav_big_clut224;
+#ifdef CONFIG_LOGO_TWONAV_CLUT224
+	/* TwoNav logo for big screens (Aventura, trail) */		
+	if(tn_is_aventura || tn_is_trail) {
+		if(tn_is_twonav) logo = &logo_twonav_big_clut224;
+		else		 logo = &logo_os_big_clut224;
+	}
+	else {
+		if(tn_is_twonav) logo = &logo_twonav_small_clut224;
+		else		 logo = &logo_os_small_clut224;		
+	}			
 #endif
 
 #ifdef CONFIG_LOGO_TWONAV_SMALL_CLUT224
 		/* TwoNav logo for small screens (Velo, Horizon) */
-		logo = &logo_twonav_small_clut224;
+		
 #endif
 
 #ifdef CONFIG_LOGO_OS_BIG_CLUT224
 		/* OS logo for big screens (Aventura, trail) */
-		logo = &logo_os_big_clut224;
+		
 #endif
 
 #ifdef CONFIG_LOGO_OS_SMALL_CLUT224
 		/* OS logo for small screens (Velo, Horizon) */
-		logo = &logo_os_small_clut224;
+		
 #endif
 
 #ifdef CONFIG_LOGO_BLACKFIN_CLUT224

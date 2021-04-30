@@ -5,6 +5,50 @@
 # Requirements:
 # apt-get install kernel-package
 
+###################### Twonav kernel package fix for older kernel  packages ##########
+
+function pkg_info_gen() {
+    local OLD_KERN_BRANDS="twonav os"
+    local OLD_KERN_MODELS="trail aventura velo horizon"
+    local BREAK_VERSION="1.1.0"
+    echo -n "$1"
+    local i j cnt=0
+    for i in $OLD_KERN_BRANDS ; do for j in $OLD_KERN_MODELS ; do
+        if ((cnt++ > 0)) ; then echo "," ; fi
+        echo -en "\t$2-3.8.13.30-$i-$j-2017 (<= $BREAK_VERSION)"
+    done ; done
+    echo
+}
+
+function fix_unified_kernel_control_files() {
+    local i
+    local LINUX_DEBIAN_PATH=${1}/debian/${2}-$kernel_name/DEBIAN        
+
+    for i in "Breaks:" "Replaces:" ; do
+        pkg_info_gen "$i" ${2}>> $LINUX_DEBIAN_PATH/control     
+    done
+}
+
+function add_breaks_replaces_unified_version () {
+    if [[ "$DEVICE" == "twonav" ]] ; then
+        ## linux-image with TwoNav modifications
+        echo "Kernel package: adding break/replaces linux-image"
+        local KERN_IMAGE_BASE_NAME="linux-image"    
+        fix_unified_kernel_control_files $1 $KERN_IMAGE_BASE_NAME
+
+        ## linux-headers with TwoNav modifications
+        echo "Kernel package: adding break/replaces linux-headers"
+        local KERN_HEADERS_BASE_NAME="linux-headers"
+        fix_unified_kernel_control_files $1 $KERN_HEADERS_BASE_NAME 
+    fi
+}
+
+# ###############################################################################################
+
+
+
+
+
 if [[ ! $(whoami) =~ "root" ]]; then
 echo ""
 echo "**********************************"
@@ -17,7 +61,7 @@ fi
 
 if [ $# -ne 2 ] ; then
 echo "Usage: ./build_backports.sh <DEVICE> <VERSION>"
-echo " <DEVICE> is the name of defconfig (twonav_velo, os_aventura, ...)"
+echo " <DEVICE> is the name of defconfig (twonav, twonav_velo, os_aventura, ...)"
 exit
 fi
 
@@ -28,6 +72,7 @@ UBUNTU_VERSION=`lsb_release -r | awk -F: '{ print $2 }' | awk -F. '{ print $1 }'
 
 revision=$(
     case "$DEVICE" in
+        ("twonav") echo "TwoNavUnified" ;;
     	("twonav_velo") echo "TwoNavVelo" ;;
     	("twonav_aventura") echo "TwoNavAventura" ;;
     	("twonav_horizon") echo "TwoNavHorizon" ;;
@@ -36,7 +81,7 @@ revision=$(
     	("os_aventura") echo "OsAventura" ;;
     	("os_horizon") echo "OsHorizon" ;;
     	("os_trail") echo "OsTrail" ;;
-		("base") echo "KernelBase" ;;
+		("base") echo "KernelBase" ;;        
 	(*) echo "$DEVICE" ;;
     esac)
 
@@ -123,6 +168,8 @@ cp extras/update_zImage debian/linux-image-$kernel_name/etc/kernel/postinst.d/up
 cp extras/update_uInitrd debian/linux-image-$kernel_name/etc/kernel/postinst.d/update_uInitrd
 cp -r /home/$HOMEUSERFOLDER/Velo_images/kernel_modules/lib/modules/$kernel_name/updates debian/linux-image-$kernel_name/lib/modules/$kernel_name/wireless_backports
 
+
+add_breaks_replaces_unified_version $KERNEL_SRC
 
 if [ $UBUNTU_VERSION -ge 18 ]; then
 	dpkg-deb -b -Zgzip /home/$HOMEUSERFOLDER/Kernels_IMASD/Clickarm_Kernel_3.8/debian/linux-image-$kernel_name ..

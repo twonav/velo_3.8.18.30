@@ -43,6 +43,14 @@
 #include <linux/queue.h>
 #include <linux/delay.h>
 
+#include "twonav_ds2782_battery.h"
+
+extern char* tn_hwtype;
+extern bool tn_is_aventura;
+extern bool tn_is_velo;
+extern bool tn_is_horizon;
+extern bool tn_is_trail;
+
 struct dentry *low_batt_signal_file;
 int pid = 0;
 struct timespec charging_time_start;
@@ -215,136 +223,140 @@ int fully_charged = 0;
 
 //DS2782 EEPROM values for TwoNav
 
-#if defined (CONFIG_TWONAV_VELO)
-	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
-	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x21 //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD7 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x0A //0x65
-	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
-	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x1F //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x21 //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x00 //0x6B
-	#define DS2782_EEPROM_Full3040Slope_VALUE 		0x0F //0x6C
-	#define DS2782_EEPROM_Full2030Slope_VALUE 		0x1C //0x6D
-	#define DS2782_EEPROM_Full1020Slope_VALUE 		0x26 //0x6E
-	#define DS2782_EEPROM_Full0010Slope_VALUE 		0x27 //0x6F
-	#define DS2782_EEPROM_AE3040Slope_VALUE 		0x07 //0x70
-	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x10 //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x1E //0x72
-	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x12 //0x73
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x02 //0x74
-	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x04 //0x75
-	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x05 //0x76
-	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0A //0x77
-	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
-	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
-	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
-	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
-	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
-	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
-#elif defined (CONFIG_TWONAV_TRAIL)
-	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
-	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x54 //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x4D //0x65
-	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
-	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x1F //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x54 //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x00 //0x6B
-    #define DS2782_EEPROM_Full3040Slope_VALUE       0x0F //0x6C
-    #define DS2782_EEPROM_Full2030Slope_VALUE       0x1C //0x6D
-    #define DS2782_EEPROM_Full1020Slope_VALUE       0x26 //0x6E
-    #define DS2782_EEPROM_Full0010Slope_VALUE       0x27 //0x6F
-    #define DS2782_EEPROM_AE3040Slope_VALUE         0x06 //0x70
-    #define DS2782_EEPROM_AE2030Slope_VALUE         0x10 //0x71
-    #define DS2782_EEPROM_AE1020Slope_VALUE         0x1E //0x72
-    #define DS2782_EEPROM_AE0010Slope_VALUE         0x12 //0x73
-    #define DS2782_EEPROM_SE3040Slope_VALUE         0x02 //0x74
-    #define DS2782_EEPROM_SE2030Slope_VALUE         0x05 //0x75
-    #define DS2782_EEPROM_SE1020Slope_VALUE         0x05 //0x76
-    #define DS2782_EEPROM_SE0010Slope_VALUE         0x0B //0x77
-	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
-	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
-	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
-	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
-	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
-	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
-#elif defined (CONFIG_TWONAV_AVENTURA)
-	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
-	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x64 //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xD6 //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x4D //0x65
-	#define DS2782_EEPROM_VAE_VALUE 				0x9A //0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
-	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x1F //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x64 //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE 			0x00 //0x6B
-	#define DS2782_EEPROM_Full3040Slope_VALUE       0x0F //0x6C
-    #define DS2782_EEPROM_Full2030Slope_VALUE       0x1C //0x6D
-    #define DS2782_EEPROM_Full1020Slope_VALUE       0x26 //0x6E
-    #define DS2782_EEPROM_Full0010Slope_VALUE       0x27 //0x6F
-    #define DS2782_EEPROM_AE3040Slope_VALUE         0x07 //0x70
-    #define DS2782_EEPROM_AE2030Slope_VALUE         0x10 //0x71
-    #define DS2782_EEPROM_AE1020Slope_VALUE         0x1D //0x72
-    #define DS2782_EEPROM_AE0010Slope_VALUE         0x12 //0x73
-    #define DS2782_EEPROM_SE3040Slope_VALUE         0x02 //0x74
-    #define DS2782_EEPROM_SE2030Slope_VALUE         0x05 //0x75
-    #define DS2782_EEPROM_SE1020Slope_VALUE         0x05 //0x76
-    #define DS2782_EEPROM_SE0010Slope_VALUE         0x0A //0x77
-	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
-	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
-	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
-	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
-	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
-	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
-	#define RECHARGABLE_BATTERY_MAX_VOLTAGE 		4210000
-#elif defined (CONFIG_TWONAV_HORIZON)
-	#define DS2782_EEPROM_CONTROL_VALUE 			0x00 //0x60
-	#define DS2782_EEPROM_AB_VALUE 					0x00 //0x61
-	#define DS2782_EEPROM_AC_MSB_VALUE 				0x1E //0x62
-	#define DS2782_EEPROM_AC_LSB_VALUE 				0x00 //0x63
-	#define DS2782_EEPROM_VCHG_VALUE 				0xDB //0x64
-	#define DS2782_EEPROM_IMIN_VALUE 				0x40 //0x65
-	#define DS2782_EEPROM_VAE_VALUE 				0x9A//0x66
-	#define DS2782_EEPROM_IAE_VALUE 				0x10 //0x67
-	#define DS2782_EEPROM_ActiveEmpty_VALUE 		0x08 //0x68
-	#define DS2782_EEPROM_RSNS_VALUE 				0x1F //0x69
-	#define DS2782_EEPROM_Full40_MSB_VALUE 			0x1E //0x6A
-	#define DS2782_EEPROM_Full40_LSB_VALUE          0x00 //0x6B
-    #define DS2782_EEPROM_Full3040Slope_VALUE       0x0E //0x6C
-    #define DS2782_EEPROM_Full2030Slope_VALUE       0x1C //0x6D
-    #define DS2782_EEPROM_Full1020Slope_VALUE       0x25 //0x6E
-    #define DS2782_EEPROM_Full0010Slope_VALUE       0x27 //0x6F
-    #define DS2782_EEPROM_AE3040Slope_VALUE         0x07 //0x70
-	#define DS2782_EEPROM_AE2030Slope_VALUE 		0x10 //0x71
-	#define DS2782_EEPROM_AE1020Slope_VALUE 		0x1D //0x72
-	#define DS2782_EEPROM_AE0010Slope_VALUE 		0x13 //0x73
-	#define DS2782_EEPROM_SE3040Slope_VALUE 		0x02 //0x74
-	#define DS2782_EEPROM_SE2030Slope_VALUE 		0x04 //0x75
-	#define DS2782_EEPROM_SE1020Slope_VALUE 		0x04 //0x76
-	#define DS2782_EEPROM_SE0010Slope_VALUE 		0x0B //0x77
-	#define DS2782_EEPROM_RSGAIN_MSB_VALUE 			0x04 //0x78
-	#define DS2782_EEPROM_RSGAIN_LSB_VALUE 			0x00 //0x79
-	#define DS2782_EEPROM_RSTC_VALUE 				0x00 //0x7A
-	#define DS2782_EEPROM_FRSGAIN_MSB_VALUE 		0x04 //0x7B
-	#define DS2782_EEPROM_FRSGAIN_LSB_VALUE 		0x1A //0x7C
-	#define DS2782_EEPROM_SlaveAddressConfig_VALUE 	0x68 //0x7E
-#endif
 
+static const struct twonav_ds_2782_eeprom_config ds_config_velo = {	
+	.control = DS2782_EEPROM_VELO_CONTROL_VALUE,
+	.ab = DS2782_EEPROM_VELO_AB_VALUE,
+	.ac_msb = DS2782_EEPROM_VELO_AC_MSB_VALUE,
+	.ac_lsb = DS2782_EEPROM_VELO_AC_LSB_VALUE,
+	.vchg = DS2782_EEPROM_VELO_VCHG_VALUE,
+	.imin = DS2782_EEPROM_VELO_IMIN_VALUE,
+	.vae = DS2782_EEPROM_VELO_VAE_VALUE,
+	.iae = DS2782_EEPROM_VELO_IAE_VALUE,
+	.active_empty = DS2782_EEPROM_VELO_ActiveEmpty_VALUE,
+	.rsns = DS2782_EEPROM_VELO_RSNS_VALUE,
+	.full40_msb = DS2782_EEPROM_VELO_Full40_MSB_VALUE,
+	.full40_lsb = DS2782_EEPROM_VELO_Full40_LSB_VALUE,
+	.full3040slope = DS2782_EEPROM_VELO_Full3040Slope_VALUE,
+	.full2030slope = DS2782_EEPROM_VELO_Full2030Slope_VALUE,
+	.full1020slope = DS2782_EEPROM_VELO_Full1020Slope_VALUE,
+	.full0010slope = DS2782_EEPROM_VELO_Full0010Slope_VALUE,
+	.ae3040slope = DS2782_EEPROM_VELO_AE3040Slope_VALUE,
+	.ae2030slope = DS2782_EEPROM_VELO_AE2030Slope_VALUE,
+	.ae1020slope = DS2782_EEPROM_VELO_AE1020Slope_VALUE,
+	.ae0010slope = DS2782_EEPROM_VELO_AE0010Slope_VALUE,
+	.se3040slope = DS2782_EEPROM_VELO_SE3040Slope_VALUE,
+	.se2030slope = DS2782_EEPROM_VELO_SE2030Slope_VALUE,
+	.se1020slope = DS2782_EEPROM_VELO_SE1020Slope_VALUE,
+	.se0010slope = DS2782_EEPROM_VELO_SE0010Slope_VALUE,
+	.rsgain_msb  = DS2782_EEPROM_VELO_RSGAIN_MSB_VALUE,
+	.rsgain_lsb = DS2782_EEPROM_VELO_RSGAIN_LSB_VALUE,
+	.rstc = DS2782_EEPROM_VELO_RSTC_VALUE,
+	.frsgain_msb = DS2782_EEPROM_VELO_FRSGAIN_MSB_VALUE,
+	.frsgain_lsb = DS2782_EEPROM_VELO_FRSGAIN_LSB_VALUE,
+	.slave_addr_config = DS2782_EEPROM_VELO_SlaveAddressConfig_VALUE,
+};
+
+static const struct twonav_ds_2782_eeprom_config ds_config_trail = {
+	.control = DS2782_EEPROM_TRAIL_CONTROL_VALUE,
+	.ab = DS2782_EEPROM_TRAIL_AB_VALUE,
+	.ac_msb = DS2782_EEPROM_TRAIL_AC_MSB_VALUE,
+	.ac_lsb = DS2782_EEPROM_TRAIL_AC_LSB_VALUE,
+	.vchg = DS2782_EEPROM_TRAIL_VCHG_VALUE,
+	.imin = DS2782_EEPROM_TRAIL_IMIN_VALUE,
+	.vae = DS2782_EEPROM_TRAIL_VAE_VALUE,
+	.iae = DS2782_EEPROM_TRAIL_IAE_VALUE,
+	.active_empty = DS2782_EEPROM_TRAIL_ActiveEmpty_VALUE,
+	.rsns = DS2782_EEPROM_TRAIL_RSNS_VALUE,
+	.full40_msb = DS2782_EEPROM_TRAIL_Full40_MSB_VALUE,
+	.full40_lsb = DS2782_EEPROM_TRAIL_Full40_LSB_VALUE,
+	.full3040slope = DS2782_EEPROM_TRAIL_Full3040Slope_VALUE,
+	.full2030slope = DS2782_EEPROM_TRAIL_Full2030Slope_VALUE,
+	.full1020slope = DS2782_EEPROM_TRAIL_Full1020Slope_VALUE,
+	.full0010slope = DS2782_EEPROM_TRAIL_Full0010Slope_VALUE,
+	.ae3040slope = DS2782_EEPROM_TRAIL_AE3040Slope_VALUE,
+	.ae2030slope = DS2782_EEPROM_TRAIL_AE2030Slope_VALUE,
+	.ae1020slope = DS2782_EEPROM_TRAIL_AE1020Slope_VALUE,
+	.ae0010slope = DS2782_EEPROM_TRAIL_AE0010Slope_VALUE,
+	.se3040slope = DS2782_EEPROM_TRAIL_SE3040Slope_VALUE,
+	.se2030slope = DS2782_EEPROM_TRAIL_SE2030Slope_VALUE,
+	.se1020slope = DS2782_EEPROM_TRAIL_SE1020Slope_VALUE,
+	.se0010slope = DS2782_EEPROM_TRAIL_SE0010Slope_VALUE,
+	.rsgain_msb  = DS2782_EEPROM_TRAIL_RSGAIN_MSB_VALUE,
+	.rsgain_lsb = DS2782_EEPROM_TRAIL_RSGAIN_LSB_VALUE,
+	.rstc = DS2782_EEPROM_TRAIL_RSTC_VALUE,
+	.frsgain_msb = DS2782_EEPROM_TRAIL_FRSGAIN_MSB_VALUE,
+	.frsgain_lsb = DS2782_EEPROM_TRAIL_FRSGAIN_LSB_VALUE,
+	.slave_addr_config = DS2782_EEPROM_TRAIL_SlaveAddressConfig_VALUE,
+};
+
+static const struct twonav_ds_2782_eeprom_config ds_config_aventura = {
+	.control = DS2782_EEPROM_AVENTURA_CONTROL_VALUE,
+	.ab = DS2782_EEPROM_AVENTURA_AB_VALUE,
+	.ac_msb = DS2782_EEPROM_AVENTURA_AC_MSB_VALUE,
+	.ac_lsb = DS2782_EEPROM_AVENTURA_AC_LSB_VALUE,
+	.vchg = DS2782_EEPROM_AVENTURA_VCHG_VALUE,
+	.imin = DS2782_EEPROM_AVENTURA_IMIN_VALUE,
+	.vae = DS2782_EEPROM_AVENTURA_VAE_VALUE,
+	.iae = DS2782_EEPROM_AVENTURA_IAE_VALUE,
+	.active_empty = DS2782_EEPROM_AVENTURA_ActiveEmpty_VALUE,
+	.rsns = DS2782_EEPROM_AVENTURA_RSNS_VALUE,
+	.full40_msb = DS2782_EEPROM_AVENTURA_Full40_MSB_VALUE,
+	.full40_lsb = DS2782_EEPROM_AVENTURA_Full40_LSB_VALUE,
+	.full3040slope = DS2782_EEPROM_AVENTURA_Full3040Slope_VALUE,
+	.full2030slope = DS2782_EEPROM_AVENTURA_Full2030Slope_VALUE,
+	.full1020slope = DS2782_EEPROM_AVENTURA_Full1020Slope_VALUE,
+	.full0010slope = DS2782_EEPROM_AVENTURA_Full0010Slope_VALUE,
+	.ae3040slope = DS2782_EEPROM_AVENTURA_AE3040Slope_VALUE,
+	.ae2030slope = DS2782_EEPROM_AVENTURA_AE2030Slope_VALUE,
+	.ae1020slope = DS2782_EEPROM_AVENTURA_AE1020Slope_VALUE,
+	.ae0010slope = DS2782_EEPROM_AVENTURA_AE0010Slope_VALUE,
+	.se3040slope = DS2782_EEPROM_AVENTURA_SE3040Slope_VALUE,
+	.se2030slope = DS2782_EEPROM_AVENTURA_SE2030Slope_VALUE,
+	.se1020slope = DS2782_EEPROM_AVENTURA_SE1020Slope_VALUE,
+	.se0010slope = DS2782_EEPROM_AVENTURA_SE0010Slope_VALUE,
+	.rsgain_msb  = DS2782_EEPROM_AVENTURA_RSGAIN_MSB_VALUE,
+	.rsgain_lsb = DS2782_EEPROM_AVENTURA_RSGAIN_LSB_VALUE,
+	.rstc = DS2782_EEPROM_AVENTURA_RSTC_VALUE,
+	.frsgain_msb = DS2782_EEPROM_AVENTURA_FRSGAIN_MSB_VALUE,
+	.frsgain_lsb = DS2782_EEPROM_AVENTURA_FRSGAIN_LSB_VALUE,
+	.slave_addr_config = DS2782_EEPROM_AVENTURA_SlaveAddressConfig_VALUE,
+};
+
+static const struct twonav_ds_2782_eeprom_config ds_config_horizon = {
+	.control = DS2782_EEPROM_HORIZON_CONTROL_VALUE,
+	.ab = DS2782_EEPROM_HORIZON_AB_VALUE,
+	.ac_msb = DS2782_EEPROM_HORIZON_AC_MSB_VALUE,
+	.ac_lsb = DS2782_EEPROM_HORIZON_AC_LSB_VALUE,
+	.vchg = DS2782_EEPROM_HORIZON_VCHG_VALUE,
+	.imin = DS2782_EEPROM_HORIZON_IMIN_VALUE,
+	.vae = DS2782_EEPROM_HORIZON_VAE_VALUE,
+	.iae = DS2782_EEPROM_HORIZON_IAE_VALUE,
+	.active_empty = DS2782_EEPROM_HORIZON_ActiveEmpty_VALUE,
+	.rsns = DS2782_EEPROM_HORIZON_RSNS_VALUE,
+	.full40_msb = DS2782_EEPROM_HORIZON_Full40_MSB_VALUE,
+	.full40_lsb = DS2782_EEPROM_HORIZON_Full40_LSB_VALUE,
+	.full3040slope = DS2782_EEPROM_HORIZON_Full3040Slope_VALUE,
+	.full2030slope = DS2782_EEPROM_HORIZON_Full2030Slope_VALUE,
+	.full1020slope = DS2782_EEPROM_HORIZON_Full1020Slope_VALUE,
+	.full0010slope = DS2782_EEPROM_HORIZON_Full0010Slope_VALUE,
+	.ae3040slope = DS2782_EEPROM_HORIZON_AE3040Slope_VALUE,
+	.ae2030slope = DS2782_EEPROM_HORIZON_AE2030Slope_VALUE,
+	.ae1020slope = DS2782_EEPROM_HORIZON_AE1020Slope_VALUE,
+	.ae0010slope = DS2782_EEPROM_HORIZON_AE0010Slope_VALUE,
+	.se3040slope = DS2782_EEPROM_HORIZON_SE3040Slope_VALUE,
+	.se2030slope = DS2782_EEPROM_HORIZON_SE2030Slope_VALUE,
+	.se1020slope = DS2782_EEPROM_HORIZON_SE1020Slope_VALUE,
+	.se0010slope = DS2782_EEPROM_HORIZON_SE0010Slope_VALUE,
+	.rsgain_msb  = DS2782_EEPROM_HORIZON_RSGAIN_MSB_VALUE,
+	.rsgain_lsb = DS2782_EEPROM_HORIZON_RSGAIN_LSB_VALUE,
+	.rstc = DS2782_EEPROM_HORIZON_RSTC_VALUE,
+	.frsgain_msb = DS2782_EEPROM_HORIZON_FRSGAIN_MSB_VALUE,
+	.frsgain_lsb = DS2782_EEPROM_HORIZON_FRSGAIN_LSB_VALUE,
+	.slave_addr_config = DS2782_EEPROM_HORIZON_SlaveAddressConfig_VALUE,
+};
 
 #define DS2782_AS_VALUE 						0x80 //0x14
-
 #define DS2782_Register_Command_Write_Copy_VALUE 			0x44 //0xFE
 #define DS2782_Register_Command_Recal_Read_VALUE 			0xb4 //0xFE
 
@@ -666,7 +678,7 @@ static int ds2782_enqueueVoltage (queue *AA_voltage_queue, int voltage_now) {
 	*newVal = voltage_now;
 
 	if (AA_voltage_queue->current_size >= AA_VOLTAGE_FILTER_SIZE) {
-		int* removed_item = ds2782_dequeueVoltage(AA_voltage_queue);
+		ds2782_dequeueVoltage(AA_voltage_queue);
 	}
 
 	queue_enqueue(AA_voltage_queue, newVal);
@@ -676,8 +688,7 @@ static int ds2782_enqueueVoltage (queue *AA_voltage_queue, int voltage_now) {
 
 static int ds2782_update_AA_capacity(int voltage_now, int current_now, u8 battery_chemistry) {
 	int voltage_average;
-	int weighted_average;
-	struct list_head *i;
+	int weighted_average;	
 	int removed_voltage;
 
 	if (voltage_now < 4200000) {
@@ -730,13 +741,15 @@ static int ds2782_get_capacity(struct ds278x_info *info, int *capacity)
 	 *  connected and capacity reaches 100 but we are still charging
 	 *  (charge_termination_flag=0) instead of showing 100% we will show 99
 	 **/
-	#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
+	if(tn_is_horizon || tn_is_aventura || tn_is_trail) 
+	{	
 		if ((mcp73833_power_good == 1) &&
 			(*capacity == 100) &&
-			(charge_termination_flag == 0)) {
-	 	 		*capacity = 99;
-			}
-	#endif
+			(charge_termination_flag == 0)) 
+		{
+	 		*capacity = 99;
+		}
+	}
 
 	return 0;
 }
@@ -1060,13 +1073,27 @@ static void ds2782_autodetect_battery_type(struct i2c_client *client) {
 
 static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 {
-	#if defined (CONFIG_TWONAV_AVENTURA)
-		ds2782_autodetect_battery_type(client);
-	#endif
-
+	const struct twonav_ds_2782_eeprom_config* tn_config = NULL;
+		
+	if(tn_is_velo)
+		tn_config = &ds_config_velo;
+	else if(tn_is_horizon) 
+		tn_config = &ds_config_horizon;
+	else if(tn_is_trail) 
+		tn_config = &ds_config_trail;
+	else if(tn_is_aventura) 
+	{			
+		tn_config = &ds_config_aventura;
+		ds2782_autodetect_battery_type(client);	
+	}
+	else {
+		printk(KERN_INFO "ds2782_battery_init: error: unassigned twonav device");
+		return -1;
+	}
+	
 	// Values that need to be set regardless of previous configuration
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IMIN, (long unsigned int)DS2782_EEPROM_IMIN_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, DS2782_EEPROM_IMIN_VALUE); // 0x65 Charge termination current
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IMIN[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IMIN, (long unsigned int)tn_config->imin);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IMIN, tn_config->imin); // 0x65 Charge termination current
 
 	*batt_status = ds2782_detect_battery_status(client);
 	if (*batt_status != NEW_BATTERY) { // No need to re-configure DS2782 again
@@ -1076,75 +1103,75 @@ static int ds2782_battery_init(struct i2c_client *client, int* batt_status)
 	// Values extracted from the DS2782K Test kit
 	// IMPORTANT: Capacity estimation is done outside kernel
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_CONTROL[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_CONTROL, (long unsigned int)DS2782_EEPROM_CONTROL_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, DS2782_EEPROM_CONTROL_VALUE); // 0x60
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AB, (long unsigned int)DS2782_EEPROM_AB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, DS2782_EEPROM_AB_VALUE); // 0x61
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_CONTROL[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_CONTROL, (long unsigned int)tn_config->control);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_CONTROL, tn_config->control); // 0x60
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AB, (long unsigned int)tn_config->ab);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AB, tn_config->ab); // 0x61
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_MSB, (long unsigned int)DS2782_EEPROM_AC_MSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, DS2782_EEPROM_AC_MSB_VALUE); // 0x62
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_LSB, (long unsigned int)DS2782_EEPROM_AC_LSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, DS2782_EEPROM_AC_LSB_VALUE); // 0x63
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_MSB, (long unsigned int)tn_config->ac_msb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_MSB, tn_config->ac_msb); // 0x62
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AC_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AC_LSB, (long unsigned int)tn_config->ac_lsb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AC_LSB, tn_config->ac_lsb); // 0x63
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VCHG[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VCHG, (long unsigned int)DS2782_EEPROM_VCHG_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, DS2782_EEPROM_VCHG_VALUE); //4.2 charging voltage// 0x64
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VCHG[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VCHG, (long unsigned int)tn_config->vchg);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VCHG, tn_config->vchg); //4.2 charging voltage// 0x64
 
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VAE, (long unsigned int)DS2782_EEPROM_VAE_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, DS2782_EEPROM_VAE_VALUE); //3.0 minimum voltage// 0x66
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IAE, (long unsigned int)DS2782_EEPROM_IAE_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, DS2782_EEPROM_IAE_VALUE); //330mA constant discharge current// 0x67
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_VAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_VAE, (long unsigned int)tn_config->vae);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_VAE, tn_config->vae); //3.0 minimum voltage// 0x66
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_IAE[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_IAE, (long unsigned int)tn_config->iae);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_IAE, tn_config->iae); //330mA constant discharge current// 0x67
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_ActiveEmpty[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_ActiveEmpty, (long unsigned int)DS2782_EEPROM_ActiveEmpty_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, DS2782_EEPROM_ActiveEmpty_VALUE); // 0x68
-	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_REG_RSNSP, (long unsigned int)DS2782_EEPROM_RSNS_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, DS2782_EEPROM_RSNS_VALUE); // 0x69
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_ActiveEmpty[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_ActiveEmpty, (long unsigned int)tn_config->active_empty);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_ActiveEmpty, tn_config->active_empty); // 0x68
+	printk(KERN_INFO "I2C Write: DS2782_REG_RSNSP[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_REG_RSNSP, (long unsigned int)tn_config->rsns);
+	i2c_smbus_write_byte_data(client, DS2782_REG_RSNSP, tn_config->rsns); // 0x69
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_MSB, (long unsigned int)DS2782_EEPROM_Full40_MSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, DS2782_EEPROM_Full40_MSB_VALUE); // 0x6A
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_LSB, (long unsigned int)DS2782_EEPROM_Full40_LSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, DS2782_EEPROM_Full40_LSB_VALUE); // 0x6B
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_MSB, (long unsigned int)tn_config->full40_msb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_MSB, tn_config->full40_msb); // 0x6A
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full40_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full40_LSB, (long unsigned int)tn_config->full40_lsb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full40_LSB, tn_config->full40_lsb); // 0x6B
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full3040Slope, (long unsigned int)DS2782_EEPROM_Full3040Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, DS2782_EEPROM_Full3040Slope_VALUE); // 0x6C
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full2030Slope, (long unsigned int)DS2782_EEPROM_Full2030Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, DS2782_EEPROM_Full2030Slope_VALUE); // 0x6D
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full1020Slope, (long unsigned int)DS2782_EEPROM_Full1020Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, DS2782_EEPROM_Full1020Slope_VALUE); // 0x6E
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full3040Slope, (long unsigned int)tn_config->full3040slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full3040Slope, tn_config->full3040slope); // 0x6C
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full2030Slope, (long unsigned int)tn_config->full2030slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full2030Slope, tn_config->full2030slope); // 0x6D
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full1020Slope, (long unsigned int)tn_config->full1020slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full1020Slope, tn_config->full1020slope); // 0x6E
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full0010Slope, (long unsigned int)DS2782_EEPROM_Full0010Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, DS2782_EEPROM_Full0010Slope_VALUE); // 0x6F
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE3040Slope, (long unsigned int)DS2782_EEPROM_AE3040Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, DS2782_EEPROM_AE3040Slope_VALUE); // 0x70
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE2030Slope, (long unsigned int)DS2782_EEPROM_AE2030Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, DS2782_EEPROM_AE2030Slope_VALUE); // 0x71
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE1020Slope, (long unsigned int)DS2782_EEPROM_AE1020Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, DS2782_EEPROM_AE1020Slope_VALUE); // 0x72
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_Full0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_Full0010Slope, (long unsigned int)tn_config->full0010slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_Full0010Slope, tn_config->full0010slope); // 0x6F
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE3040Slope, (long unsigned int)tn_config->ae3040slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE3040Slope, tn_config->ae3040slope); // 0x70
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE2030Slope, (long unsigned int)tn_config->ae2030slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE2030Slope, tn_config->ae2030slope); // 0x71
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE1020Slope, (long unsigned int)tn_config->ae1020slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE1020Slope, tn_config->ae1020slope); // 0x72
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE0010Slope, (long unsigned int)DS2782_EEPROM_AE0010Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, DS2782_EEPROM_AE0010Slope_VALUE); // 0x73
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_AE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_AE0010Slope, (long unsigned int)tn_config->ae0010slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_AE0010Slope, tn_config->ae0010slope); // 0x73
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE3040Slope, (long unsigned int)DS2782_EEPROM_SE3040Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, DS2782_EEPROM_SE3040Slope_VALUE); // 0x74
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE3040Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE3040Slope, (long unsigned int)tn_config->se3040slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE3040Slope, tn_config->se3040slope); // 0x74
 
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE2030Slope, (long unsigned int)DS2782_EEPROM_SE2030Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, DS2782_EEPROM_SE2030Slope_VALUE); // 0x75
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE1020Slope, (long unsigned int)DS2782_EEPROM_SE1020Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, DS2782_EEPROM_SE1020Slope_VALUE); // 0x76
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE0010Slope, (long unsigned int)DS2782_EEPROM_SE0010Slope_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE0010Slope, DS2782_EEPROM_SE0010Slope_VALUE); // 0x77
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_MSB, (long unsigned int)DS2782_EEPROM_RSGAIN_MSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_MSB, DS2782_EEPROM_RSGAIN_MSB_VALUE); // 0x78
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_LSB, (long unsigned int)DS2782_EEPROM_RSGAIN_LSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_LSB, DS2782_EEPROM_RSGAIN_LSB_VALUE); // 0x79
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSTC[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSTC, (long unsigned int)DS2782_EEPROM_RSTC_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSTC, DS2782_EEPROM_RSTC_VALUE); // 0x7A
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_MSB, (long unsigned int)DS2782_EEPROM_FRSGAIN_MSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_MSB, DS2782_EEPROM_FRSGAIN_MSB_VALUE); // 0x7B
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_LSB, (long unsigned int)DS2782_EEPROM_FRSGAIN_LSB_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_LSB, DS2782_EEPROM_FRSGAIN_LSB_VALUE); // 0x7C
-	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SlaveAddressConfig[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SlaveAddressConfig, (long unsigned int)DS2782_EEPROM_SlaveAddressConfig_VALUE);
-	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SlaveAddressConfig, DS2782_EEPROM_SlaveAddressConfig_VALUE); // 0x7E
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE2030Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE2030Slope, (long unsigned int)tn_config->se2030slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE2030Slope, tn_config->se2030slope); // 0x75
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE1020Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE1020Slope, (long unsigned int)tn_config->se1020slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE1020Slope, tn_config->se1020slope); // 0x76
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SE0010Slope[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SE0010Slope, (long unsigned int)tn_config->se0010slope);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SE0010Slope, tn_config->se0010slope); // 0x77
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_MSB, (long unsigned int)tn_config->rsgain_msb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_MSB, tn_config->rsgain_msb); // 0x78
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSGAIN_LSB, (long unsigned int)tn_config->rsgain_lsb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSGAIN_LSB, tn_config->rsgain_lsb); // 0x79
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_RSTC[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_RSTC, (long unsigned int)tn_config->rstc);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_RSTC, tn_config->rstc); // 0x7A
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_MSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_MSB, (long unsigned int)tn_config->frsgain_msb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_MSB, tn_config->frsgain_msb); // 0x7B
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_FRSGAIN_LSB[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_FRSGAIN_LSB, (long unsigned int)tn_config->frsgain_lsb);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_FRSGAIN_LSB, tn_config->frsgain_lsb); // 0x7C
+	printk(KERN_INFO "I2C Write: DS2782_EEPROM_SlaveAddressConfig[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_EEPROM_SlaveAddressConfig, (long unsigned int)tn_config->slave_addr_config);
+	i2c_smbus_write_byte_data(client, DS2782_EEPROM_SlaveAddressConfig, tn_config->slave_addr_config); // 0x7E
 	printk(KERN_INFO "I2C Write: DS2782_AS[0x%04lx] = (0x%04lx)\n", (long unsigned int)DS2782_AS, (long unsigned int)DS2782_AS_VALUE);
 	i2c_smbus_write_byte_data(client, DS2782_AS, DS2782_AS_VALUE); // 0x14 Aging Scalar
 
@@ -1237,7 +1264,6 @@ static int ds2782_reset_full_charge_flag(struct ds278x_info *info) {
 	return 0;
 }
 
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
 void max8814_reset_charger(struct ds278x_info *info) {
 	printk("MAX8814 reset charger\n");
 	gpio_request_one(info->gpio_enable_charger, GPIOF_DIR_OUT, "MAX8814_EN");
@@ -1292,7 +1318,7 @@ void mcp73833_reset_charger_timer_every_3_hours(struct ds278x_info *info, int cu
 	}
 }
 
-int mcp73833_end_of_charge_reset(struct ds278x_info *info, int current_uA) {
+static void mcp73833_end_of_charge_reset(struct ds278x_info *info, int current_uA) {
 	// MCP73833 recharge threshold is 94% of Vreg(4.2V/4.35V)=3.948V/4.089V, which corresponds to a
 	// capacity % less than 85%.
 	// On reaching EOC if there is a residual current (Aventura/Trail: -5mA), which leads to slow battery drain,
@@ -1397,20 +1423,26 @@ void mcp73833_send_fault_event(struct ds278x_info *info) {
 }
 
 int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
+
+	int stat1_stable;
+	int stat2_stable; 
+	int end_of_charge_previous_value;
+	int is_time_to_check_eoc;
+
 	if (mcp73833_power_good == 0)  {
 		return 0;
 	}
 
-	int is_time_to_check_eoc = mcp73833_time_to_check_eoc();
+	is_time_to_check_eoc = mcp73833_time_to_check_eoc();
 	if (is_time_to_check_eoc == 0) {
 		return 0;
 	}
 
-	int stat1_stable = mcp73833_read_stat1(info);
-	int stat2_stable = mcp73833_read_stat2(info);
+	stat1_stable = mcp73833_read_stat1(info);
+	stat2_stable = mcp73833_read_stat2(info);
 
 	if ((stat1_stable == 1) && (stat2_stable ==1)) {
-		int end_of_charge_previous_value = mcp73833_end_of_charge;
+		end_of_charge_previous_value = mcp73833_end_of_charge;
 		mcp73833_end_of_charge = (mcp73833_charged == 1) && (mcp73833_charging == 0);
 		if (end_of_charge_previous_value != mcp73833_end_of_charge) {
 			if (mcp73833_end_of_charge == 1) {
@@ -1426,7 +1458,7 @@ int mcp73833_detect_end_of_charge_transition(struct ds278x_info *info) {
 	}
 	return 0;
 }
-#endif
+
 
 int check_if_discharge(struct ds278x_info *info)
 {
@@ -1435,6 +1467,7 @@ int check_if_discharge(struct ds278x_info *info)
 	int current_uA;
 	int capacity;
 	int voltage;
+	int eoc_transition;
 	u8 battery_chemistry;
 
 	set_current_state(TASK_INTERRUPTIBLE);
@@ -1459,53 +1492,57 @@ int check_if_discharge(struct ds278x_info *info)
 		return err;
 	}
 
-#if defined (CONFIG_TWONAV_AVENTURA)
-	err = ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
-	if (err) {
-		return err;
-	}
-	if (battery_chemistry != LionPoly) {
-		if (AA_timer_count % AA_TIMER_SAMPLE == 0) {
-			ds2782_update_AA_capacity(voltage, current_uA, battery_chemistry);
-			AA_timer_count = 0;
+	if(tn_is_aventura) 
+	{
+		err = ds278x_read_reg(info, DS2782_Register_Chemistry, &battery_chemistry);
+		if (err) {
+			return err;
 		}
-		AA_timer_count = AA_timer_count +1;
-		return 0; // Exit if AAA batteries are installed
+		if (battery_chemistry != LionPoly) {
+			if (AA_timer_count % AA_TIMER_SAMPLE == 0) {
+				ds2782_update_AA_capacity(voltage, current_uA, battery_chemistry);
+				AA_timer_count = 0;
+			}
+			AA_timer_count = AA_timer_count +1;
+			return 0; // Exit if AAA batteries are installed
+		}
 	}
-#endif
 
 	err = info->ops->get_battery_capacity(info, &capacity);
 	if (err)
 		return err;
-#if defined (CONFIG_TWONAV_VELO) // ONLY APPLICABLE IN VELO
-	if(status == POWER_SUPPLY_STATUS_FULL)
+
+	if(tn_is_velo) 
 	{
-		if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
+		if(status == POWER_SUPPLY_STATUS_FULL)
 		{
-			disable_charger(info->gpio_enable_charger);
+			if(voltage > 4200000 && current_uA < 18000 && charger_enabled)
+			{
+				disable_charger(info->gpio_enable_charger);
+			}
+		}
+		else
+		{
+			if((capacity <= RECHARGE_THRESHOLD) && (charger_enabled == 0))
+			{
+				enable_charger(info->gpio_enable_charger);
+			}
 		}
 	}
-	else
+
+	if(tn_is_aventura || tn_is_horizon || tn_is_trail) 
 	{
-		if((capacity <= RECHARGE_THRESHOLD) && (charger_enabled == 0))
-		{
-			enable_charger(info->gpio_enable_charger);
+		mcp73833_check_power_good(info);
+
+		mcp73833_reset_charger_timer_every_3_hours(info, current_uA);
+
+		eoc_transition = mcp73833_detect_end_of_charge_transition(info);
+		if ((eoc_transition == 1) && (capacity < 100)) { // Send EOC message only if capacity is not 100
+			mcp73833_send_end_of_charge_event(info);
 		}
+
+		mcp73833_end_of_charge_reset(info, current_uA);
 	}
-#endif
-
-#if defined (CONFIG_TWONAV_HORIZON) || defined (CONFIG_TWONAV_AVENTURA) || defined (CONFIG_TWONAV_TRAIL)
-	mcp73833_check_power_good(info);
-
-	mcp73833_reset_charger_timer_every_3_hours(info, current_uA);
-
-	int eoc_transition = mcp73833_detect_end_of_charge_transition(info);
-	if ((eoc_transition == 1) && (capacity < 100)) { // Send EOC message only if capacity is not 100
-		mcp73833_send_end_of_charge_event(info);
-	}
-
-	mcp73833_end_of_charge_reset(info, current_uA);
-#endif
 
 	// CHECK_LEARN_CYCLE_COMPLETE
 	check_learn_complete(info);
@@ -1562,6 +1599,8 @@ static int ds278x_battery_probe(struct i2c_client *client,
 	int ret;
 	int num;
 	int batt_status;
+
+	if(tn_hwtype != NULL)  printk("LDU: ds2782_battery_init for %s", tn_hwtype);
 
 	/* Initialize battery registers if not set */
 	ret = ds2782_battery_init(client, &batt_status);
@@ -1649,9 +1688,10 @@ static int ds278x_battery_probe(struct i2c_client *client,
     // Register sysfs attribute chemistry
     device_create_file(dev, &dev_attr_chemistry);
 
-#if defined (CONFIG_TWONAV_AVENTURA)
-    AA_voltage_queue = queue_create();
-#endif
+	if(tn_is_aventura) 
+	{
+    	AA_voltage_queue = queue_create();
+    }
 
 	return 0;
 
@@ -1684,9 +1724,12 @@ static int ds278x_battery_remove(struct i2c_client *client)
 	kfree(info);
 	debugfs_remove(low_batt_signal_file);
 	device_remove_file(dev, &dev_attr_chemistry);
-#if defined (CONFIG_TWONAV_AVENTURA)
-	queue_delete(AA_voltage_queue);
-#endif
+	
+	if(tn_is_aventura)
+	{
+		queue_delete(AA_voltage_queue);
+	}
+	
 
 	return 0;
 }
